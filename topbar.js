@@ -224,6 +224,9 @@ function handleMenuAction(action) {
     case 'open-forum-history':
       if (typeof openForumHistory === 'function') openForumHistory();
       break;
+    case 'open-medal-cabinet':
+      if (typeof openMedalCabinet === 'function') openMedalCabinet();
+      break;
     case 'language-en':      setLanguage('en');      break;
     case 'language-zhHant':  setLanguage('zhHant');  break;
     case 'language-ja':      setLanguage('ja');      break;

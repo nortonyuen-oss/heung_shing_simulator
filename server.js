@@ -649,6 +649,23 @@ function createGameApp(options = {}) {
   }
   });
 
+  // 洋紫荊勳章 (medals.js): the player's medal cabinet, shared by every city save.
+  app.get('/api/player-profile/medals', (_req, res) => {
+    try {
+      res.json({ data: store.getPlayerProfile('medals') });
+    } catch (e) {
+      sendStoreError(res, e, 'GET /api/player-profile/medals');
+    }
+  });
+
+  app.put('/api/player-profile/medals', (req, res) => {
+    try {
+      res.json(store.putPlayerProfile('medals', req.body?.data));
+    } catch (e) {
+      sendStoreError(res, e, 'PUT /api/player-profile/medals');
+    }
+  });
+
   // Building night-lighting calibration store (dev tool; survives game resets).
   app.get('/api/building-light-profiles', (_req, res) => {
     try {

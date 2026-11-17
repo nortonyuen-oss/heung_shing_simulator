@@ -520,6 +520,18 @@
       line-height: 1.1;
     }
 
+    /* 洋紫荊勳章: the medal count, and the way into the cabinet (medals.js) */
+    .kpi-card-button {
+      font: inherit;
+      text-align: left;
+      background: none;
+      border: none;
+      border-left: 1px solid var(--ui-border);
+      cursor: pointer;
+    }
+    .kpi-card-button:hover { background: #f5f2ea; }
+    .kpi-card-button .kpi-value { display: block; color: #8e1b5b; }
+
     #menu-bar {
       display: none;
       position: absolute;
@@ -6723,6 +6735,10 @@
           <div class="kpi-label"><span data-i18n="topbar.kpi.rating">City Rating</span></div>
           <div class="kpi-value" id="topbar-rating">☆☆☆☆☆</div>
         </div>
+        <button class="kpi-card kpi-card-button" id="topbar-medals-btn" type="button" onclick="openMedalCabinet()" title="Bauhinia Medals" data-i18n-title="topbar.medalsTitle">
+          <span class="kpi-label"><span data-i18n="topbar.kpi.medals">Bauhinia Medals</span></span>
+          <span class="kpi-value" id="topbar-medals">🏵 —</span>
+        </button>
       </div>
     </div>
 
@@ -6738,6 +6754,8 @@
           <button class="menu-drop-item" data-menu-action="import-save" data-platform-label="import">Import City…</button>
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="load-game"><span data-i18n="menu.loadGame">📂 Load Game…</span><span class="menu-shortcut">Ctrl+O</span></button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="open-medal-cabinet" data-i18n="menu.medalCabinet">🏵 Bauhinia Medals…</button>
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="main-menu" data-i18n="menu.mainMenu">🏠 Return to Main Menu</button>
         </div>
@@ -8575,6 +8593,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="map-edge-skirt.js"></script>
   <script src="region-connections.js"></script>
   <script src="undersea-tunnel.js"></script>
+  <script src="medal-definitions.js"></script>
+  <script src="medals.js"></script>
   <script src="inspect-panel.js"></script>
   <script src="hk-district-maps.js"></script>
   <script src="hk-district-info.js"></script>

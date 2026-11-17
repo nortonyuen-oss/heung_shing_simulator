@@ -51,6 +51,7 @@ function createDefaultCouncilState(activePolicies = {}) {
     policyNewsSchedules: [],
     forumEventState: {
       labExplosionLastMonthIndex: -1,
+      kirinLastYear: -1,
     },
     annualFortuneState: {
       lastDrawYear: -1,
@@ -154,6 +155,12 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
   const forumEventState = {
     labExplosionLastMonthIndex: Math.floor(clampCouncilNumber(
       raw.forumEventState?.labExplosionLastMonthIndex,
+      -1,
+      Number.MAX_SAFE_INTEGER,
+      -1,
+    )),
+    kirinLastYear: Math.floor(clampCouncilNumber(
+      raw.forumEventState?.kirinLastYear,
       -1,
       Number.MAX_SAFE_INTEGER,
       -1,

@@ -665,10 +665,12 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
   const forumStory = (category, headline, body, comment, image) => ({ category, headline, body, comment, image });
   let featuredTopic = null;
 
-  if ([1, 2].includes(city.month)) topics.push(forumStory('城中熱話',
+  // 麒麟撞議員: one of the black bauhinia's four absurd events, once the story runs (medals.js)
+  let kirinStory = null;
+  if ([1, 2].includes(city.month)) topics.push(kirinStory = { ...forumStory('城中熱話',
     zh ? `${business}賀歲合照再爭C位　旗袍議員被舞麒麟師傅意外撞跌` : `${business} battles for centre stage as councillor is knocked over by a dancing lion`,
     zh ? `賀歲活動合照期間場面混亂，${business}被網民追問爭位是否比城市政策更重要。` : `A chaotic Lunar New Year photo has users asking whether positioning mattered more than policy.`,
-    zh ? '張相最清楚嗰個，始終係隻麒麟。' : 'The lion was still the clearest subject in the photo.', 'UI/news/sideNewsNewYearEvent.webp'));
+    zh ? '張相最清楚嗰個，始終係隻麒麟。' : 'The lion was still the clearest subject in the photo.', 'UI/news/sideNewsNewYearEvent.webp'), medalStoryId: 'kirinCouncillor' });
   if (policyActive('arcticPenguinReserve')) topics.push(forumStory('城市發展',
     zh ? `${tourism}成功爭取北極企鵝保育區　網民先問企鵝點樣返工` : `${tourism} secures an Arctic penguin reserve`,
     zh ? `保育區被形容為旅遊新亮點，預計提升城市吸引力，但交通與營運成本亦受到關注。` : `The reserve may boost tourism, though users are debating transport and operating costs.`,
@@ -781,10 +783,15 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     body: zh ? `${official.name}意外在帖文被 tag，回應指城市發展數據比奶茶甜度更值得關注。` : `${official.name} was unexpectedly tagged and said city data mattered more than drink sweetness.`,
     comment: zh ? '官員識回帖，但係未答邊間最好食。' : 'The official replied but still did not name the best café.',
   });
+  // 一年撞一次 (Norton 2026-11-17): the kirin runs every Lunar New Year - January's lead story if no
+  // other story leads, February's whatever leads
+  const kirinRanThisYear = Number(city.council?.forumEventState?.kirinLastYear) === Number(city.year);
+  if (kirinStory && !kirinRanThisYear && (city.month === 2 || !featuredTopic)) featuredTopic = kirinStory;
   const recentImages = new Set((city.forumPosts || []).slice(-12).map((post) => post.image).filter(Boolean));
   const freshImageTopics = topics.filter((candidate) => candidate.image && !recentImages.has(candidate.image));
   const candidateTopics = freshImageTopics.length ? freshImageTopics : topics;
   let topic = featuredTopic ?? candidateTopics[Math.abs(monthIndex) % candidateTopics.length];
+  const medalStoryId = topic.medalStoryId || '';
   if (language === 'ja') {
     topic = localizeForumTopicJapanese(topic, {
       chief, treasury, police, observatory, business, tourism, religion, culture,
@@ -793,7 +800,7 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     });
   }
   const scale = 120 + (Math.abs(monthIndex * 97) % 1800);
-  return addForumPost({
+  const post = addForumPost({
     headline: topic.headline,
     image: topic.image || '',
     body: [
@@ -817,6 +824,12 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
       ],
     },
   }, { id: `monthly-forum-${monthIndex}`, category: topic.category, author: zh ? '香城熱話台' : language === 'ja' ? '香城トレンド' : 'Heung Shing Trending' });
+  if (post && medalStoryId === 'kirinCouncillor' && city.council) {
+    if (!city.council.forumEventState || typeof city.council.forumEventState !== 'object') city.council.forumEventState = { labExplosionLastMonthIndex: -1 };
+    city.council.forumEventState.kirinLastYear = Math.floor(Number(city.year) || 0);
+  }
+  if (post && medalStoryId && typeof noteMedalForumStory === 'function') noteMedalForumStory(medalStoryId);
+  return post;
 }
 
 function announceSevereTyphoonForumNews(name, stage, windKph) {
@@ -1183,6 +1196,8 @@ function maybeAnnounceSecondarySchoolLabExplosion(monthIndex = getCityMonthIndex
     : Math.random();
   if (roll >= 0.08) return null;
   city.council.forumEventState.labExplosionLastMonthIndex = monthIndex;
+  // 曾Sir又唔記得咗: an absurd event for 國際笑話中心 (medals.js)
+  if (typeof noteMedalForumStory === 'function') noteMedalForumStory('labExplosion');
 
   const locale = getIndustrialPolicyForumLocale();
   const copy = locale.language === 'en'

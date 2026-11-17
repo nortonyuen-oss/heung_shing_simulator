@@ -1339,6 +1339,8 @@ async function loadSaveById(id, scene) {
     }
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
+    // 洋紫荊勳章: judge the city just loaded, so a save from before medals earns what it already did
+    if (typeof onMedalCityLoaded === 'function') onMedalCityLoaded();
     performanceSucceeded = true;
     return true;
   } catch (e) {

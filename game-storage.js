@@ -222,6 +222,24 @@
   }
   async function request(url, options = {}) {
     if (!isWeb()) return root.fetch(url, options);
+    // 洋紫荊勳章 (medals.js): the player's profile, one record in the settings store
+    const profile = String(url).match(/^\/api\/player-profile\/(medals)$/);
+    if (profile) {
+      try {
+        await initialize();
+        const key = `player-profile:${profile[1]}`;
+        if ((options.method || 'GET') === 'GET') {
+          const data = await transaction(['settings'], 'readonly', access => access('settings').get(key));
+          return { ok: true, status: 200, json: async () => ({ data: data ?? null }) };
+        }
+        const data = JSON.parse(options.body || '{}').data;
+        if (!data || typeof data !== 'object' || Array.isArray(data)) throw Object.assign(new Error('profile data must be an object'), { status: 400 });
+        await transaction(['settings'], 'readwrite', access => access('settings').put(data, key));
+        return { ok: true, status: 200, json: async () => ({ ok: true }) };
+      } catch (error) {
+        return { ok: false, status: error.status || 507, json: async () => ({ error: error.message }) };
+      }
+    }
     const match = String(url).match(/^\/api\/(saves|terrains)(?:\/(autosave|\d+))?(\/backup)?$/);
     if (!match) throw new Error('Unsupported storage operation');
     const [, kind, key, backup] = match;

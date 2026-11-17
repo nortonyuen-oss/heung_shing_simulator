@@ -278,6 +278,8 @@ function decideCouncilSession(approve) {
     if (typeof handleCouncilPolicyLifecycle === 'function') {
       handleCouncilPolicyLifecycle(session.itemId, session.motion, monthIndex);
     }
+    // 洋紫荊勳章: the satirical acts count as absurd events (medals.js)
+    if (session.motion === 'enact' && typeof noteMedalPolicyEnacted === 'function') noteMedalPolicyEnacted(session.itemId);
     if (typeof announceCouncilPolicyNews === 'function') announceCouncilPolicyNews(session.itemId, session.motion);
   } else {
     const definition = getCouncilResolutionDefinition(session.itemId);
@@ -292,6 +294,8 @@ function decideCouncilSession(approve) {
       resolutionResult = { outcome: 'scheduled', readiness: getCouncilResolutionReadiness(session.itemId, 'programme') };
     } else {
       resolutionResult = resolveCouncilResolutionOutcome(session.itemId);
+      // 洋紫荊勳章: held, failed, during a typhoon, absurd (medals.js)
+      if (typeof noteMedalResolutionOutcome === 'function') noteMedalResolutionOutcome(session.itemId, resolutionResult.outcome);
       city.council.resolutionHistory.push({
         resolutionId: session.itemId, approvedMonthIndex: monthIndex, cost,
         outcome: resolutionResult.outcome, readiness: resolutionResult.readiness,

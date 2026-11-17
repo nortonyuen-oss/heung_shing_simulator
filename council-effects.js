@@ -391,6 +391,8 @@ function updateDroneShowOverlay() {
 function triggerQuarterlyDroneShow(program) {
   const definition = getCouncilResolutionDefinition(program.resolutionId);
   const result = getDroneShowOutcome(program);
+  // 洋紫荊勳章: each show held (or flopped) counts on its own (medals.js)
+  if (typeof noteMedalResolutionOutcome === 'function') noteMedalResolutionOutcome(program.resolutionId, result.outcome);
   if (result.outcome === 'typhoon_cancelled') {
     if (typeof showToast === 'function' && typeof t === 'function') {
       showToast(t('resolution.fantasyFingHeungShing.cancelledTyphoon'), 'warning');

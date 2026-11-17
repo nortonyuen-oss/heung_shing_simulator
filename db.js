@@ -98,6 +98,16 @@ function openGameDatabase(dbPath = resolveDbPath()) {
     )
   `);
 
+  // 洋紫荊勳章 (medals.js): the player's own records, kept apart from every city save so they
+  // build up across cities. One JSON row per profile key ('medals').
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS player_profile (
+      profile_key TEXT PRIMARY KEY,
+      data        TEXT NOT NULL,
+      updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Road line marking (馬路劃線) calibration - same rationale as building_light_profiles:
   // authored/tool data (road-line-calibrator.js), not city state. tile_key is a composite
   // "<logicalTileKey>::<variantId>" (road-line-calibrator.js roadLineCalibrationKey) since one
@@ -327,6 +337,26 @@ function openGameDatabase(dbPath = resolveDbPath()) {
       if (!row) return null;
       const { sourcesJson, ...metadata } = row;
       return { ...metadata, sources: JSON.parse(sourcesJson) };
+    },
+
+    // ── Player profile (洋紫荊勳章) ────────────────────────────────────────
+    getPlayerProfile(profileKey) {
+      const row = db.prepare('SELECT data FROM player_profile WHERE profile_key = ?').get(String(profileKey || ''));
+      if (!row) return null;
+      try { return JSON.parse(row.data); } catch { return null; }
+    },
+    putPlayerProfile(profileKey, data) {
+      const key = String(profileKey || '').trim();
+      if (!/^[a-z][a-z0-9-]{0,39}$/.test(key)) throw createInvalidPayloadError('profile key is invalid');
+      assertJsonObject(data, 'profile data');
+      const text = JSON.stringify(data);
+      if (text.length > 512 * 1024) throw createInvalidPayloadError('profile data is too large');
+      db.prepare(`
+        INSERT INTO player_profile (profile_key, data, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(profile_key) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP
+      `).run(key, text);
+      return { ok: true };
     },
 
     // ── Building night-lighting calibration ────────────────────────────────

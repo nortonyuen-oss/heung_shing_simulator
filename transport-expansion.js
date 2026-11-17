@@ -2731,11 +2731,13 @@ function settleTransportMonth() {
   state.lastSettledMonthIndex = monthIndex;
   if (!isTransportExpansionActive()) {
     state.lastFinancials = createEmptyTransportFinancials();
+    state.lastModeTotals = {};
     state.weatherSuspendedDaysThisMonth = 0;
     return state.lastFinancials;
   }
   updateTransportSimulation();
   const ended = getTransportEndedMonth();
+  let busPassengers = 0;
   // §12: revenue was already credited to company.cash in real time as each
   // rider alighted (dwellTransportVehicleAtStop) - this pass only *reports*
   // the month's real totals and debits the month's real running costs
@@ -2751,6 +2753,7 @@ function settleTransportMonth() {
     if (runtime?.status === 'active') {
       revenue += route.monthToDateRevenue;
       routeOperations += routeCost;
+      busPassengers += Number(route.monthToDatePassengers) || 0;
     }
     route.history.push({
       year: ended.year,
@@ -2788,6 +2791,15 @@ function settleTransportMonth() {
   // and the light rail's (light-rail-lines.js)
   const lightRailMonth = typeof settleLightRailMonth === 'function' ? settleLightRailMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
   revenue += lightRailMonth.revenue;
+  // 洋紫荊勳章 (medals.js): each mode's riders for the month, for 首條路線 and 交通大臣
+  state.lastModeTotals = {
+    bus: busPassengers,
+    ferry: Number(ferryMonth.passengers) || 0,
+    metro: Number(metroMonth.passengers) || 0,
+    tram: Number(tramMonth.passengers) || 0,
+    lightRail: Number(lightRailMonth.passengers) || 0,
+  };
+  if (typeof noteMedalTransitMonth === 'function') noteMedalTransitMonth(state.lastModeTotals);
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const ferryOperations = Number(ferryMonth.cost) || 0;
   const metroOperations = Number(metroMonth.cost) || 0;

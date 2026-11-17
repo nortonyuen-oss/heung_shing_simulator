@@ -1,0 +1,760 @@
+// 《玩轉18區》 campaign runtime (Norton 2026-11-17; docs/campaign-levels-design.md).
+//
+// Starts a chapter (its start file UI/campaign/chNN.json when there is one - a city Norton built
+// and exported with exportCampaignStart() - else a new city on the chapter's district map), keeps
+// the run on the city (city.campaign, saved with it), judges it at each month's turn, and draws
+// the story: the 女皇密令 letter, the dialogue box, the objectives panel with the tutorial, and
+// the chapter map. The rules are in campaign-chapters.js; the player's best stars are kept in the
+// player profile (key 'campaign'), across saves, as the medals are.
+(function () {
+  'use strict';
+
+  const CAMPAIGN_PROFILE_API = '/api/player-profile/campaign';
+  const CAMPAIGN_PANEL_REFRESH_MS = 1500;
+  const CAMPAIGN_SAVE_DELAY_MS = 800;
+  const CAMPAIGN_START_FILE_FORMAT = 'heung-shing-campaign-start';
+  // ch05 shares the 九龍城 map: its pin sits up by the 黃大仙 temple (HK1980 grid metres)
+  const CAMPAIGN_PIN_OFFSETS = { ch05: { de: -500, dn: 2200 } };
+
+  const runtime = {
+    profile: createEmptyCampaignProfile(),
+    loaded: false,
+    loading: null,
+    saveTimer: null,
+    dialogue: Promise.resolve(),
+    dialogueOpen: false,
+    collapsed: false,
+    highlighted: [],
+    selectedChapterId: 'ch01',
+  };
+
+  const language = () => (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant');
+  const say = (text) => getCampaignText(text, language());
+  const L = (zhHant, en, ja) => ({ zhHant, en, ja });
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+  const storageRequest = (url, options) => (globalThis.HeungShingStorage
+    ? globalThis.HeungShingStorage.request(url, options) : fetch(url, options));
+  const monthIndexNow = () => (typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : 0);
+
+  function isCampaignPaused() {
+    if (typeof city === 'undefined' || !city) return true;
+    if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return true;
+    if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) return true;
+    return false;
+  }
+
+  function isLandingVisible() {
+    const landing = document.getElementById('landing-screen');
+    return !!landing && landing.style.display !== 'none';
+  }
+
+  function getRun() {
+    if (isCampaignPaused() || !city.campaign) return null;
+    if (!city.campaign.schemaVersion || city.campaign.__normalized !== true) {
+      const run = normalizeCampaignRun(city.campaign);
+      if (!run) { city.campaign = null; return null; }
+      Object.defineProperty(run, '__normalized', { value: true, enumerable: false });
+      city.campaign = run;
+    }
+    return city.campaign;
+  }
+
+  // ── Profile (跟玩家，跨存檔) ────────────────────────────────────────────────
+
+  function loadCampaignProfile() {
+    if (runtime.loaded) return Promise.resolve(runtime.profile);
+    if (runtime.loading) return runtime.loading;
+    runtime.loading = (async () => {
+      try {
+        const response = await storageRequest(CAMPAIGN_PROFILE_API);
+        if (!response?.ok) throw new Error(`HTTP ${response?.status}`);
+        const body = await response.json();
+        const stored = normalizeCampaignProfile(body?.data);
+        // stars recorded before the load finished are kept (the best of the two)
+        Object.entries(runtime.profile.chapters).forEach(([id, entry]) => {
+          if ((stored.chapters[id]?.stars || 0) < entry.stars) stored.chapters[id] = entry;
+        });
+        stored.prologueSeen = stored.prologueSeen || runtime.profile.prologueSeen;
+        runtime.profile = stored;
+        runtime.loaded = true;
+      } catch (error) {
+        // not loaded: nothing is written, so a stored profile is never overwritten by an empty one
+        console.warn('[campaign] profile load failed; will retry', error);
+      }
+      runtime.loading = null;
+      return runtime.profile;
+    })();
+    return runtime.loading;
+  }
+
+  function scheduleCampaignProfileSave() {
+    if (!runtime.loaded) { loadCampaignProfile().then(() => { if (runtime.loaded) scheduleCampaignProfileSave(); }); return; }
+    clearTimeout(runtime.saveTimer);
+    runtime.saveTimer = setTimeout(async () => {
+      try {
+        await storageRequest(CAMPAIGN_PROFILE_API, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: runtime.profile }),
+        });
+      } catch (error) {
+        console.warn('[campaign] profile save failed', error);
+      }
+    }, CAMPAIGN_SAVE_DELAY_MS);
+  }
+
+  function campaignStamp() {
+    return { at: new Date().toISOString(), city: String(city?.name || '') };
+  }
+
+  // ── The city as the chapters read it ──────────────────────────────────────
+
+  function buildCampaignSnapshot() {
+    const base = typeof collectMedalSnapshot === 'function' ? collectMedalSnapshot() : { buildings: {}, transit: {} };
+    const buildings = base.buildings || {};
+    const zoneTiles = { res: 0, com: 0, ind: 0 };
+    if (typeof zoneMap !== 'undefined' && Array.isArray(zoneMap)) {
+      for (const row of zoneMap) {
+        if (!row) continue;
+        for (let i = 0; i < row.length; i++) {
+          const zone = row[i];
+          if (zone === ZONE_RES) zoneTiles.res++;
+          else if (zone === ZONE_COM) zoneTiles.com++;
+          else if (zone === ZONE_IND) zoneTiles.ind++;
+        }
+      }
+    }
+    const loans = Array.isArray(city.loans) ? city.loans : [];
+    return {
+      ...base,
+      residentialCount: Number(city.residentialCount) || 0,
+      powerRatio: Number(city.powerRatio) || 0,
+      powerPlants: (buildings.power_plant_coal || 0) + (buildings.power_plant_solar || 0) + (buildings.power_plant_nuclear || 0),
+      monthlyNet: (Number(city.monthlyIncome) || 0) - (Number(city.monthlyExpenses) || 0),
+      loanBalance: loans.reduce((sum, loan) => sum + Math.max(0, Number(loan?.balance) || 0), 0),
+      trafficIndex: Number(city.trafficIndex) || 0,
+      demandR: Number(city.demandR) || 0,
+      roadTiles: typeof roadTileCount !== 'undefined' ? Number(roadTileCount) || 0 : 0,
+      powerLines: typeof powerLineSet !== 'undefined' && powerLineSet ? powerLineSet.size : 0,
+      zoneTiles,
+    };
+  }
+
+  // ── Starting a chapter ────────────────────────────────────────────────────
+
+  async function fetchCampaignStartFile(url) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) return null;
+      const file = await response.json();
+      return file?.format === CAMPAIGN_START_FILE_FORMAT && file.save_data ? file : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // loadSaveById's steps, for a city from a file rather than a save slot (no slot is taken)
+  async function loadCampaignStartFile(file) {
+    if (typeof leaveAttractMode === 'function') leaveAttractMode('load');
+    if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+      if (!await globalThis.__worldGameHost.save(true)) return false;
+      await leaveWorldGame();
+    }
+    const readyScene = await waitForLoadScene(activeScene);
+    if (!readyScene) return false;
+    if (typeof waitForPendingSaves === 'function') await waitForPendingSaves();
+    const save = decodeSaveDataForLoad(file.save_data);
+    await ensureSaveBuildingTextures(readyScene, save);
+    await ensureSaveNightTextures(readyScene, save);
+    beginNewCitySaveSession(null);
+    if (typeof isTerrainCreatorMode !== 'undefined') isTerrainCreatorMode = false;
+    if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
+    applySaveData(readyScene, save);
+    if (typeof startCoastalWeatherSession === 'function') startCoastalWeatherSession();
+    if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.SLOW);
+    hideLandingScreen();
+    return true;
+  }
+
+  async function startFreshCampaignCity(chapter, spec) {
+    const source = (typeof listDistrictMapSources === 'function' ? listDistrictMapSources() : [])
+      .find((entry) => entry.districtId === chapter.mapId);
+    if (!source) return false;
+    const terrain = await source.getTerrain();
+    await startNewGame(say(spec.fresh.cityName), {
+      terrain,
+      districtProfileId: chapter.mapId,
+      transportExpansion: spec.fresh.transportExpansion === true,
+    });
+    if (Number.isFinite(spec.fresh.budget)) city.budget = spec.fresh.budget;
+    if (typeof updateHUD === 'function') updateHUD();
+    return true;
+  }
+
+  function isCityInPlay() {
+    return !isLandingVisible() && !isCampaignPaused();
+  }
+
+  async function startCampaignChapter(chapterId) {
+    const chapter = CAMPAIGN_CHAPTERS_BY_ID[chapterId];
+    const spec = CAMPAIGN_CHAPTER_SPECS[chapterId];
+    if (!chapter || !spec) return false;
+    if (typeof gameReady !== 'undefined' && !gameReady) {
+      if (typeof showToast === 'function') showToast(t('toast.stillLoading'), 'warning');
+      return false;
+    }
+    if (isCityInPlay() && !window.confirm(say(L(
+      '開始新章節會離開而家個城市，未儲存嘅進度會失去。繼續？',
+      'Starting a chapter leaves the city you are in; anything unsaved will be lost. Continue?',
+      '章を始めると今の都市を離れます。未保存の進行は失われます。続けますか？',
+    )))) return false;
+    closeCampaignSelect();
+    const file = await fetchCampaignStartFile(spec.startFile);
+    const started = file ? await loadCampaignStartFile(file) : await startFreshCampaignCity(chapter, spec);
+    if (!started) {
+      if (typeof showToast === 'function') showToast(say(L('開唔到呢一章。', 'This chapter could not start.', 'この章を開始できませんでした。')), 'danger');
+      return false;
+    }
+    city.campaign = createCampaignRun(chapterId, monthIndexNow(), buildCampaignSnapshot());
+    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+    renderCampaignPanel();
+    await loadCampaignProfile();
+    if (chapter.number === 1 && !runtime.profile.prologueSeen) {
+      await playCampaignPrologue();
+      runtime.profile.prologueSeen = true;
+      scheduleCampaignProfileSave();
+    }
+    await playCampaignDialogue(spec.intro);
+    renderCampaignPanel();
+    return true;
+  }
+
+  // ── Dialogue ──────────────────────────────────────────────────────────────
+
+  function ensureDialogueBox() {
+    let box = document.getElementById('campaign-dialogue');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'campaign-dialogue';
+    box.setAttribute('role', 'dialog');
+    box.style.display = 'none';
+    document.body.appendChild(box);
+    return box;
+  }
+
+  function renderSpeaker(id) {
+    const speaker = CAMPAIGN_SPEAKERS[id] || {};
+    const face = speaker.portrait
+      ? `<img class="cd-portrait" src="${escapeHtml(speaker.portrait)}" alt="">`
+      : `<div class="cd-portrait cd-glyph" aria-hidden="true">${escapeHtml(speaker.glyph || '💬')}</div>`;
+    return { face, name: say(speaker.name) };
+  }
+
+  // Plays lines one at a time (a click moves on); the clock stops while it is open.
+  function playCampaignDialogue(lines) {
+    const list = (lines || []).filter(Boolean);
+    if (!list.length || typeof document === 'undefined') return runtime.dialogue;
+    runtime.dialogue = runtime.dialogue.then(() => new Promise((resolve) => {
+      const box = ensureDialogueBox();
+      const previousSpeed = typeof getGameSpeed === 'function' ? getGameSpeed() : null;
+      if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.PAUSED);
+      runtime.dialogueOpen = true;
+      let index = 0;
+      const show = () => {
+        const line = list[index];
+        if (line.card) {
+          box.className = 'is-card';
+          box.innerHTML = `<div class="cd-card">${escapeHtml(say(line.card))}</div>
+            ${line.hint ? `<div class="cd-hint">${escapeHtml(say(line.hint))}</div>` : ''}
+            <div class="cd-next">${escapeHtml(say(L('撳一下繼續 ▶', 'Click to continue ▶', 'クリックで続く ▶')))}</div>`;
+        } else {
+          const { face, name } = renderSpeaker(line.speaker);
+          box.className = '';
+          box.innerHTML = `${face}<div class="cd-body"><div class="cd-name">${escapeHtml(name)}</div>
+            <div class="cd-text">${escapeHtml(say(line.text))}</div>
+            <div class="cd-next">${index + 1} / ${list.length} ▶</div></div>`;
+        }
+      };
+      const next = () => {
+        index += 1;
+        if (index < list.length) { show(); return; }
+        box.removeEventListener('click', next);
+        box.style.display = 'none';
+        runtime.dialogueOpen = false;
+        if (previousSpeed !== null && typeof setGameSpeed === 'function') setGameSpeed(previousSpeed);
+        resolve();
+      };
+      box.addEventListener('click', next);
+      box.style.display = 'flex';
+      show();
+    }));
+    return runtime.dialogue;
+  }
+
+  // PROLOGUE 00《女皇密令》: the letter, a reply, the Crown's answer; then the arrival.
+  function playCampaignPrologue() {
+    return new Promise((resolve) => {
+      let dialog = document.getElementById('campaign-letter-dialog');
+      if (!dialog) {
+        dialog = document.createElement('div');
+        dialog.id = 'campaign-letter-dialog';
+        dialog.className = 'sim-dialog';
+        dialog.setAttribute('role', 'dialog');
+        document.body.appendChild(dialog);
+      }
+      const p = CAMPAIGN_PROLOGUE;
+      dialog.innerHTML = `
+        <div class="dialog-overlay"></div>
+        <div class="dialog-box" style="max-width:620px">
+          <div class="dialog-title-bar"><span>✉ ${escapeHtml(say(L('你有一封新郵件', 'You have new mail', '新着メールがあります')))}</span></div>
+          <div class="dialog-body campaign-letter">
+            <div class="cl-meta"><b>${escapeHtml(say(L('寄件者', 'From', '差出人')))}：</b>${escapeHtml(say(p.from))}</div>
+            <div class="cl-meta"><b>${escapeHtml(say(L('主旨', 'Subject', '件名')))}：</b>${escapeHtml(say(p.subject))}</div>
+            <div class="cl-letter">${p.letter.map((line) => `<p>${escapeHtml(say(line))}</p>`).join('')}</div>
+            <div class="cl-replies">${p.replies.map((reply, i) => `<button type="button" data-reply="${i}">${escapeHtml(say(reply.text))}</button>`).join('')}</div>
+            <div class="cl-answer" hidden></div>
+          </div>
+        </div>`;
+      const previousSpeed = typeof getGameSpeed === 'function' ? getGameSpeed() : null;
+      if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.PAUSED);
+      dialog.style.display = 'flex';
+      dialog.querySelector('.cl-replies').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-reply]');
+        if (!button) return;
+        const reply = p.replies[Number(button.dataset.reply)];
+        dialog.querySelector('.cl-replies').hidden = true;
+        const answer = dialog.querySelector('.cl-answer');
+        answer.hidden = false;
+        answer.innerHTML = `<p class="cl-you">${escapeHtml(say(L('你', 'You', 'あなた')))}：「${escapeHtml(say(reply.text))}」</p>
+          <p class="cl-crown">👑 ${escapeHtml(say(L('皇室即時自動回信', 'An instant reply from the Crown', '王室からの自動返信')))}：「${escapeHtml(say(reply.answer))}」</p>
+          <button type="button" class="dialog-ok-btn" data-go>${escapeHtml(say(L('出發去北區', 'Set off for North District', '北区へ出発')))}</button>`;
+        answer.querySelector('[data-go]').addEventListener('click', () => {
+          dialog.style.display = 'none';
+          if (previousSpeed !== null && typeof setGameSpeed === 'function') setGameSpeed(previousSpeed);
+          playCampaignDialogue(p.arrival).then(resolve);
+        });
+      });
+    });
+  }
+
+  // ── Objectives panel and tutorial ─────────────────────────────────────────
+
+  function ensureCampaignPanel() {
+    let panel = document.getElementById('campaign-panel');
+    if (panel) return panel;
+    panel = document.createElement('aside');
+    panel.id = 'campaign-panel';
+    panel.style.display = 'none';
+    panel.addEventListener('click', onCampaignPanelClick);
+    document.body.appendChild(panel);
+    return panel;
+  }
+
+  function onCampaignPanelClick(event) {
+    const action = event.target.closest('[data-campaign-action]')?.dataset.campaignAction;
+    const run = getRun();
+    const spec = run ? CAMPAIGN_CHAPTER_SPECS[run.chapterId] : null;
+    if (action === 'collapse') runtime.collapsed = !runtime.collapsed;
+    else if (action === 'skip-tutorial' && run) { skipCampaignTutorial(run); setTutorialHighlight([]); }
+    else if (action === 'ack' && run && spec) {
+      acknowledgeCampaignTutorialStep(run, spec);
+      if (run.tutorial?.done) announceTutorialDone();
+    } else if (action === 'chapters') openCampaignSelect();
+    else return;
+    renderCampaignPanel();
+  }
+
+  function setTutorialHighlight(selectors) {
+    runtime.highlighted.forEach((el) => el.classList.remove('campaign-tutorial-highlight'));
+    runtime.highlighted = [];
+    (selectors || []).forEach((selector) => {
+      document.querySelectorAll(selector).forEach((el) => {
+        el.classList.add('campaign-tutorial-highlight');
+        runtime.highlighted.push(el);
+      });
+    });
+  }
+
+  function announceTutorialDone() {
+    setTutorialHighlight([]);
+    if (typeof showToast === 'function') showToast(say(L('🎓 教學完成！而家朝住一星目標進發。', '🎓 Tutorial complete! Now go for the first star.', '🎓 チュートリアル完了！一つ目の星を目指そう。')), 'info');
+  }
+
+  // The tutorial moves as the player builds, not at the month's turn.
+  function stepCampaignTutorial(run, spec, snapshot) {
+    if (!run?.tutorial || run.tutorial.done || run.tutorial.skipped) return;
+    const { completed, finished } = advanceCampaignTutorial(run, spec, snapshot);
+    completed.forEach((id) => {
+      const step = spec.tutorial.find((entry) => entry.id === id);
+      if (step && typeof showToast === 'function') showToast(`✓ ${say(L('完成', 'Done', '完了'))}：${say(step.text).split('：')[0].split(':')[0]}`, 'info');
+    });
+    if (finished) announceTutorialDone();
+  }
+
+  function renderStars(count) {
+    return [1, 2, 3].map((n) => `<span class="${n <= count ? 'is-on' : ''}">${n <= count ? '★' : '☆'}</span>`).join('');
+  }
+
+  function renderCampaignPanel() {
+    if (typeof document === 'undefined') return;
+    const panel = ensureCampaignPanel();
+    const run = getRun();
+    const spec = run ? CAMPAIGN_CHAPTER_SPECS[run.chapterId] : null;
+    if (!run || !spec || isLandingVisible()) {
+      panel.style.display = 'none';
+      setTutorialHighlight([]);
+      return;
+    }
+    const chapter = CAMPAIGN_CHAPTERS_BY_ID[run.chapterId];
+    const snapshot = buildCampaignSnapshot();
+    stepCampaignTutorial(run, spec, snapshot);
+    const step = getCampaignTutorialStep(run, spec);
+    setTutorialHighlight(step && !runtime.collapsed ? step.highlight : []);
+
+    const head = `
+      <div class="cp-head">
+        <span>${escapeHtml(say(L(`第 ${String(chapter.number).padStart(2, '0')} 章・`, `Chapter ${chapter.number} · `, `第${chapter.number}章・`)))}${escapeHtml(say(chapter.district))}</span>
+        <span class="cp-stars">${renderStars(run.stars)}</span>
+        <button type="button" data-campaign-action="collapse" title="${escapeHtml(say(L('收起／展開', 'Fold / unfold', '折りたたむ')))}">${runtime.collapsed ? '+' : '−'}</button>
+      </div>`;
+    if (runtime.collapsed) {
+      panel.innerHTML = head;
+      panel.style.display = 'block';
+      return;
+    }
+    let tutorial = '';
+    if (step) {
+      const { face, name } = renderSpeaker(step.speaker);
+      tutorial = `
+        <div class="cp-tutorial">
+          <div class="cp-section">🎓 ${escapeHtml(say(L('教學', 'Tutorial', 'チュートリアル')))} ${run.tutorial.step + 1} / ${spec.tutorial.length}</div>
+          <div class="cp-tutor">${face}<div><div class="cp-tutor-name">${escapeHtml(name)}</div><div>${escapeHtml(say(step.text))}</div></div></div>
+          <div class="cp-tutorial-actions">
+            ${step.ack ? `<button type="button" class="cp-ack" data-campaign-action="ack">${escapeHtml(say(L('明白', 'Got it', 'わかった')))}</button>` : ''}
+            <button type="button" class="cp-skip" data-campaign-action="skip-tutorial">${escapeHtml(say(L('跳過教學', 'Skip tutorial', 'チュートリアルを飛ばす')))}</button>
+          </div>
+        </div>`;
+    }
+    const monthIndex = monthIndexNow();
+    let status = '';
+    if (run.freePlay) status = say(L('自由建設（本章不再計星）', 'Free building (no more stars this chapter)', '自由建設（この章の星は対象外）'));
+    else if (run.failed) status = say(L('一星限期已過', 'The first star\'s time is up', '一つ目の星の期限切れ'));
+    else if (run.stars === 0) status = say(L(`一星限期：剩 ${getCampaignMonthsLeft(run, monthIndex)} 個月`, `First star: ${getCampaignMonthsLeft(run, monthIndex)} months left`, `一つ目の星：残り${getCampaignMonthsLeft(run, monthIndex)}か月`));
+    else if (run.stars < 3) status = say(L('二、三星不限時', 'Stars 2 and 3 have no time limit', '二つ目・三つ目の星は期限なし'));
+    else status = say(L('三星完成！', 'All three stars!', '三つ星達成！'));
+    let objectives = '';
+    if (run.stars < spec.stars.length && !run.freePlay) {
+      const star = spec.stars[run.stars];
+      const result = evaluateCampaignStar(spec, run.stars, snapshot);
+      objectives = `
+        <div class="cp-section">${'★'.repeat(run.stars + 1)} ${escapeHtml(say(star.title))}</div>
+        <ul class="cp-objectives">${result.items.map((item) => `
+          <li class="${item.done ? 'is-done' : ''}"><span class="cp-tick">${item.done ? '✓' : '○'}</span>
+            <span class="cp-label">${escapeHtml(say(item.label))}</span>
+            ${item.progress ? `<span class="cp-progress">${escapeHtml(item.progress)}</span>` : ''}</li>`).join('')}
+        </ul>`;
+    }
+    panel.innerHTML = `${head}
+      <div class="cp-title">《${escapeHtml(say(chapter.title))}》</div>
+      ${tutorial}
+      <div class="cp-status">${escapeHtml(status)}</div>
+      ${objectives}
+      <div class="cp-foot"><button type="button" data-campaign-action="chapters">🗺 ${escapeHtml(say(L('章節地圖', 'Chapter map', '章マップ')))}</button></div>`;
+    panel.style.display = 'block';
+  }
+
+  // ── The month's turn ──────────────────────────────────────────────────────
+
+  function postCampaignForum(entry, id) {
+    if (!entry || typeof addForumPost !== 'function') return;
+    const lang = language();
+    const comments = (entry.comments || (entry.comment ? [entry.comment] : []))
+      .map((text, i) => ({ author: say(L(`街坊${'ABCDE'[i] || ''}`, `Resident ${'ABCDE'[i] || ''}`, `住民${'ABCDE'[i] || ''}`)), text: say(text) }));
+    addForumPost({
+      headline: say(entry.headline),
+      body: [say(entry.body)],
+      source: 'local',
+      social: { likes: '1,824', laughs: '3,077', angry: '214', commentCount: String(comments.length * 137), shares: '402', comments },
+    }, { id, category: lang === 'en' ? 'City' : '城中熱話', author: say(L('香城討論區', 'Heung Shing Forum', '香城掲示板')) });
+  }
+
+  function onCampaignStar(run, spec, star) {
+    const chapter = CAMPAIGN_CHAPTERS_BY_ID[run.chapterId];
+    if (recordCampaignStars(runtime.profile, run, campaignStamp())) scheduleCampaignProfileSave();
+    if (typeof showToast === 'function') {
+      showToast(say(L(`⭐ 第 ${chapter.number} 章${'一二三'[star - 1]}星：《${say(spec.stars[star - 1].title)}》`,
+        `⭐ Chapter ${chapter.number}, star ${star}: "${say(spec.stars[star - 1].title)}"`,
+        `⭐ 第${chapter.number}章 星${star}：「${say(spec.stars[star - 1].title)}」`)), 'medal');
+    }
+    if (star === 1) {
+      playCampaignDialogue(spec.outro);
+      postCampaignForum(spec.outroForum, `campaign-${run.chapterId}-star1`);
+      const next = CAMPAIGN_CHAPTERS[chapter.number];
+      if (next && typeof showToast === 'function') {
+        showToast(say(isCampaignChapterPlayable(next.id)
+          ? L(`🔓 解鎖第 ${next.number} 章：${say(next.district)}`, `🔓 Chapter ${next.number} unlocked: ${say(next.district)}`, `🔓 第${next.number}章を解放：${say(next.district)}`)
+          : L(`🔓 第 ${next.number} 章${say(next.district)}已解鎖（即將推出）`, `🔓 Chapter ${next.number}, ${say(next.district)}, unlocked (coming soon)`, `🔓 第${next.number}章${say(next.district)}を解放（近日公開）`)), 'info');
+      }
+    }
+  }
+
+  function showCampaignFailure(run, spec) {
+    playCampaignDialogue(spec.failure).then(() => {
+      let dialog = document.getElementById('campaign-failure-dialog');
+      if (!dialog) {
+        dialog = document.createElement('div');
+        dialog.id = 'campaign-failure-dialog';
+        dialog.className = 'sim-dialog';
+        document.body.appendChild(dialog);
+      }
+      dialog.innerHTML = `
+        <div class="dialog-overlay"></div>
+        <div class="dialog-box" style="max-width:440px">
+          <div class="dialog-title-bar"><span>${escapeHtml(say(L('限期已過', 'Time is up', '期限切れ')))}</span></div>
+          <div class="dialog-body campaign-plain">${escapeHtml(say(L('二十四個月內未攞到一星。', 'The first star was not reached in twenty-four months.', '24か月以内に一つ目の星に届きませんでした。')))}</div>
+          <div class="dialog-footer">
+            <button type="button" class="dialog-cancel-btn" data-choice="free">${escapeHtml(say(L('繼續自由建設', 'Keep building freely', '自由建設を続ける')))}</button>
+            <button type="button" class="dialog-ok-btn" data-choice="retry">${escapeHtml(say(L('重新開始本章', 'Restart the chapter', 'この章をやり直す')))}</button>
+          </div>
+        </div>`;
+      dialog.style.display = 'flex';
+      dialog.querySelector('.dialog-footer').addEventListener('click', (event) => {
+        const choice = event.target.closest('[data-choice]')?.dataset.choice;
+        if (!choice) return;
+        dialog.style.display = 'none';
+        if (choice === 'retry') {
+          city.campaign = null;
+          startCampaignChapter(run.chapterId);
+        } else {
+          run.freePlay = true;
+          renderCampaignPanel();
+        }
+      });
+    });
+  }
+
+  function onCampaignMonthTurned() {
+    const run = getRun();
+    if (!run) return;
+    const spec = CAMPAIGN_CHAPTER_SPECS[run.chapterId];
+    if (!spec) return;
+    const result = advanceCampaignRun(run, spec, buildCampaignSnapshot(), monthIndexNow());
+    result.events.forEach((event) => {
+      playCampaignDialogue(event.lines);
+      postCampaignForum(event.forum, `campaign-${run.chapterId}-${event.id}`);
+    });
+    result.newStars.forEach((star) => onCampaignStar(run, spec, star));
+    if (result.failedNow) showCampaignFailure(run, spec);
+    renderCampaignPanel();
+  }
+
+  // save.js, once a city has loaded (a chapter run comes back with its save)
+  function onCampaignCityLoaded() {
+    runtime.collapsed = false;
+    renderCampaignPanel();
+  }
+
+  // ── Chapter map ───────────────────────────────────────────────────────────
+
+  function getChapterPin(chapter) {
+    const map = (typeof HK_DISTRICT_MAPS !== 'undefined' ? HK_DISTRICT_MAPS : []).find((entry) => entry.id === chapter.mapId);
+    if (!map || typeof getDistrictOverviewBox !== 'function') return null;
+    const offset = CAMPAIGN_PIN_OFFSETS[chapter.id] || {};
+    return getDistrictOverviewBox({ centre: { e: map.centre.e + (offset.de || 0), n: map.centre.n + (offset.dn || 0) } });
+  }
+
+  function getChapterState(chapter) {
+    const stars = runtime.profile.chapters[chapter.id]?.stars || 0;
+    if (!isCampaignChapterUnlocked(runtime.profile, chapter.id)) return { key: 'locked', stars };
+    if (!isCampaignChapterPlayable(chapter.id)) return { key: 'soon', stars };
+    return { key: stars ? 'cleared' : 'open', stars };
+  }
+
+  function renderCampaignSelect() {
+    const dialog = document.getElementById('campaign-select-dialog');
+    if (!dialog) return;
+    const pins = CAMPAIGN_CHAPTERS.map((chapter) => {
+      const box = getChapterPin(chapter);
+      if (!box) return '';
+      const state = getChapterState(chapter);
+      return `<button type="button" class="cs-pin is-${state.key}${runtime.selectedChapterId === chapter.id ? ' is-selected' : ''}"
+        style="left:${box.x.toFixed(2)}%;top:${box.y.toFixed(2)}%" data-chapter="${chapter.id}"
+        title="${escapeHtml(say(chapter.district))}">${String(chapter.number).padStart(2, '0')}</button>`;
+    }).join('');
+    const chapter = CAMPAIGN_CHAPTERS_BY_ID[runtime.selectedChapterId] || CAMPAIGN_CHAPTERS[0];
+    const state = getChapterState(chapter);
+    const stateText = {
+      locked: L('未解鎖：上一章取得一星先開放', 'Locked: earn a star in the chapter before', '未解放：前の章で星を1つ獲得すると解放'),
+      soon: L('即將推出', 'Coming soon', '近日公開'),
+      open: L('可以開始', 'Ready to play', 'プレイ可能'),
+      cleared: L('已取得星級', 'Stars earned', '星を獲得済み'),
+    }[state.key];
+    const total = CAMPAIGN_CHAPTERS.reduce((sum, entry) => sum + (runtime.profile.chapters[entry.id]?.stars || 0), 0);
+    const cleared = CAMPAIGN_CHAPTERS.filter((entry) => (runtime.profile.chapters[entry.id]?.stars || 0) > 0).length;
+    dialog.querySelector('[data-cs-body]').innerHTML = `
+      <div class="cs-summary">${escapeHtml(say(L(`主線 ${cleared}／18 區・星數 ${total}／54`, `Main story ${cleared}/18 districts · ${total}/54 stars`, `メイン ${cleared}／18区・星 ${total}／54`)))}</div>
+      <div class="cs-map"><img src="UI/hk-district-overview.webp" alt="">${pins}</div>
+      <div class="cs-detail">
+        <div class="cs-detail-title">${escapeHtml(say(L(`第 ${String(chapter.number).padStart(2, '0')} 章・`, `Chapter ${chapter.number} · `, `第${chapter.number}章・`)))}${escapeHtml(say(chapter.district))}《${escapeHtml(say(chapter.title))}》</div>
+        <div class="cs-detail-meta"><span class="cp-stars">${renderStars(state.stars)}</span> ${escapeHtml(say(stateText))}</div>
+        <div class="cs-detail-actions">
+          ${chapter.number === 1 && runtime.profile.prologueSeen ? `<button type="button" class="dialog-cancel-btn" data-cs-action="prologue">${escapeHtml(say(L('重看序幕', 'Replay the prologue', 'プロローグを再生')))}</button>` : ''}
+          <button type="button" class="dialog-ok-btn" data-cs-action="start" ${state.key === 'open' || state.key === 'cleared' ? '' : 'disabled'}>${escapeHtml(say(L('開始', 'Start', '開始')))}</button>
+        </div>
+      </div>`;
+  }
+
+  function ensureCampaignSelect() {
+    let dialog = document.getElementById('campaign-select-dialog');
+    if (dialog) return dialog;
+    dialog = document.createElement('div');
+    dialog.id = 'campaign-select-dialog';
+    dialog.className = 'sim-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.innerHTML = `
+      <div class="dialog-overlay" data-cs-close></div>
+      <div class="dialog-box" style="max-width:820px">
+        <div class="dialog-title-bar">
+          <span>${escapeHtml(say(L('香城模擬器：玩轉18區', 'Heung Shing: The 18 Districts', '香城シミュレーター：18区をめぐる')))}</span>
+          <button class="dialog-close-btn" type="button" data-cs-close>✕</button>
+        </div>
+        <div class="dialog-body campaign-plain" data-cs-body></div>
+      </div>`;
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', (event) => {
+      if (event.target.closest('[data-cs-close]')) { closeCampaignSelect(); return; }
+      const pin = event.target.closest('[data-chapter]');
+      if (pin) { runtime.selectedChapterId = pin.dataset.chapter; renderCampaignSelect(); return; }
+      const action = event.target.closest('[data-cs-action]')?.dataset.csAction;
+      if (action === 'start') startCampaignChapter(runtime.selectedChapterId);
+      else if (action === 'prologue') { closeCampaignSelect(); playCampaignPrologue(); }
+    });
+    return dialog;
+  }
+
+  async function openCampaignSelect() {
+    const dialog = ensureCampaignSelect();
+    dialog.style.display = 'flex';
+    renderCampaignSelect();
+    await loadCampaignProfile();
+    renderCampaignSelect();
+  }
+
+  function closeCampaignSelect() {
+    const dialog = document.getElementById('campaign-select-dialog');
+    if (dialog) dialog.style.display = 'none';
+  }
+
+  // ── Export a chapter's start (development only) ───────────────────────────
+  // From the DevTools console in the city you built for the chapter:  exportCampaignStart('ch01')
+  // Writes UI/campaign/ch01.json through the local server; packaged builds refuse the request.
+  async function exportCampaignStart(chapterId) {
+    if (!CAMPAIGN_CHAPTERS_BY_ID[chapterId]) throw new Error(`unknown chapter ${chapterId}`);
+    const run = city.campaign;
+    city.campaign = null; // a start file starts clean
+    let payload;
+    try { payload = buildSavePayload({ autosave: false, manualSaveId: null }); } finally { city.campaign = run; }
+    const response = await fetch(`/api/dev/campaign-start/${chapterId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        format: CAMPAIGN_START_FILE_FORMAT, chapterId, exportedAt: new Date().toISOString(),
+        cityName: payload.city_name, save_data: payload.save_data,
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    console.info(`[campaign] wrote ${result.path} (${result.bytes} bytes)`);
+    return result;
+  }
+
+  // ── Styles and wiring ─────────────────────────────────────────────────────
+
+  function ensureCampaignStyles() {
+    if (document.getElementById('campaign-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'campaign-styles';
+    style.textContent = `
+      #campaign-panel { position: fixed; right: 16px; top: 150px; width: 280px; max-height: calc(100vh - 430px); min-height: 60px; overflow-y: auto;
+        z-index: 20; background: #e4eaf1; border: 1px solid #8794a3; border-radius: 6px; box-shadow: 0 6px 16px rgba(27,40,55,0.2);
+        font: 12px/1.45 Arial, sans-serif; color: #1e2427; }
+      #campaign-panel .cp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #1e5cb3; color: #fff; font-weight: 700; position: sticky; top: 0; }
+      #campaign-panel .cp-head span:first-child { flex: 1; }
+      #campaign-panel .cp-head button { border: none; background: rgba(255,255,255,0.18); color: #fff; width: 22px; height: 20px; border-radius: 3px; cursor: pointer; font: inherit; }
+      .cp-stars span { color: #a3acb5; } .cp-stars span.is-on { color: #f2b51d; }
+      #campaign-panel .cp-head .cp-stars span { color: rgba(255,255,255,0.45); } #campaign-panel .cp-head .cp-stars span.is-on { color: #ffd34d; }
+      #campaign-panel .cp-title { padding: 6px 10px 0; font-size: 13px; font-weight: 700; }
+      #campaign-panel .cp-section { margin: 8px 10px 4px; font-weight: 700; color: #1e5cb3; }
+      #campaign-panel .cp-status { margin: 4px 10px 0; color: #8e1b5b; font-weight: 700; }
+      #campaign-panel .cp-tutorial { margin: 6px 8px 0; padding: 0 0 6px; background: #fff8e1; border: 1px solid #e0c46c; border-radius: 5px; }
+      #campaign-panel .cp-tutor { display: flex; gap: 8px; padding: 0 8px; }
+      #campaign-panel .cp-tutor .cd-portrait { flex: 0 0 36px; width: 36px; height: 36px; font-size: 20px; }
+      #campaign-panel .cp-tutor-name { font-weight: 700; }
+      #campaign-panel .cp-tutorial-actions { display: flex; gap: 6px; justify-content: flex-end; padding: 6px 8px 0; }
+      #campaign-panel .cp-tutorial-actions button { font: inherit; padding: 2px 8px; border-radius: 3px; border: 1px solid #8794a3; background: #f4f7fa; cursor: pointer; }
+      #campaign-panel .cp-tutorial-actions .cp-ack { background: #1e5cb3; color: #fff; border-color: #1e5cb3; }
+      #campaign-panel .cp-objectives { list-style: none; margin: 0 8px; padding: 0; }
+      #campaign-panel .cp-objectives li { display: grid; grid-template-columns: 16px 1fr; column-gap: 4px; padding: 3px 2px; border-bottom: 1px solid #cdd5de; }
+      #campaign-panel .cp-objectives li.is-done { color: #3c7a3c; }
+      #campaign-panel .cp-tick { font-weight: 700; }
+      #campaign-panel .cp-progress { grid-column: 2; color: #5b6570; font-size: 11px; }
+      #campaign-panel .cp-foot { padding: 8px 10px; }
+      #campaign-panel .cp-foot button { font: inherit; padding: 2px 8px; border-radius: 3px; border: 1px solid #8794a3; background: #f4f7fa; cursor: pointer; }
+      .campaign-tutorial-highlight { outline: 3px solid #f2b51d !important; outline-offset: 1px; animation: campaign-pulse 1.2s ease-in-out infinite; }
+      @keyframes campaign-pulse { 0%, 100% { outline-color: #f2b51d; } 50% { outline-color: rgba(242,181,29,0.25); } }
+      #campaign-dialogue { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); z-index: 250;
+        display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; cursor: pointer; background: #fdfdfb; color: #1e2427;
+        border: 2px solid #1e5cb3; border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,0.35); font: 15px/1.5 Arial, sans-serif; }
+      #campaign-dialogue.is-card { flex-direction: column; align-items: center; text-align: center; background: #1e2a3a; color: #fff; border-color: #f2b51d; }
+      #campaign-dialogue .cd-card { font-size: 20px; font-weight: 700; color: #ffd34d; }
+      #campaign-dialogue .cd-hint { font-size: 14px; }
+      .cd-portrait { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #dfe6ee; border: 2px solid #8794a3; }
+      .cd-glyph { display: grid; place-items: center; font-size: 34px; }
+      #campaign-dialogue .cd-body { flex: 1; min-width: 0; }
+      #campaign-dialogue .cd-name { font-weight: 700; color: #1e5cb3; }
+      #campaign-dialogue .cd-next { text-align: right; font-size: 11px; opacity: 0.6; }
+      .campaign-plain.dialog-body, .campaign-letter.dialog-body { white-space: normal; font-family: Arial, sans-serif; line-height: 1.55; }
+      .campaign-letter .cl-meta { font-size: 12px; color: #3a4148; }
+      .campaign-letter .cl-letter { margin: 10px 0; padding: 10px 12px; background: #fff; border-left: 4px solid #1e5cb3; font-size: 13px; }
+      .campaign-letter .cl-letter p { margin: 0 0 8px; }
+      .campaign-letter .cl-replies { display: grid; gap: 6px; }
+      .campaign-letter .cl-replies button { font: 13px Arial, sans-serif; text-align: left; padding: 6px 10px; border: 1px solid #8794a3; border-radius: 4px; background: #f4f7fa; cursor: pointer; }
+      .campaign-letter .cl-replies button:hover { background: #dbe6f3; }
+      .campaign-letter .cl-crown { color: #8e1b5b; font-weight: 700; }
+      /* over the title screen (z-index 400), as the save list is */
+      #campaign-select-dialog, #campaign-letter-dialog, #campaign-failure-dialog { z-index: 500; }
+      #campaign-select-dialog .cs-summary { margin-bottom: 8px; color: #3a4148; }
+      /* the map no taller than the screen allows, so the chapter's details and 開始 stay in view */
+      #campaign-select-dialog .cs-map { position: relative; width: fit-content; margin: 0 auto; }
+      #campaign-select-dialog .cs-map img { display: block; max-width: 100%; max-height: 58vh; width: auto; border-radius: 4px; }
+      #campaign-select-dialog .cs-pin { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%;
+        border: 2px solid #fff; font: 700 11px Arial, sans-serif; color: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.45); padding: 0; }
+      #campaign-select-dialog .cs-pin.is-open { background: #1e5cb3; }
+      #campaign-select-dialog .cs-pin.is-cleared { background: #c9a227; }
+      #campaign-select-dialog .cs-pin.is-soon { background: #6f7f90; }
+      #campaign-select-dialog .cs-pin.is-locked { background: #3d444b; opacity: 0.8; }
+      #campaign-select-dialog .cs-pin.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; }
+      #campaign-select-dialog .cs-detail { margin-top: 10px; }
+      #campaign-select-dialog .cs-detail-title { font-size: 15px; font-weight: 700; }
+      #campaign-select-dialog .cs-detail-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+      #campaign-select-dialog .cs-detail-actions button[disabled] { opacity: 0.45; cursor: default; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  if (typeof document !== 'undefined') {
+    ensureCampaignStyles();
+    const wire = () => document.getElementById('btn-campaign')?.addEventListener('click', openCampaignSelect);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+    setInterval(() => { if (!runtime.dialogueOpen) renderCampaignPanel(); }, CAMPAIGN_PANEL_REFRESH_MS);
+    document.addEventListener('languagechange', () => { renderCampaignPanel(); renderCampaignSelect(); });
+  }
+  if (typeof onGameClockEvent === 'function') onGameClockEvent('gameclock:month', onCampaignMonthTurned);
+  loadCampaignProfile();
+
+  Object.assign(globalThis, {
+    startCampaignChapter, openCampaignSelect, closeCampaignSelect, onCampaignCityLoaded, exportCampaignStart,
+    buildCampaignSnapshot, renderCampaignPanel, playCampaignDialogue,
+    getCampaignProfile: () => runtime.profile,
+  });
+})();

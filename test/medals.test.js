@@ -351,9 +351,10 @@ test('wiring: scripts, menu, storage routes and the game\'s hooks', () => {
   });
 
   assert.match(source('db.js'), /CREATE TABLE IF NOT EXISTS player_profile/);
-  assert.match(source('server.js'), /app\.get\('\/api\/player-profile\/medals'/);
-  assert.match(source('server.js'), /app\.put\('\/api\/player-profile\/medals'/);
-  assert.match(source('game-storage.js'), /\/api\\\/player-profile\\\/\(medals\)/);
+  assert.match(source('server.js'), /app\.get\('\/api\/player-profile\/:key'/);
+  assert.match(source('server.js'), /app\.put\('\/api\/player-profile\/:key'/);
+  assert.match(source('server.js'), /PLAYER_PROFILE_KEYS = new Set\(\['medals', 'campaign'\]\)/);
+  assert.match(source('game-storage.js'), /\/api\\\/player-profile\\\/\(medals\|campaign\)/);
 
   assert.match(source('council-voting.js'), /noteMedalPolicyEnacted\(session\.itemId\)/);
   assert.match(source('council-voting.js'), /noteMedalResolutionOutcome\(session\.itemId, resolutionResult\.outcome\)/);

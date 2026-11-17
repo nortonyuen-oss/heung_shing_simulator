@@ -223,7 +223,7 @@
   async function request(url, options = {}) {
     if (!isWeb()) return root.fetch(url, options);
     // 洋紫荊勳章 (medals.js): the player's profile, one record in the settings store
-    const profile = String(url).match(/^\/api\/player-profile\/(medals)$/);
+    const profile = String(url).match(/^\/api\/player-profile\/(medals|campaign)$/);
     if (profile) {
       try {
         await initialize();

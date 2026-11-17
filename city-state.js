@@ -264,6 +264,8 @@ const city = {
   lastCaacaantengAdMonthIndex: -1,
   // 洋紫荊勳章 (medals.js): this city's absurd events by game year, for 國際笑話中心
   medalLog: { absurd: [] },
+  // 《玩轉18區》 (campaign.js): the chapter this city is a run of, or null
+  campaign: null,
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
   typhoonShelters: { version: 1, nextId: 1, shelters: [] },
   // 海濱步道 built from the parks menu (promenade.js): its tiles and their public piers
@@ -462,6 +464,7 @@ function resetGameState() {
   city.lastForumMonthIndex = -1;
   city.lastCaacaantengAdMonthIndex = -1;
   city.medalLog = { absurd: [] };
+  city.campaign = null;
   city.districtProfileId = '';
   city.regionNeighbours = null;
   city.regionFlows = null;

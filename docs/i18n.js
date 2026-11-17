@@ -270,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v5.10.4","date":"2026-11-17","dateLabel":"2026年11月17日","title":"香城茶餐廳","items":["修正輕鐵起路軌卡死：地面路軌打直過馬路之後，再由嗰格平交路沿馬路起路面路軌，之後無論喺邊度起路軌（包括普通地面）都會被拒。而家只檢查今次拖拉經過嘅格，舊存檔亦即刻可以繼續起。"]},
     {"version":"v5.10.3","date":"2026-11-17","dateLabel":"2026年11月17日","title":"香城茶餐廳","items":["輕鐵喺香港全境模式起嘅路面路軌而家會畫出嚟（之前起咗、扣咗錢，但馬路上睇唔到）；電車路軌同樣修正。","輕鐵站可以起喺馬路上，規則同電車站一樣：窄路嘅直路，或者雙線道路中間嘅專用路。","電車同電車站喺高地（全境大部分陸地）唔會再畫低咗、偏離馬路；全境模式馬路格仔之間唔再有綠色接縫。","輕鐵上橋唔再穿模；夜晚起嘅橋日頭唔再保持夜晚色調。","全境縮小地圖調亮，睇得清楚成個香港；夜晚地面亮咗約 20%。"]},
     {"version":"v5.10.2","date":"2026-11-17","dateLabel":"2026年11月17日","title":"香城茶餐廳","items":["【香城茶餐廳】香城模式廣告加入香城討論區，配上茶餐廳新聞圖、caacaanteng.com 連結同 5 則模擬街坊留言。","開城／讀檔先刊登一次，之後每 6 個遊戲月再出帖；排程隨存檔保留，讀檔唔會重複刊登。","加入【香城聯盟】走馬燈：「香城茶餐廳 - 凍飲唔使加三蚊～ 快啲黎試下做茶記老闆啦！」，㩒廣告即開網站。"]},
     {"version":"v5.10.1","date":"2026-11-16","dateLabel":"2026年11月16日","title":"光之鐵路","items":["輕鐵地面路軌跟住地形行：翻過一級高嘅小山丘、行過山坡轉角、打橫沿住山坡都起得，唔會再喺睇落平坦嘅地起到一半話「地形唔啱」。","路軌拉斜貼住山坡，轉地圖都一樣；地形唔夾嘅位，兩格路軌升到同一高度接埋，唔會斷開或者插入地面，輕鐵行過唔會跳。","起唔到路軌嘅提示直接講原因：水、建築、橋、地鐵站、地鐵路軌、海底隧道口或者海濱長廊。"]},
@@ -644,6 +645,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.10.4": {"title":"香城茶餐廳","items":["修正輕鐵鋪軌卡死：地面軌道直線穿過馬路後，再由該平交道沿馬路鋪設路面軌道，之後無論在哪裡鋪軌（包括普通地面）都會被拒。現在只檢查本次拖曳經過的格子，舊存檔亦可立即繼續鋪設。"]},
     "v5.10.3": {"title":"香城茶餐廳","items":["輕鐵在香港全境模式鋪設的路面軌道現在會顯示（之前已鋪設並扣款，但在馬路上看不到）；電車軌道一併修正。","輕鐵站可設在馬路上，規則與電車站相同：窄路的直路段，或雙線道路中央的專用道。","電車與電車站在高地（全境大部分陸地）不再畫低、偏離馬路；全境模式馬路格之間不再出現綠色接縫。","輕鐵上橋不再穿模；夜間興建的橋樑白天不再保持夜間色調。","全境小地圖調亮，能清楚看到整個香港；夜間地面亮度提高約 20%。"]},
     "v5.10.2": {"title":"香城茶餐廳","items":["【香城茶餐廳】香城模式廣告加入香城討論區，附上茶餐廳插圖、caacaanteng.com 連結與 5 則模擬街坊回應。","開城／讀檔先刊登一次，之後每 6 個遊戲月再刊登；排程隨存檔保留，讀檔不會重複刊登。","加入【香城聯盟】跑馬燈廣告：「香城茶餐廳 - 凍飲唔使加三蚊～ 快啲黎試下做茶記老闆啦！」，點擊即可前往網站。"]},
     "v5.10.1": {"title":"光之鐵路","items":["輕鐵地面軌道順著地形鋪設：可越過一級高的小山丘、經過山坡轉角、沿山坡橫向行駛，不會再在看似平坦的地面鋪到一半顯示「地形不符」。","軌道貼合山坡傾斜，旋轉地圖亦一致；地形接縫處兩格軌道升到同一高度相接，不會斷開或陷入地面，輕鐵行經時不會跳動。","無法鋪設軌道的提示直接說明原因：水面、建築、橋、地鐵站、地鐵軌道、海底隧道口或海濱長廊。"]},
@@ -1011,6 +1013,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.10.4": {"title":"Heung Shing Cha Chaan Teng","items":["Fixed light rail track building locking up: after ground track crossed a road and street track was laid along the road from that level crossing, every later drag - even over plain open ground - was refused. Only the dragged tiles are checked now, and saved cities can build again straight away."]},
     "v5.10.3": {"title":"Heung Shing Cha Chaan Teng","items":["Light rail street track laid in Hong Kong Territory mode is now drawn (it was laid and paid for, but never showed on the road); tram track gets the same fix.","Light rail stations can go on roads, by the tram stop rules: a straight stretch of a narrow road, or a dual carriageway's central reservation.","Trams and tram stops on raised land (most of the territory) no longer sit below their road; road tiles in Territory mode no longer show green seams between them.","Light rail cars no longer clip through viaducts where a ramp meets the deck, and viaducts built at night no longer keep their night look by day.","The Territory minimap is brighter, so the whole of Hong Kong reads clearly; the ground at night is about 20% lighter."]},
     "v5.10.2": {"title":"Heung Shing Cha Chaan Teng","items":["A Heung Shing Mode advert for Heung Shing Cha Chaan Teng joins the forum with the cafe illustration, a caacaanteng.com link and five simulated neighbours’ replies.","The advert appears when a city starts or loads, then once every six game months; its schedule survives saves and reloads without duplicate posts.","A clickable Heung Shing Alliance ticker advert invites you to run a cha chaan teng, with no extra $3 for cold drinks."]},
     "v5.10.1": {"title":"The Light Railway","items":["Light rail ground track now follows the terrain - over one-level rises, across the corners of slopes and sideways along hillsides - instead of being refused midway with a terrain message on land that looks flat.","Track tilts to fit slopes at every map rotation; where the terrain's own tiles don't line up, neighbouring track is raised to meet, never gapped or sunk into the ground, and the cars ride it smoothly.","When track can't go somewhere, the message now says what is in the way: water, a building, a bridge, a metro station or track, an undersea tunnel mouth or the promenade."]},
@@ -1378,6 +1381,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.10.4": {"title":"香城茶餐廳","items":["ライトレールの線路が敷けなくなる問題を修正：地上線路で道路を横断し、その踏切から道路沿いに併用軌道を敷くと、以後どこでも（普通の空き地でも）敷設を拒否されていました。今回ドラッグしたマスだけを検査するようにし、既存のセーブもすぐに敷設を続けられます。"]},
     "v5.10.3": {"title":"香城茶餐廳","items":["香港全域モードで敷いたライトレールの併用軌道が表示されるようになりました（敷設・支払いは済んでいたのに道路上に見えませんでした）。路面電車の線路も同様に修正。","ライトレールの駅を道路上に設置できるように。路面電車の停留所と同じく、狭い道路の直線区間か、中央分離帯道路の専用レーンに設置できます。","高台（全域の大部分の陸地）で路面電車と停留所が道路より下に描かれる問題を修正。全域モードの道路タイル間の緑の継ぎ目もなくなりました。","スロープと高架の境目でライトレール車両が高架にめり込む問題を修正。夜に建てた高架が昼も夜の色のままになる問題も修正。","全域ミニマップを明るくし、香港全体がはっきり見えるように。夜の地面を約20%明るくしました。"]},
     "v5.10.2": {"title":"香城茶餐廳","items":["香城茶餐廳の香城モード広告を掲示板に追加。喫茶店のイラスト、caacaanteng.com へのリンク、住民5人の模擬コメントを掲載。","街の開始・読込時に初回掲載し、その後はゲーム内6か月ごとに再掲載。掲載間隔はセーブに保存され、読込による重複を防ぎます。","香城連盟のクリック可能なティッカー広告を追加。冷たい飲み物の追加3ドルなしで、茶餐廳の店主を体験しよう！"]},
     "v5.10.1": {"title":"光の鉄道","items":["ライトレールの地上線路が地形に沿うようになりました。1段の高まり、斜面の角、斜面を横切る区間も敷設でき、平らに見える土地で途中から「地形が合わない」と拒否されなくなりました。","線路は斜面に合わせて傾き、マップを回転しても一致します。地形の継ぎ目では隣の線路を高い側にそろえて接続し、途切れたり地面にめり込んだりせず、車両も跳ねずに走ります。","敷設できない場合の表示は、水面・建物・橋・地下鉄の駅や線路・海底トンネル入口・プロムナードと、理由を直接示すようになりました。"]},
@@ -1770,8 +1774,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.10.3 — 【香城茶餐廳】",
-      versionDesc: "5.10.3 更新：輕鐵同電車喺香港全境修正，馬路可以起輕鐵站，夜晚同小地圖調亮。",
+      versionBadge: "v5.10.4 — 【香城茶餐廳】",
+      versionDesc: "5.10.4 更新：修正輕鐵入馬路後起路軌卡死嘅問題。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1879,8 +1883,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.10.3 — 【香城茶餐廳】",
-      versionDesc: "5.10.3 更新：輕鐵與電車在香港全境修正，馬路可設輕鐵站，夜間與小地圖調亮。",
+      versionBadge: "v5.10.4 — 【香城茶餐廳】",
+      versionDesc: "5.10.4 更新：修正輕鐵進入馬路後鋪軌卡死的問題。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1988,8 +1992,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.10.3 — 【Heung Shing Cha Chaan Teng】",
-      versionDesc: "5.10.3: light rail and tram fixes in Hong Kong Territory, light rail stations on roads, a brighter night and minimap.",
+      versionBadge: "v5.10.4 — 【Heung Shing Cha Chaan Teng】",
+      versionDesc: "5.10.4: fixed light rail track building locking up after track ran along a road.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2098,8 +2102,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.10.3 — 【香城茶餐廳】",
-      versionDesc: "5.10.3 更新：香港全域のライトレール・路面電車を修正、道路上にライトレール駅、夜とミニマップを明るく。",
+      versionBadge: "v5.10.4 — 【香城茶餐廳】",
+      versionDesc: "5.10.4 更新：道路に入った後にライトレールの線路が敷けなくなる問題を修正。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

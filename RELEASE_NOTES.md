@@ -1,3 +1,24 @@
+# The City of Heung Shing v5.10.4 — 【香城茶餐廳】
+
+- 廣東話／台灣中文：【香城茶餐廳】
+- English: 【Heung Shing Cha Chaan Teng】
+- 日本語：【香城茶餐廳】
+
+## 修正：輕鐵起路軌卡死
+
+- 地面路軌打直過馬路（平交路），再由嗰格沿住馬路起路面路軌，電車規則會喺嗰格整一個兩邊轉入馬路嘅分叉。之前每次起地面或者高架路軌都會檢查成個路網嘅分叉，呢一格就令之後無論喺邊度起路軌（包括普通地面）都被拒，好似成個系統卡死咗。
+- 而家只檢查今次拖拉經過嘅格，馬路上嘅路面路軌照電車規則。已經有呢種分叉嘅舊存檔，更新之後即刻可以繼續起。
+
+**English:** A light rail fix. Street track laid along a road from a level crossing joins it as a tram junction branching both ways, which the ground track's rules have no layout for. Every ground or viaduct drag used to check the whole network's junctions, so that one tile refused every later drag anywhere, even over plain open ground. Only the tiles a drag lays are checked now (street track on roads keeps the tram's rules), and saved cities holding such a junction can build again straight away.
+
+**日本語:** ライトレールの修正。踏切から道路沿いに併用軌道を敷くと、その踏切が両方向に分岐する路面電車式の分岐になり、地上線路のルールでは認められない組み合わせになっていました。これまで地上・高架の敷設のたびに路線網全体を検査していたため、この1マスがあるだけで以後どこでも（普通の空き地でも）敷設を拒否されていました。今回ドラッグしたマスだけを検査するようにし、既存のセーブもすぐに敷設を続けられます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.10.3 — 【香城茶餐廳】
 
 - 廣東話／台灣中文：【香城茶餐廳】

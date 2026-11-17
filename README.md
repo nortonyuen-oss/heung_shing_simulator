@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.10.3 — 【香城茶餐廳】
+# 香城模擬器 (The City of Heung Shing) v5.10.4 — 【香城茶餐廳】
 
-香城模擬器 (The City of Heung Shing) v5.10.3 — 【香城茶餐廳】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.10.4 — 【香城茶餐廳】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.10.4
+
+A light rail fix: after ground track crossed a road and street track was laid along the road from that level crossing, every later drag - even over plain open ground - was refused. Only the tiles a drag lays are checked now, and saved cities can build again straight away.
 
 ## New in v5.10.3
 

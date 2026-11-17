@@ -82,6 +82,34 @@ test('along a road: street track, laid by the tram planner on the light rail tra
   assert.equal(lr.lightRailTileKind(5, 3, Y, null, e), 'street');
 });
 
+test('a street station, as a tram stop: on a narrow road\'s straight, or a dual carriageway\'s reservation', () => {
+  // a narrow road (row 5) and a dual carriageway (rows 10-11, its band two wide)
+  const roads = new Set([...row(5, 0, 9), ...row(10, 0, 9), ...row(11, 0, 9)]);
+  const bands = {};
+  for (let c = 0; c <= 9; c++) {
+    bands[`10:${c}`] = { orientation: 'h', width: 2, index: 0 };
+    bands[`11:${c}`] = { orientation: 'h', width: 2, index: 1 };
+  }
+  const e = env({ roads, bands });
+  const state = { tracks: {}, trackElev: {}, stations: [] };
+  for (let c = 1; c <= 8; c++) { state.tracks[`5:${c}`] = Y; state.tracks[`10:${c}`] = Y; state.tracks[`11:${c}`] = Y; }
+  const narrow = lr.whyNotLightRailStationAt(5, 4, state, e);
+  assert.equal(narrow.code, null);
+  assert.deepEqual(narrow.site, { row: 5, col: 4, axis: 'ew', band: false, street: true });
+  // either half of the reservation: the band's pair, its first row
+  const far = lr.whyNotLightRailStationAt(11, 4, state, e);
+  assert.equal(far.code, null);
+  assert.deepEqual(far.site, { row: 10, col: 4, axis: 'ew', band: true, street: true });
+  assert.deepEqual(lr.lightRailStationTiles(far.site), [[10, 4], [11, 4]]);
+  // not right beside another, nor on its tiles
+  state.stations.push({ id: 'a', ...far.site });
+  assert.equal(lr.whyNotLightRailStationAt(10, 5, state, e).code, 'taken');
+  assert.equal(lr.whyNotLightRailStationAt(10, 7, state, e).code, null);
+  // a bend on the road is no place for one
+  state.tracks['5:4'] = Y | 4;
+  assert.equal(lr.whyNotLightRailStationAt(5, 4, state, e).code, 'notStraight');
+});
+
 test('elevated: a two-level deck over the road, four-tile ramps from the ground each end', () => {
   const e = env({ roads: row(8, 0, 19) });
   const state = empty();
@@ -136,8 +164,9 @@ test('one route from street track on a road, off it over open ground, up a ramp 
   // stations: one on the ground (the middle of three straight tiles), one up on the deck's far end? no -
   // stations stand on the ground: one at 9:8, and a stop on the street to route to
   assert.equal(lr.whyNotLightRailStationAt(9, 8, state, e).code, null);
-  assert.equal(lr.whyNotLightRailStationAt(5, 4, state, e).code, 'notGround', 'not on the street');
-  assert.equal(lr.whyNotLightRailStationAt(18, 8, state, e).code, 'notGround', 'not on the viaduct (phase 3: ground only)');
+  // (and on the street, as a tram stop: Norton 2026-11-17)
+  assert.equal(lr.whyNotLightRailStationAt(5, 4, state, e).site?.street, true, 'a street station on the road');
+  assert.equal(lr.whyNotLightRailStationAt(18, 8, state, e).code, 'notGround', 'not on the viaduct');
   const route = buildTramLineRoute(geo, [{ row: 5, col: 3, axis: 'ew', band: false }, { row: 9, col: 8, axis: 'ns', band: false }]);
   assert.ok(!route.code, `route: ${route.code}`);
   // it runs from the road onto the ground: a point on each

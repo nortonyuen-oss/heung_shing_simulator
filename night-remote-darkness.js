@@ -15,10 +15,11 @@
 // Shipped values. The calibrator's "複製 JSON" output pastes over this.
 const NIGHT_REMOTE_DARKNESS_DEFAULTS = Object.freeze({
   // Remaining light (1 = daylight) on ground far from the city at the ordinary night peak. The
-  // city itself sits at 1 - NIGHT_DARKNESS_PEAK = 0.38 there.
-  farBrightness: 0.27,
-  // ... and in the small hours (getDeepNightDepth), where the city settles to 0.29.
-  deepFarBrightness: 0.19,
+  // city itself sits at 1 - NIGHT_DARKNESS_PEAK = 0.456 there (20% lighter, 2026-11-17: was
+  // 0.38 with 0.27 here).
+  farBrightness: 0.324,
+  // ... and in the small hours (getDeepNightDepth), where the city settles to 0.348 (was 0.29 / 0.19).
+  deepFarBrightness: 0.228,
   // Tiles from the nearest building or road that still get the full city light.
   litRadius: 2,
   // Tiles over which it then fades down to the far brightness.

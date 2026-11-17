@@ -113,8 +113,12 @@ class WorldGameHost {
         const base = (hasOldDelta&&this.delta.terrainAt(col,row)) || data.sample(col, row);
         const id = `${row}:${col}`;
         const type = terrainCells.get(id), height = heightCells.get(id) ?? base.height;
-        // Roads and buildings draw with the original game renderer above the base.
-        return { ...base, height, terrainType: type === ROAD || type === undefined ? base.terrainType : type };
+        // Roads and buildings draw with the original game renderer above the base. A plain road tile
+        // has no ground drawn under it, as in the original game: the ground under it came through the
+        // seams between road tiles as a green line along every edge (Norton 2026-11-17). A bridge keeps
+        // the water under its deck.
+        const plainRoad = type === ROAD && !roadUnderlayMap.has(id);
+        return { ...base, height, terrainType: type === ROAD || type === undefined ? base.terrainType : type, ...(plainRoad ? { noGround: true } : {}) };
       } };
     } };
     this.manager = new api.WorldChunkManager({ world: this.world, provider, renderer: this.renderer,

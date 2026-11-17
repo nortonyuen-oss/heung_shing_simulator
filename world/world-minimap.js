@@ -5,6 +5,7 @@
 })(globalThis, function () {
   'use strict';
   const GROUND_OFFSET = 40;
+  const MINIMAP_BASE_FILTER = 'brightness(1.8) contrast(1.2) saturate(1.2)';
   function projectedRegion(adapter, region) {
     const points = [[region.col - .5, region.row - .5], [region.col + region.width - .5, region.row - .5],
       [region.col - .5, region.row + region.height - .5], [region.col + region.width - .5, region.row + region.height - .5]]
@@ -132,6 +133,9 @@
       }
       this.cache.setWanted(views);
       ctx.clearRect(0, 0, this.width, this.height); ctx.imageSmoothingEnabled = false; this.clip(ctx);
+      // The overview rasters are rendered for the dim far view (mean ~55/255): on the minimap the land
+      // and the sea read as one dark field (Norton 2026-11-17: 完全看不到全境的模樣). Lifted here only.
+      ctx.filter = MINIMAP_BASE_FILTER;
       const paint = (source, view) => { const p = t.projectedToMinimap(view.x, view.y); ctx.drawImage(source, p.x, p.y, view.width * t.scale, view.height * t.scale); };
       paint(this.scene.textures.get(`world-lod-${rotation}`).getSourceImage(), this.manifest.lod[rotation]);
       for (const view of views) { const image = this.cache.get(view); if (image) paint(image, view); }

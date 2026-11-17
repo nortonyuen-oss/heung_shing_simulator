@@ -72,11 +72,9 @@ function getLightRailStationById(id, state = lrtState()) {
   return state.stations.find((st) => st.id === id) || null;
 }
 
-// The station whose platforms cover a tile (its own and one each way along its track).
+// The station whose platforms cover a tile (light-rail.js lightRailStationTiles).
 function getLightRailStationAt(row, col, state = lrtState()) {
-  return state.stations.find((st) => (st.axis === 'ns'
-    ? st.col === col && Math.abs(st.row - row) <= 1
-    : st.row === row && Math.abs(st.col - col) <= 1)) || null;
+  return state.stations.find((st) => lightRailStationTiles(st).some(([r, c]) => r === row && c === col)) || null;
 }
 
 function isLightRailStationTile(row, col) {
@@ -94,8 +92,8 @@ function getLightRailLineSets(line, state = lrtState()) {
 
 const LIGHT_RAIL_STATION_REFUSALS = Object.freeze({
   noTrack: ['lightRail.station.noTrack', '輕鐵站要起喺輕鐵路軌上面。'],
-  notStraight: ['lightRail.station.notStraight', '輕鐵站要三格直嘅雙軌（月台兩格長）：喺直路中間撳。'],
-  notGround: ['lightRail.station.notGround', '輕鐵站要起喺空地嘅路軌上（唔可以喺馬路、平交路、高架或者上落橋）。'],
+  notStraight: ['lightRail.station.notStraight', '輕鐵站要起喺一段直路軌上：空地要三格直雙軌（月台兩格長）；馬路上要直路，唔可以喺路口、彎位或者窄路入雙線嗰度。'],
+  notGround: ['lightRail.station.notGround', '輕鐵站唔可以起喺平交路、高架或者上落橋上面。'],
   notFlat: ['lightRail.station.notFlat', '輕鐵站要起喺平地上（唔可以喺山坡）。'],
   taken: ['lightRail.station.taken', '附近已經有輕鐵站。'],
 });
@@ -104,6 +102,9 @@ function placeLightRailStation(scene, row, col) {
   if (lrtCompanyClosed()) return false;
   const state = lrtState();
   const res = whyNotLightRailStationAt(row, col, state, lightRailMapEnv());
+  // (a street station's track straight on through it, as a tram stop's: not part of a shift between a
+  // narrow road and a reservation)
+  if (!res.code && res.site.street && !tramStopLinkIsPlain(getLightRailGeometry(), lrtStationStop(res.site))) res.code = 'notStraight';
   if (res.code) return lrtSay(...LIGHT_RAIL_STATION_REFUSALS[res.code], {}, 'warning');
   if (!lrtSpend(LIGHT_RAIL_SERVICE.stationCost)) {
     return lrtSay('lightRail.station.funds', '公司資金唔夠起輕鐵站（要 ${cost}）。', { cost: LIGHT_RAIL_SERVICE.stationCost.toLocaleString() }, 'warning');
@@ -416,7 +417,7 @@ function settleLightRailMonth(ended = null) {
 // ── Routes ──────────────────────────────────────────────────────────────────────────────────────────
 
 function lrtStationStop(st) {
-  return { row: st.row, col: st.col, axis: st.axis, band: false };
+  return { row: st.row, col: st.col, axis: st.axis, band: Boolean(st.band) };
 }
 
 const lrtGeometryCache = { key: null, geo: null };
@@ -639,11 +640,23 @@ function lightRailCarPicture(view, sdx, sdy, trailer, pair, tilt) {
 
 // A car's slices (tram-lines.js tramSlicedPieces): sorted along its picture's axis where it lies; up on
 // a viaduct a little over the deck its tile is drawn with; at the ground under a viaduct, under it.
-function lightRailSlicedPieces(scene, pos, view, sprite, z) {
+function lightRailSlicedPieces(scene, pos, view, sprite, z, heading = null) {
   const up = z > 0.5;
   const y0 = tramSortY(pos[0], pos[1]) + TILE_HEIGHT / 2 + (up ? 0.3 : 0);
   const deck = !up && typeof metroDeckDepthOver === 'function' ? metroDeckDepthOver(scene, sprite.x, sprite.y) : null;
-  const cap = (d) => (deck != null && d > deck - 0.2 ? deck - 0.2 : d);
+  // Up on a ramp or a deck the car rides on top of its viaduct: the tile ahead of it, nearer the
+  // viewer and drawn lifted over the tile the car is still on, cut through the car's middle where a
+  // ramp meets the deck (Norton 2026-11-17: 輕鐵上橋的貼圖穿模). No viaduct tile under the car's
+  // length is drawn over it.
+  let floor = -Infinity;
+  if (up && heading && scene.lightRailTrackSprites) {
+    const reach = LRT_SET.carTiles / 2 + 0.6;
+    for (let t = -reach; t <= reach + 1e-9; t += 0.25) {
+      const s = scene.lightRailTrackSprites.get(`${Math.floor(pos[1] + heading[1] * t)}:${Math.floor(pos[0] + heading[0] * t)}`);
+      if (s && s.__layerName === 'objectLayer') floor = Math.max(floor, s.depth + 0.02);
+    }
+  }
+  const cap = (d) => Math.max(floor, deck != null && d > deck - 0.2 ? deck - 0.2 : d);
   const width = sprite.frame.realWidth;
   if (view === 'vert' || view === 'horiz') return [{ x0: 0, x1: width, depth: cap(getWorldDepth('object', y0)) }];
   const slope = (view === 'fall' ? 1 : -1) * TILE_HEIGHT / TILE_WIDTH;
@@ -736,7 +749,7 @@ function updateLightRailCars(scene) {
     sprite.setPosition(p.x, p.y).setVisible(true);
     sprite.__nightGround = false;
     if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
-    applyTramPieces(scene, sprite, lightRailSlicedPieces(scene, at.pos, view, sprite, z));
+    applyTramPieces(scene, sprite, lightRailSlicedPieces(scene, at.pos, view, sprite, z, heading));
     syncLightRailCarLamps(scene, sprite, lamps, strength);
     // on a narrow road: a set the traffic queues behind (as a tram, tram-lines.js updateTramVehicles) -
     // by its middle, kept clear of by its half
@@ -770,13 +783,17 @@ function syncLightRailStations(scene) {
   if (typeof LIGHT_RAIL_STATION_ART === 'undefined') return;
   const state = lrtState();
   const turn = typeof mapRotation === 'number' ? mapRotation : 0;
-  const signature = `${state.stations.map((s) => `${s.id}@${s.row},${s.col},${s.axis}`).join('|')}#${turn}#${scene.offsetX},${scene.offsetY}`;
+  // (a street station's shelters are the tram stop's: loaded the first time one is needed)
+  const stopArtMissing = state.stations.some((s) => s.street) && typeof tramArtLoaded === 'function' && !tramArtLoaded(scene);
+  if (stopArtMissing && typeof loadTramArt === 'function') loadTramArt(scene);
+  const signature = `${state.stations.map((s) => `${s.id}@${s.row},${s.col},${s.axis}${s.street ? 's' : ''}${s.band ? 'b' : ''}`).join('|')}#${turn}#${scene.offsetX},${scene.offsetY}#${stopArtMissing}`;
   const strength = Math.max(0, Math.min(1, Number(scene.buildingLightStrength) || 0));
   if (scene.__lightRailStationSignature !== signature) {
     scene.__lightRailStationSignature = signature;
     const wanted = new Set();
     const env = lightRailMapEnv();
     state.stations.forEach((st) => {
+      if (st.street) { if (!stopArtMissing) syncLightRailStreetStation(scene, st, wanted); return; }
       const along = st.axis === 'ns' ? [0, 1] : [1, 0];
       const across = st.axis === 'ns' ? [1, 0] : [0, 1];
       const cx = st.col + 0.5, cy = st.row + 0.5;
@@ -810,14 +827,50 @@ function syncLightRailStations(scene) {
     });
     scene.lightRailStationSprites.forEach((sprite, id) => {
       if (wanted.has(id)) return;
+      sprite.__tramLit?.destroy();
       sprite.destroy();
       scene.lightRailStationSprites.delete(id);
     });
   }
   // (the tube lights come on with the buildings' windows)
   scene.lightRailStationSprites.forEach((sprite) => {
-    if (sprite.__lrtLit) sprite.setAlpha(strength).setVisible(strength > 0.01);
+    if (sprite.__lrtStopArt) {
+      if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+      if (typeof syncTramStopLight === 'function') syncTramStopLight(scene, sprite, sprite.__lrtStopArt, Number(scene.buildingLightStrength) || 0);
+    } else if (sprite.__lrtLit) sprite.setAlpha(strength).setVisible(strength > 0.01);
     else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+  });
+}
+
+// A street station (light-rail.js whyNotLightRailStreetStationAt): the tram stop's two shelters either
+// side of its track's middle - on the reservation, or on the pavements - each boarding toward the track,
+// as tram-lines.js syncTramStops draws them.
+function syncLightRailStreetStation(scene, st, wanted) {
+  const off = st.band ? TRAM_STOP_OFFSET.reservation : TRAM_STOP_OFFSET.kerb;
+  const along = st.axis === 'ns' ? [0, 1] : [1, 0];
+  const across = st.axis === 'ns' ? [1, 0] : [0, 1];
+  const cx = st.col + (st.band && st.axis === 'ns' ? 1 : 0.5), cy = st.row + (st.band && st.axis === 'ew' ? 1 : 0.5);
+  const a0 = isoToScreen(cx, cy), a1 = isoToScreen(cx + along[0], cy + along[1]);
+  const fall = (a1.x - a0.x) * (a1.y - a0.y) > 0;
+  [-1, 1].forEach((sg) => {
+    const x = cx + across[0] * off * sg, y = cy + across[1] * off * sg;
+    const f0 = isoToScreen(x, y), f1 = isoToScreen(x - across[0] * sg, y - across[1] * sg);
+    const front = f1.y > f0.y;
+    const art = TRAM_ART[front ? 'stop_front' : 'stop_back'];
+    const id = `${st.id}|stop${sg}`;
+    wanted.add(id);
+    let sprite = scene.lightRailStationSprites.get(id);
+    if (!sprite) { sprite = newTramSprite(scene, art.key); scene.lightRailStationSprites.set(id, sprite); }
+    if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
+    // (placed as the cars are, on the ground's height: tramScreenAt left it a tile off on raised land)
+    const p = lightRailScreenAt(scene, x, y, lightRailHeightAt(x, y, lrtState(), lightRailMapEnv()));
+    sprite.setFlipX(!fall).setOrigin(fall ? art.anchor[0] / art.size[0] : 1 - art.anchor[0] / art.size[0], art.anchor[1] / art.size[1]);
+    // (the far shelter sorts at its end farthest back, the near one at its end nearest the viewer: a
+    // car anywhere along the station is in front of the one and behind the other)
+    const ends = [-0.5, 0.5].map((k) => tramDepthAt(x + along[0] * k, y + along[1] * k));
+    sprite.setScale(art.scale * TILE_WIDTH / 100).setPosition(p.x, p.y).setDepth(front ? Math.min(...ends) : Math.max(...ends));
+    sprite.__nightGround = true;
+    sprite.__lrtStopArt = art;
   });
 }
 

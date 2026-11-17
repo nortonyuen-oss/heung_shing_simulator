@@ -9,8 +9,8 @@ const {
 } = require('../night-remote-darkness.js');
 
 // main.js's city passes at the ordinary night peak and in the small hours
-const CITY_PEAK_TOTAL = 0.62;
-const CITY_DEEP_TOTAL = 0.71;
+const CITY_PEAK_TOTAL = 0.544;
+const CITY_DEEP_TOTAL = 0.652;
 
 test('far from the city the ground lands on the calibrated brightness', () => {
   const settings = NIGHT_REMOTE_DARKNESS_DEFAULTS;

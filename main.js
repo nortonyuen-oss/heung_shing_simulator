@@ -2818,6 +2818,15 @@ function getTileSprite(scene, row, col) {
   return scene.tileSprites?.get(row * MAP_WIDTH + col);
 }
 
+// On a streamed map (香港全境) a tile's sprite is made only as the camera comes to it. What is laid on
+// road tiles' sprites (tram and light rail street track) notes the tiles it found none for; any of
+// them since made means it is drawn again. [[row, col]] -> bool.
+function anyTileSpriteAppeared(scene, tiles) {
+  if (!tiles?.length) return false;
+  for (const [row, col] of tiles) if (getTileSprite(scene, row, col)) return true;
+  return false;
+}
+
 // The create-on-demand half of lazy world streaming: used by viewport-culling.js (a tile
 // entering the camera's view) and by refreshTileSprite below (any tool action editing a tile,
 // even one off-screen) - both inherit "generate this tile's chunk if needed, then create its

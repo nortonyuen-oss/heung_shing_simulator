@@ -806,9 +806,12 @@ function settleTramMonth(ended = null) {
 
 // ── Drawing: the stops and the trams ────────────────────────────────────────────────────────────
 
+// A map point on its road tile as the road is drawn: the tile's face, raised with the land under it.
+// (It was the flat ground's middle - metroSurfaceScreenAt, for the metro's cars that add their own
+// height - so on raised land, most of 香港全境, a tram and its stop sat below their road: 2026-11-17.)
 function tramScreenAt(scene, x, y) {
-  if (typeof metroSurfaceScreenAt === 'function') return metroSurfaceScreenAt(scene, x, y);
-  const ri = Math.floor(y), ci = Math.floor(x);
+  const ri = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(y)));
+  const ci = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(x)));
   const f = getTileFaceGeometry(ri, ci, scene.offsetX, scene.offsetY).center;
   const p0 = isoToScreen(ci + 0.5, ri + 0.5), p1 = isoToScreen(x, y);
   return { x: f.x + p1.x - p0.x, y: f.y + p1.y - p0.y };

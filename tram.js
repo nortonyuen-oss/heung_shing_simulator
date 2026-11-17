@@ -752,9 +752,17 @@ function syncTramTracks(scene = typeof activeScene !== 'undefined' ? activeScene
   if (!scene.tramTrackSprites) scene.tramTrackSprites = new Map();
   const turn = typeof mapRotation === 'number' ? mapRotation : 0;
   const used = new Set();
+  // (a road tile not drawn yet - 香港全境 makes them as the camera comes - keeps what it had, and is
+  // drawn when its road is: updateTram)
+  const roadsMissing = [];
   geo.tiles.forEach((cell, key) => {
     const road = getTileSprite(scene, cell.row, cell.col);
-    if (!road) return;
+    if (!road) {
+      roadsMissing.push([cell.row, cell.col]);
+      const had = scene.tramTrackSprites.get(key);
+      if (had) used.add(had.texture.key);
+      return;
+    }
     const picture = tramTilePicture(geo, cell, turn);
     if (!scene.textures.exists(picture.key)) drawTramTrackPicture(scene, picture);
     used.add(picture.key);
@@ -775,6 +783,7 @@ function syncTramTracks(scene = typeof activeScene !== 'undefined' ? activeScene
   // pictures no tile shows any more
   (scene.__tramTrackPictures || new Set()).forEach((k) => { if (!used.has(k) && scene.textures.exists(k)) scene.textures.remove(k); });
   scene.__tramTrackPictures = used;
+  scene.__tramRoadsMissing = roadsMissing;
   scene.__tramTrackSyncKey = tramTrackSyncKey(scene);
   // (a stop whose track went, or changed under it, goes too: tram-lines.js)
   if (typeof pruneTramStops === 'function') pruneTramStops(scene);
@@ -788,7 +797,8 @@ function tramTrackSyncKey(scene) {
 function updateTram(scene, delta = 16) {
   if (!scene?.add) return;
   if ((Object.keys(getTramState().tracks).length || scene.tramTrackSprites?.size)
-    && scene.__tramTrackSyncKey !== tramTrackSyncKey(scene)) syncTramTracks(scene);
+    && (scene.__tramTrackSyncKey !== tramTrackSyncKey(scene)
+      || (typeof anyTileSpriteAppeared === 'function' && anyTileSpriteAppeared(scene, scene.__tramRoadsMissing)))) syncTramTracks(scene);
   // the stops, the lines' trams (tram-lines.js)
   if (typeof updateTramService === 'function') updateTramService(scene, delta);
 }

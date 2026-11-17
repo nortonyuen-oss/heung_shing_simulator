@@ -46,10 +46,12 @@ function normalizeLightRailState(raw) {
   const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
   const text = (v, d) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 40) : d);
   const list = (v) => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : []);
-  // 輕鐵站 (phase 2/3): on a straight of open-ground track, its platforms two tiles long about the tile
+  // 輕鐵站 (phase 2/3): on a straight of open-ground track, its platforms two tiles long about the tile;
+  // or a street station on a road (`street`), as a tram stop, on a dual carriageway's reservation (`band`)
   const stations = list(src.stations).map((st) => ({
     id: String(st.id), row: Math.floor(num(st.row, -1)), col: Math.floor(num(st.col, -1)),
     axis: st.axis === 'ew' ? 'ew' : 'ns', name: text(st.name, '輕鐵站'), waitingByLine: {},
+    ...(st.street === true ? { street: true, band: st.band === true } : {}),
   })).filter((st) => st.id && st.row >= 0 && st.col >= 0);
   const stationIds = new Set(stations.map((st) => st.id));
   const lines = list(src.lines).map((l) => ({
@@ -561,13 +563,60 @@ function lightRailInTrafficAt(x, y, state, env) {
   return lightRailTileKind(row, col, mask, null, env) === 'street' && !env.bandAt(row, col);
 }
 
-// A station's place (docs/light-rail-design.md §3): the middle of its two-tile platforms on a tile of
-// straight double track on open ground, the track straight on each side of it too (the platforms
-// reach half a tile each way). { code, site: { row, col, axis } }, code null when it may go. Pure.
+// The tiles a station takes: a street station its own (and on a dual carriageway the reservation's
+// other half), as a tram stop; a station on open ground its own and one each way along its track (its
+// two-tile platforms and the passengers' crossing). [[row, col]]
+function lightRailStationTiles(st) {
+  if (st.street) {
+    if (!st.band) return [[st.row, st.col]];
+    return st.axis === 'ns' ? [[st.row, st.col], [st.row, st.col + 1]] : [[st.row, st.col], [st.row + 1, st.col]];
+  }
+  const [dr, dc] = st.axis === 'ns' ? [1, 0] : [0, 1];
+  return [[st.row - dr, st.col - dc], [st.row, st.col], [st.row + dr, st.col + dc]];
+}
+
+// Whether another station stands on, or right beside along its track, any of `site`'s tiles.
+function lightRailStationNear(site, stations) {
+  const [dr, dc] = site.axis === 'ns' ? [1, 0] : [0, 1];
+  const near = new Set();
+  lightRailStationTiles(site).forEach(([r, c]) => [-1, 0, 1].forEach((k) => near.add(railKey(r + dr * k, c + dc * k))));
+  return (stations || []).some((st) => lightRailStationTiles(st).some(([r, c]) => near.has(railKey(r, c))));
+}
+
+// A street station (Norton 2026-11-17: 好似電車咁…喺雙線道路設立車站): as a tram stop is
+// (tram-lines.js whyNotTramStopAt) - on a narrow road's straight tile, its platforms on the pavements,
+// or on a dual carriageway's reservation, either half clicked (the station is the band's pair, its
+// platforms either side of the track down the middle); not on a level crossing.
+function whyNotLightRailStreetStationAt(row, col, mask, state, env) {
+  if (lightRailTileKind(row, col, mask, null, env) === 'crossing') return { code: 'notGround' };
+  const tracks = state.tracks || {};
+  const band = env.bandAt(row, col);
+  let site;
+  if (band) {
+    const side = tramReservationSideOf(band);
+    if (!side) return { code: 'notStraight' };
+    const axis = band.orientation === 'v' ? 'ns' : 'ew';
+    site = { row: side === 'n' ? row - 1 : row, col: side === 'w' ? col - 1 : col, axis, band: true, street: true };
+  } else {
+    const axis = lightRailRoadAxis(row, col, env);
+    if (!axis) return { code: 'notStraight' };
+    site = { row, col, axis, band: false, street: true };
+  }
+  const bit = site.axis === 'ns' ? 1 : 2;
+  if (lightRailStationTiles(site).some(([r, c]) => tracks[railKey(r, c)] !== bit)) return { code: 'notStraight' };
+  if (lightRailStationNear(site, state.stations)) return { code: 'taken' };
+  return { code: null, site };
+}
+
+// A station's place (docs/light-rail-design.md §3): on a road, a street station (above); else the
+// middle of its two-tile platforms on a tile of straight double track on open ground, the track
+// straight on each side of it too (the platforms reach half a tile each way). { code, site: { row,
+// col, axis[, band, street] } }, code null when it may go. Pure.
 function whyNotLightRailStationAt(row, col, state, env) {
   const tracks = state.tracks || {}, elev = state.trackElev || {};
   const mask = tracks[railKey(row, col)];
   if (!mask) return { code: 'noTrack' };
+  if (env.isRoad(row, col) && !elev[railKey(row, col)]) return whyNotLightRailStreetStationAt(row, col, mask, state, env);
   if (mask !== 1 && mask !== 2) return { code: 'notStraight' };
   const axis = mask === 1 ? 'ns' : 'ew';
   const [dr, dc] = axis === 'ns' ? [1, 0] : [0, 1];
@@ -580,7 +629,9 @@ function whyNotLightRailStationAt(row, col, state, env) {
     if (env.rail.openEdges(r, c).length) return { code: 'notFlat' };
   }
   const near = (state.stations || []).find((st) => (axis === 'ns' ? st.col === col && Math.abs(st.row - row) < 3 : st.row === row && Math.abs(st.col - col) < 3)
-    || (st.row === row && st.col === col));
+    || (st.row === row && st.col === col)
+    // (a street station on one of its tiles)
+    || (st.street && lightRailStationTiles(st).some(([r, c]) => tiles.some(([tr, tc]) => tr === r && tc === c))));
   if (near) return { code: 'taken' };
   return { code: null, site: { row, col, axis } };
 }
@@ -960,9 +1011,17 @@ function syncLightRailTracks(scene = typeof activeScene !== 'undefined' ? active
   // street track and level crossings: drawn on their road tiles as the tram's is (a crossing's with its
   // concrete panel and stop lines under the rails)
   const crossings = new Map(getLightRailCrossings().map((x) => [railKey(x.row, x.col), x]));
+  // (a road tile not drawn yet - 香港全境 makes them as the camera comes - keeps what it had, and is
+  // drawn when its road is: updateLightRail)
+  const roadsMissing = [];
   geo.tiles.forEach((cell, key) => {
     const road = getTileSprite(scene, cell.row, cell.col);
-    if (!road) return;
+    if (!road) {
+      roadsMissing.push([cell.row, cell.col]);
+      const had = scene.lightRailTrackSprites.get(key);
+      if (had) { wanted.add(key); pictures.add(had.texture.key); }
+      return;
+    }
     const picture = tramTilePicture(geo, cell, turn);
     const xing = crossings.get(key);
     // (its own keys: the tram drops the pictures its own tiles no longer show)
@@ -1026,6 +1085,7 @@ function syncLightRailTracks(scene = typeof activeScene !== 'undefined' ? active
   scene.lightRailPierSprites.forEach((sprite, id) => { if (!piers.has(id)) { sprite.destroy(); scene.lightRailPierSprites.delete(id); } });
   (scene.__lightRailPictures || new Set()).forEach((k) => { if (!pictures.has(k) && scene.textures.exists(k)) scene.textures.remove(k); });
   scene.__lightRailPictures = pictures;
+  scene.__lightRailRoadsMissing = roadsMissing;
   scene.__lightRailTrackSyncKey = lightRailTrackSyncKey(scene);
 }
 
@@ -1230,7 +1290,8 @@ function updateLightRail(scene, delta = 16) {
   if (!scene?.add || typeof getTransportExpansionState !== 'function') return;
   const tracks = getTransportExpansionState()?.lightRail?.tracks;
   if ((tracks && Object.keys(tracks).length) || scene.lightRailTrackSprites?.size) {
-    if (scene.__lightRailTrackSyncKey !== lightRailTrackSyncKey(scene)) syncLightRailTracks(scene);
+    if (scene.__lightRailTrackSyncKey !== lightRailTrackSyncKey(scene)
+      || (typeof anyTileSpriteAppeared === 'function' && anyTileSpriteAppeared(scene, scene.__lightRailRoadsMissing))) syncLightRailTracks(scene);
   }
   // the stations, the lines' cars (light-rail-lines.js)
   if (typeof updateLightRailService === 'function') updateLightRailService(scene, delta);
@@ -1245,7 +1306,7 @@ function getLightRailTrackMonthlyUpkeep() {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     LIGHT_RAIL, LIGHT_RAIL_SPEC, normalizeLightRailState, lightRailRoadAxis, lightRailCrossesRoad, lightRailTileKind,
-    planLightRailTrackPure, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt,
+    planLightRailTrackPure, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt, lightRailStationTiles,
     lightRailCornersFrom, lightRailSurfaceLevel, lightRailGroundMetres, lightRailVisualCornerLifts, lightRailTrackCorners, lightRailVisualFold,
     isLightRailUnlocked, grantLightRailFunding, spendLightRailFunds,
   };

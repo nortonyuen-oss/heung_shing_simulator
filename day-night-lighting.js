@@ -609,11 +609,12 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
 // data in sim-weather.js still peaks at 0.54 and stays the authoritative input
 // to the lamp ramps; this is the display target the two passes composite to.
 // Deepened 2026-09-28 (0.45/0.56 -> 0.62/0.71: the ground's remaining light cut
-// by ~15% and then another 20%).
-const NIGHT_DARKNESS_PEAK = 0.62;
+// by ~15% and then another 20%); lifted 2026-11-17 (Norton: 地圖地面在晚上太暗, 調亮大概20%) -
+// the remaining light 0.38/0.29 -> 0.456/0.348, i.e. 20% more.
+const NIGHT_DARKNESS_PEAK = 0.544;
 // ... and in the small hours (getDeepNightDepth, sim-weather.js), when the
 // keyframe curve is flat but the city has gone to bed.
-const NIGHT_DARKNESS_DEEP_PEAK = 0.71;
+const NIGHT_DARKNESS_DEEP_PEAK = 0.652;
 const NIGHT_KEYFRAME_PEAK = 0.54;
 // How much of that darkness stays in the pass above every sprite (the rest
 // goes below the object band, onto the ground pass alone). Norton 2026-11-14:
@@ -740,6 +741,12 @@ function applyNightObjectTint(scene, ground) {
   scene.metroPlatformSprites?.forEach(apply);
   scene.metroPierSprites?.forEach(apply);
   scene.metroPortalFronts?.forEach(apply);
+  // the 輕鐵's track, viaducts, ramps and piers (light-rail.js) and the 電車's track (tram.js): tinted
+  // as the time of day changes, not only when laid (Norton 2026-11-17: a viaduct laid at night kept its
+  // night look all the next day)
+  scene.lightRailTrackSprites?.forEach(apply);
+  scene.lightRailPierSprites?.forEach(apply);
+  scene.tramTrackSprites?.forEach(apply);
   // (each car with the slices it is drawn in - else one car's slices differ as the night deepens)
   scene.metroTrainSprites?.forEach((cars) => cars.forEach((car) => { apply(car); (car.__pieces || []).forEach(apply); }));
 

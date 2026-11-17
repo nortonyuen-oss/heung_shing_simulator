@@ -19,6 +19,8 @@
       const { bounds } = job.data, total = bounds.width * bounds.height;
       while (job.cursor < total && this.now() < deadline) {
         const col = bounds.col + job.cursor % bounds.width, row = bounds.row + Math.floor(job.cursor / bounds.width);
+        // (a cell the original renderer draws whole - a plain road - has no ground of its own drawn)
+        if (job.data.sample(col, row)?.noGround) { job.cursor++; continue; }
         const style = this.visuals.describe(col, row, job.rotation, job.data.sample);
         const point = this.adapter.project(col, row), depth = point.y + style.offset;
         let group = job.groups.get(depth);

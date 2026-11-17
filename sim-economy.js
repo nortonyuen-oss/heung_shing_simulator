@@ -320,14 +320,28 @@ function getStockMarketCapValue(stock) {
   return Math.max(1, Number(stock.price ?? stock.basePrice ?? 1)) * shares;
 }
 
+// How far an order of this size moves the price (unsigned).
+function getGovernmentTradeImpact(stock, notional) {
+  const marketCap = getStockMarketCapValue(stock);
+  const rawImpact = (Math.max(0, notional) / marketCap) * STOCK_GOV_PRICE_IMPACT_COEFFICIENT;
+  return clamp(rawImpact, 0, STOCK_GOV_MAX_PRICE_IMPACT_PER_TRADE);
+}
+
+// A government order fills along the move it makes (Norton 2026-11-17, 合理的投資獲利): half way
+// between the price before it and the price it leaves behind - a buy above the quote, a sale below.
+// Filling at the old quote while the order itself moved the price let a buy then an immediate sale
+// bank the move: ten clicks while paused made $3.6M. Now a round trip costs a little, and profit has
+// to come from the market itself (a crash bought, a bull market held).
+function getGovernmentTradeFillPrice(price, impact, direction) {
+  return price * (1 + direction * impact / 2);
+}
+
 // direction: +1 for a buy order (pushes price up), -1 for a sell order
 // (pushes price down) - both directions use the same formula, so a large
 // government sale depresses a stock exactly as much as an equal-sized
 // purchase would have lifted it.
 function applyGovernmentTradePriceImpact(stock, notional, direction) {
-  const marketCap = getStockMarketCapValue(stock);
-  const rawImpact = (Math.max(0, notional) / marketCap) * STOCK_GOV_PRICE_IMPACT_COEFFICIENT;
-  const impact = clamp(rawImpact, 0, STOCK_GOV_MAX_PRICE_IMPACT_PER_TRADE) * direction;
+  const impact = getGovernmentTradeImpact(stock, notional) * direction;
   const prevPrice = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
   const nextPrice = Math.max(1, prevPrice * (1 + impact));
   stock.prevPrice = prevPrice;
@@ -358,10 +372,17 @@ function buyGovernmentStock(symbol, cashAmount) {
   const existing = portfolio.positions[symbol] ?? { shares: 0, avgCost: 0 };
   const sharesOutstanding = Math.max(1, Number(stock.sharesOutstanding ?? 1));
   const maxShares = Math.floor(sharesOutstanding * STOCK_GOV_MAX_OWNERSHIP_FRACTION);
-  const allowedShares = Math.min(shares, Math.max(0, maxShares - existing.shares));
+  let allowedShares = Math.min(shares, Math.max(0, maxShares - existing.shares));
   if (allowedShares <= 0) return { success: false, reason: 'ownership-cap' };
 
-  const cost = allowedShares * price;
+  // the fill is above the quote, so the order shrinks to what the cash asked for still buys
+  let fillPrice = getGovernmentTradeFillPrice(price, getGovernmentTradeImpact(stock, allowedShares * price), 1);
+  if (allowedShares * fillPrice * (1 + feeRate) > requestedCash) {
+    allowedShares = Math.floor(requestedCash / (fillPrice * (1 + feeRate)));
+    if (allowedShares <= 0) return { success: false, reason: 'amount-too-small' };
+    fillPrice = getGovernmentTradeFillPrice(price, getGovernmentTradeImpact(stock, allowedShares * price), 1);
+  }
+  const cost = allowedShares * fillPrice;
   const fee = cost * feeRate;
   const totalSpend = cost + fee;
   if (totalSpend > Number(city.budget)) return { success: false, reason: 'insufficient-funds' };
@@ -371,7 +392,7 @@ function buyGovernmentStock(symbol, cashAmount) {
   const newAvgCost = ((existing.shares * existing.avgCost) + cost) / newShares;
   portfolio.positions[symbol] = { shares: newShares, avgCost: newAvgCost };
 
-  const impact = applyGovernmentTradePriceImpact(stock, cost, 1);
+  const impact = applyGovernmentTradePriceImpact(stock, allowedShares * price, 1);
   recalculateStockMarketHsi(market);
 
   if (
@@ -389,7 +410,7 @@ function buyGovernmentStock(symbol, cashAmount) {
   }
 
   return {
-    success: true, symbol, shares: allowedShares, cost, fee, totalSpend, impact, newPrice: stock.price,
+    success: true, symbol, shares: allowedShares, cost, fee, totalSpend, impact, fillPrice, newPrice: stock.price,
   };
 }
 
@@ -408,10 +429,11 @@ function sellGovernmentStock(symbol, shareCount) {
   const sellShares = Math.min(requestedShares, position.shares);
 
   const price = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
-  const grossProceeds = sellShares * price;
+  const fillPrice = getGovernmentTradeFillPrice(price, getGovernmentTradeImpact(stock, sellShares * price), -1);
+  const grossProceeds = sellShares * fillPrice;
   const fee = grossProceeds * STOCK_GOV_TRANSACTION_FEE_RATE;
   const netProceeds = grossProceeds - fee;
-  const realizedGain = (price - position.avgCost) * sellShares - fee;
+  const realizedGain = (fillPrice - position.avgCost) * sellShares - fee;
 
   city.budget += netProceeds;
   portfolio.realizedPnl = (Number(portfolio.realizedPnl) || 0) + realizedGain;
@@ -422,7 +444,7 @@ function sellGovernmentStock(symbol, shareCount) {
     portfolio.positions[symbol] = { shares: remainingShares, avgCost: position.avgCost };
   }
 
-  const impact = applyGovernmentTradePriceImpact(stock, grossProceeds, -1);
+  const impact = applyGovernmentTradePriceImpact(stock, sellShares * price, -1);
   recalculateStockMarketHsi(market);
 
   if (realizedGain >= STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT && typeof announceGovernmentTradingProfit === 'function') {
@@ -435,7 +457,7 @@ function sellGovernmentStock(symbol, shareCount) {
   }
 
   return {
-    success: true, symbol, shares: sellShares, grossProceeds, fee, netProceeds, realizedGain, impact, newPrice: stock.price,
+    success: true, symbol, shares: sellShares, grossProceeds, fee, netProceeds, realizedGain, impact, fillPrice, newPrice: stock.price,
   };
 }
 

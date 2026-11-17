@@ -78,11 +78,15 @@ test('buying deducts cash including fee, records shares/avgCost, and lifts the p
 
   assert.equal(result.success, true);
   assert.equal(result.symbol, 'GTT');
-  // 100000 / (100 * 1.0025) = 997.5... -> floor to 997 shares
-  assert.equal(result.shares, 997);
-  assert.ok(Math.abs(result.cost - 997 * 100) < 1e-9);
-  assert.ok(Math.abs(result.fee - result.cost * 0.0025) < 1e-9);
+  // the order fills half way along the move it makes (Norton 2026-11-17): above the $100 quote,
+  // so 100000 buys a few shares under the 997 it would at the quote, and never spends past it
   assert.ok(result.impact > 0, 'a buy order should push the price up');
+  assert.ok(Math.abs(result.fillPrice - 100 * (1 + result.impact / 2)) < 1e-9);
+  assert.ok(result.fillPrice > 100 && result.fillPrice < result.newPrice);
+  assert.ok(result.shares < 997 && result.shares > 990);
+  assert.ok(Math.abs(result.cost - result.shares * result.fillPrice) < 1e-6);
+  assert.ok(Math.abs(result.fee - result.cost * 0.0025) < 1e-9);
+  assert.ok(result.totalSpend <= 100000);
   assert.ok(result.newPrice > 100);
 
   const budgetAfter = vm.runInContext('city.budget', context);
@@ -90,8 +94,23 @@ test('buying deducts cash including fee, records shares/avgCost, and lifts the p
 
   const shares = vm.runInContext('city.stockMarket.governmentPortfolio.positions.GTT.shares', context);
   const avgCost = vm.runInContext('city.stockMarket.governmentPortfolio.positions.GTT.avgCost', context);
-  assert.equal(shares, 997);
-  assert.ok(Math.abs(avgCost - 100) < 1e-9);
+  assert.equal(shares, result.shares);
+  assert.ok(Math.abs(avgCost - result.fillPrice) < 1e-9);
+});
+
+test('a buy then an immediate sale loses a little - the trade\'s own price move is not profit', () => {
+  // before 2026-11-17 an order filled at the quote and left the price it moved behind, so a buy
+  // then a sale banked the move: ten round trips on this stock made the treasury $3.6M
+  const context = makeContext({ budget: 50000000, gttShares: 400000 });
+  const budgetBefore = vm.runInContext('city.budget', context);
+  for (let i = 0; i < 10; i++) {
+    vm.runInContext("buyGovernmentStock('GTT', 5000000)", context);
+    vm.runInContext("sellGovernmentStock('GTT', city.stockMarket.governmentPortfolio.positions.GTT.shares)", context);
+  }
+  const budgetAfter = vm.runInContext('city.budget', context);
+  const realizedPnl = vm.runInContext('city.stockMarket.governmentPortfolio.realizedPnl', context);
+  assert.ok(budgetAfter < budgetBefore, `round trips must cost money, got ${budgetAfter - budgetBefore}`);
+  assert.ok(realizedPnl < 0);
 });
 
 test('selling returns cash net of fee, tracks realized P&L, and depresses the price', () => {

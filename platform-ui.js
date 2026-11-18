@@ -136,7 +136,7 @@
     const refresh = () => { note.textContent = text(HeungShingStorage.memoryOnly ? 'memory' : !HeungShingStorage.writable ? 'locked' : 'backup'); };
     refresh(); root.setInterval(refresh, 1000);
     if (!HeungShingStorage.writable) {
-      document.querySelectorAll('#btn-new-game, #btn-terrain-creator').forEach(button => { button.disabled = true; });
+      document.querySelectorAll('#btn-new-game, [data-setup-extra="editor"]').forEach(button => { button.disabled = true; });
       if (typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
     }
   });

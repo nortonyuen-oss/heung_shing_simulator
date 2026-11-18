@@ -5795,6 +5795,60 @@
       background: var(--setup-paper-deep);
     }
 
+    .setup-footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setup-extras {
+      position: relative;
+    }
+
+    .setup-extras-menu {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 8px);
+      z-index: 5;
+      min-width: 260px;
+      padding: 6px;
+      border: 1.5px solid #9aa39d;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .setup-extras-menu[hidden] {
+      display: none;
+    }
+
+    .setup-extras-menu button {
+      display: grid;
+      gap: 2px;
+      width: 100%;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--setup-ink);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .setup-extras-menu button:hover,
+    .setup-extras-menu button:focus-visible {
+      background: #eef3ef;
+    }
+
+    .setup-extras-name {
+      font: 700 14px/1.3 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+    }
+
+    .setup-extras-hint {
+      font: 12px/1.4 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      color: var(--setup-muted);
+    }
+
     .setup-button {
       padding: 8px 16px;
       border: 1.5px solid #9aa39d;
@@ -7090,7 +7144,6 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <div class="landing-actions">
           <button id="btn-campaign" class="landing-btn primary" data-i18n-html="landing.campaign"><span class="landing-btn-main">The 18 Districts</span><span class="landing-btn-sub">Story Campaign</span></button>
           <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame"><span class="landing-btn-main">New City</span><span class="landing-btn-sub">Start Fresh</span></button>
-          <button id="btn-terrain-creator" class="landing-btn primary" data-i18n-html="landing.terrainCreator"><span class="landing-btn-main">Map Editor</span><span class="landing-btn-sub">Design Terrain</span></button>
           <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved"><span class="landing-btn-main">Load Save</span><span class="landing-btn-sub">Continue City</span></button>
           <button id="btn-import-city" class="landing-btn secondary" data-i18n-html="landing.importCity"><span class="landing-btn-main">Import City</span><span class="landing-btn-sub">Restore Backup</span></button>
         </div>
@@ -7191,7 +7244,19 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
 
         <footer class="setup-footer">
           <button id="btn-back" type="button" class="setup-button" data-i18n="landing.back">← Back</button>
-          <button id="btn-start-city" type="button" class="setup-button setup-primary" data-i18n="landing.foundCity">Found City</button>
+          <div class="setup-footer-actions">
+            <!-- 附加功能: tools most players never need, out of the title menu (the Map Editor) -->
+            <div class="setup-extras" data-setup-only="newCity">
+              <button id="btn-setup-extras" type="button" class="setup-button" aria-haspopup="menu" aria-expanded="false" aria-controls="setup-extras-menu" data-i18n="landing.extras">Extras ▴</button>
+              <div id="setup-extras-menu" class="setup-extras-menu" role="menu" hidden>
+                <button type="button" role="menuitem" data-setup-extra="editor">
+                  <span class="setup-extras-name" data-i18n="landing.extras.mapEditor">🗺 Map Editor</span>
+                  <span class="setup-extras-hint" data-i18n="landing.extras.mapEditorHint">Reshape the land and keep it under My Maps</span>
+                </button>
+              </div>
+            </div>
+            <button id="btn-start-city" type="button" class="setup-button setup-primary" data-i18n="landing.foundCity">Found City</button>
+          </div>
         </footer>
       </section>
 

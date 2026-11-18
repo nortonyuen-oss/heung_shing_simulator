@@ -115,7 +115,7 @@
 .ui-profile-setting { display: flex; gap: 8px; align-items: center; justify-content: center; font: 13px system-ui, sans-serif; }
 .ui-profile-setting select { min-height: 36px; max-width: 210px; font: inherit; }
 [data-ui-profile="touch"] .ui-profile-setting { color: #fff; }
-[data-ui-profile="touch"] #btn-terrain-creator { display: none; }
+[data-ui-profile="touch"] .setup-extras { display: none; }
 @media (orientation: portrait) {
   [data-ui-profile="touch"] { --mobile-confirm: 116px; --mobile-inspect-bottom: var(--mobile-nav); }
   [data-ui-profile="touch"] .m-nav { display: grid; }

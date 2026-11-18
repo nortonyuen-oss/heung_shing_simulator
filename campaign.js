@@ -26,6 +26,8 @@
     collapsed: false,
     highlighted: [],
     selectedChapterId: 'ch01',
+    // chapters that wait for a built start city: chapterId -> whether UI/campaign/chNN.json is there
+    startFileReady: {},
   };
 
   const language = () => (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant');
@@ -109,6 +111,77 @@
 
   // ── The city as the chapters read it ──────────────────────────────────────
 
+  // Bus routes that ran last month with riders: how many, their net between them, and how many
+  // have stops in two or more district signs' areas (跨區, ch07).
+  function collectBusRouteFacts() {
+    const facts = { busRoutes: 0, busRoutesNet: 0, crossDistrictRoutes: 0 };
+    const state = typeof isTransportExpansionActive === 'function' && isTransportExpansionActive()
+      && typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+    if (!state) return facts;
+    const stops = new Map((state.stops || []).map((stop) => [stop.id, stop]));
+    (state.routes || []).forEach((route) => {
+      const last = Array.isArray(route.history) ? route.history[route.history.length - 1] : null;
+      if (route.status === 'suspended' || !last || !(Number(last.passengers) > 0)) return;
+      facts.busRoutes += 1;
+      facts.busRoutesNet += Number(last.net) || 0;
+      if (typeof getDistrictKeyForTile !== 'function') return;
+      const districts = new Set();
+      (route.stopIds || []).forEach((id) => {
+        const stop = stops.get(id);
+        const key = stop ? getDistrictKeyForTile(stop.row, stop.col) : null;
+        if (key) districts.add(key);
+      });
+      if (districts.size >= 2) facts.crossDistrictRoutes += 1;
+    });
+    return facts;
+  }
+
+  // The working typhoon shelters, their yachts, and the longest promenade walkable end to end
+  // (tiles joined edge or corner, as a coast runs).
+  function collectWaterfrontFacts() {
+    const facts = { typhoonShelters: 0, yachts: 0, promenadeLongest: 0 };
+    try {
+      if (typeof getTyphoonShelterState === 'function') {
+        facts.typhoonShelters = (getTyphoonShelterState().shelters || []).filter((plan) => plan.status === 'operational').length;
+      }
+      if (typeof getTyphoonShelterYachtCount === 'function') facts.yachts = getTyphoonShelterYachtCount();
+    } catch { /* no shelters */ }
+    const keys = typeof getPromenadeTileKeys === 'function' ? getPromenadeTileKeys() : [];
+    const left = new Set(keys);
+    left.forEach((first) => {
+      if (!left.has(first)) return;
+      let size = 0;
+      const queue = [first];
+      left.delete(first);
+      while (queue.length) {
+        const [row, col] = queue.pop().split(':').map(Number);
+        size += 1;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const key = `${row + dr}:${col + dc}`;
+            if (left.has(key)) { left.delete(key); queue.push(key); }
+          }
+        }
+      }
+      facts.promenadeLongest = Math.max(facts.promenadeLongest, size);
+    });
+    return facts;
+  }
+
+  // Each festival's latest year held, and latest year it found no venue (ch03's 《龍舟未開》). Years,
+  // not counts: the festival history keeps only its latest entries, so a count can stand still.
+  function collectFestivalFacts() {
+    const festivalHeldYear = {};
+    const festivalNoVenueYear = {};
+    const history = typeof getCityFestivalState === 'function' ? getCityFestivalState()?.history || [] : [];
+    history.forEach((entry) => {
+      const year = Math.floor(Number(entry?.year) || 0);
+      if (entry?.outcome === 'held') festivalHeldYear[entry.id] = Math.max(festivalHeldYear[entry.id] || 0, year);
+      else if (entry?.outcome === 'noVenue') festivalNoVenueYear[entry.id] = Math.max(festivalNoVenueYear[entry.id] || 0, year);
+    });
+    return { festivalHeldYear, festivalNoVenueYear };
+  }
+
   function buildCampaignSnapshot() {
     const base = typeof collectMedalSnapshot === 'function' ? collectMedalSnapshot() : { buildings: {}, transit: {} };
     const buildings = base.buildings || {};
@@ -127,6 +200,13 @@
     const loans = Array.isArray(city.loans) ? city.loans : [];
     return {
       ...base,
+      ...collectBusRouteFacts(),
+      ...collectWaterfrontFacts(),
+      ...collectFestivalFacts(),
+      crimeRate: Number(city.crimeRateIndex) || 0,
+      tourismAppeal: Number(city.tourismAppeal) || 0,
+      pollution: Number(city.pollution) || 0,
+      funds: Number(city.budget) || 0,
       residentialCount: Number(city.residentialCount) || 0,
       powerRatio: Number(city.powerRatio) || 0,
       powerPlants: (buildings.power_plant_coal || 0) + (buildings.power_plant_solar || 0) + (buildings.power_plant_nuclear || 0),
@@ -203,13 +283,19 @@
       if (typeof showToast === 'function') showToast(t('toast.stillLoading'), 'warning');
       return false;
     }
+    const file = await fetchCampaignStartFile(spec.startFile);
+    if (!file && (spec.requiresStartFile || !spec.fresh)) {
+      runtime.startFileReady[chapterId] = false;
+      renderCampaignSelect();
+      if (typeof showToast === 'function') showToast(say(L(`第 ${chapter.number} 章嘅開局城市準備中。`, `Chapter ${chapter.number}'s starting city is still being built.`, `第${chapter.number}章の開始都市は準備中です。`)), 'warning');
+      return false;
+    }
     if (isCityInPlay() && !window.confirm(say(L(
       '開始新章節會離開而家個城市，未儲存嘅進度會失去。繼續？',
       'Starting a chapter leaves the city you are in; anything unsaved will be lost. Continue?',
       '章を始めると今の都市を離れます。未保存の進行は失われます。続けますか？',
     )))) return false;
     closeCampaignSelect();
-    const file = await fetchCampaignStartFile(spec.startFile);
     const started = file ? await loadCampaignStartFile(file) : await startFreshCampaignCity(chapter, spec);
     if (!started) {
       if (typeof showToast === 'function') showToast(say(L('開唔到呢一章。', 'This chapter could not start.', 'この章を開始できませんでした。')), 'danger');
@@ -446,7 +532,7 @@
     let objectives = '';
     if (run.stars < spec.stars.length && !run.freePlay) {
       const star = spec.stars[run.stars];
-      const result = evaluateCampaignStar(spec, run.stars, snapshot);
+      const result = evaluateCampaignStar(spec, run.stars, snapshot, run);
       objectives = `
         <div class="cp-section">${'★'.repeat(run.stars + 1)} ${escapeHtml(say(star.title))}</div>
         <ul class="cp-objectives">${result.items.map((item) => `
@@ -490,16 +576,17 @@
     if (star === 1) {
       playCampaignDialogue(spec.outro);
       postCampaignForum(spec.outroForum, `campaign-${run.chapterId}-star1`);
-      const next = CAMPAIGN_CHAPTERS[chapter.number];
-      if (next && typeof showToast === 'function') {
+      // the next chapter, and past any still to come, the next one that can be played
+      if (typeof showToast === 'function') getCampaignChaptersUnlockedBy(chapter.id).forEach((next) => {
         showToast(say(isCampaignChapterPlayable(next.id)
           ? L(`🔓 解鎖第 ${next.number} 章：${say(next.district)}`, `🔓 Chapter ${next.number} unlocked: ${say(next.district)}`, `🔓 第${next.number}章を解放：${say(next.district)}`)
           : L(`🔓 第 ${next.number} 章${say(next.district)}已解鎖（即將推出）`, `🔓 Chapter ${next.number}, ${say(next.district)}, unlocked (coming soon)`, `🔓 第${next.number}章${say(next.district)}を解放（近日公開）`)), 'info');
-      }
+      });
     }
   }
 
   function showCampaignFailure(run, spec) {
+    const months = Math.max(1, Math.floor(Number(run.deadlineMonthIndex) - Number(run.startMonthIndex)) || getCampaignDeadlineMonths(run.chapterId));
     playCampaignDialogue(spec.failure).then(() => {
       let dialog = document.getElementById('campaign-failure-dialog');
       if (!dialog) {
@@ -512,7 +599,7 @@
         <div class="dialog-overlay"></div>
         <div class="dialog-box" style="max-width:440px">
           <div class="dialog-title-bar"><span>${escapeHtml(say(L('限期已過', 'Time is up', '期限切れ')))}</span></div>
-          <div class="dialog-body campaign-plain">${escapeHtml(say(L('十二個月內未攞到一星。', 'The first star was not reached in twelve months.', '12か月以内に一つ目の星に届きませんでした。')))}</div>
+          <div class="dialog-body campaign-plain">${escapeHtml(say(L(`${months} 個月內未攞到一星。`, `The first star was not reached in ${months} months.`, `${months}か月以内に一つ目の星に届きませんでした。`)))}</div>
           <div class="dialog-footer">
             <button type="button" class="dialog-cancel-btn" data-choice="free">${escapeHtml(say(L('繼續自由建設', 'Keep building freely', '自由建設を続ける')))}</button>
             <button type="button" class="dialog-ok-btn" data-choice="retry">${escapeHtml(say(L('重新開始本章', 'Restart the chapter', 'この章をやり直す')))}</button>
@@ -568,7 +655,20 @@
     const stars = runtime.profile.chapters[chapter.id]?.stars || 0;
     if (!isCampaignChapterUnlocked(runtime.profile, chapter.id)) return { key: 'locked', stars };
     if (!isCampaignChapterPlayable(chapter.id)) return { key: 'soon', stars };
+    if (runtime.startFileReady[chapter.id] === false) return { key: 'preparing', stars };
     return { key: stars ? 'cleared' : 'open', stars };
+  }
+
+  // Which chapters that wait for a built start city have one yet (a HEAD request each).
+  async function checkCampaignStartFiles() {
+    await Promise.all(Object.entries(CAMPAIGN_CHAPTER_SPECS).filter(([, spec]) => spec.requiresStartFile).map(async ([id, spec]) => {
+      try {
+        const response = await fetch(spec.startFile, { method: 'HEAD', cache: 'no-store' });
+        runtime.startFileReady[id] = response.ok;
+      } catch {
+        runtime.startFileReady[id] = false;
+      }
+    }));
   }
 
   function renderCampaignSelect() {
@@ -587,6 +687,7 @@
     const stateText = {
       locked: L('未解鎖：上一章取得一星先開放', 'Locked: earn a star in the chapter before', '未解放：前の章で星を1つ獲得すると解放'),
       soon: L('即將推出', 'Coming soon', '近日公開'),
+      preparing: L('開局城市準備中', 'Its starting city is still being built', '開始都市を準備中'),
       open: L('可以開始', 'Ready to play', 'プレイ可能'),
       cleared: L('已取得星級', 'Stars earned', '星を獲得済み'),
     }[state.key];
@@ -637,7 +738,7 @@
     const dialog = ensureCampaignSelect();
     dialog.style.display = 'flex';
     renderCampaignSelect();
-    await loadCampaignProfile();
+    await Promise.all([loadCampaignProfile(), checkCampaignStartFiles()]);
     renderCampaignSelect();
   }
 
@@ -736,7 +837,7 @@
         border: 2px solid #fff; font: 700 11px Arial, sans-serif; color: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.45); padding: 0; }
       #campaign-select-dialog .cs-pin.is-open { background: #1e5cb3; }
       #campaign-select-dialog .cs-pin.is-cleared { background: #c9a227; }
-      #campaign-select-dialog .cs-pin.is-soon { background: #6f7f90; }
+      #campaign-select-dialog .cs-pin.is-soon, #campaign-select-dialog .cs-pin.is-preparing { background: #6f7f90; }
       #campaign-select-dialog .cs-pin.is-locked { background: #3d444b; opacity: 0.8; }
       #campaign-select-dialog .cs-pin.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; }
       #campaign-select-dialog .cs-detail { margin-top: 10px; }

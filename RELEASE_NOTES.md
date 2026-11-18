@@ -1,3 +1,32 @@
+# The City of Heung Shing v5.11.0 — 【香城洋紫荊勳章】
+
+- 廣東話／台灣中文：【香城洋紫荊勳章】
+- English: 【Heung Shing Bauhinia Medals】
+- 日本語：【香城洋紫荊勲章】
+
+## 洋紫荊勳章登場
+
+- 玩家專屬勳章櫃收錄 36 項榮譽；現有系統可判定 31 項，其餘等待相關功能推出。勳章同已完成嘅部分條件跨城市存檔累積，保留取得城市同遊戲年月。由頂部勳章數字或者檔案選單打開。
+- 收藏櫃重設計為深藍配香檳金：左邊系列、中間勳章卡、右邊獨立詳情，附搜尋、取得狀態篩選、編號／最近取得／條件完成度排序。長條件清單唔再撐高整行卡片。
+- 手機改用收藏／詳情兩頁，返回後保留位置；支援中、英、日文、鍵盤操作及讀取失敗後重試。新完成嘅部分條件即時更新，毋須等成枚勳章取得。
+- 原創五瓣琺瑯洋紫荊、金屬章框、月桂同紫色綬帶，按既有銅、銀、金及特殊等級配色。隱藏勳章解鎖前連搜尋都唔會洩露名稱、等級或條件。
+
+## 股票交易修正
+
+政府買賣股票會按自身交易引起嘅價格變動逐段成交，避免用交易前價格買入、再用推高後價格即賣即賺。現有城市存檔相容。
+
+**台灣中文：** 洋紫荊勳章櫃新增跨城市累積的成就紀錄，共 36 項收藏，目前可判定 31 項。全新深藍與香檳金介面加入分類、搜尋、篩選、排序及獨立條件詳情，並有手機版。原創琺瑯花瓣勳章依等級配色，隱藏資訊在解鎖前保持非公開。政府股票交易依自身價格變動逐段成交，修正立即買進賣出即可獲利的問題。
+
+**English:** The player-wide Bauhinia Medal cabinet brings 36 honours, with 31 currently judged and the remainder awaiting their related systems. Medals and recorded objectives accumulate across cities, preserving award locations and game dates. A new navy-and-brass collection offers series, search, earned/unearned filters, sorting and individual objective and award records, with a compact phone layout. Original enamel Bauhinia artwork has bronze, silver, gold and special finishes; secret names and criteria remain concealed until earned. Government stock trades now fill along their own price movement, preventing an instant buy-and-sell profit. Existing city saves remain compatible.
+
+**日本語:** プレイヤー共通の洋紫荊勲章コレクションを追加。全36種のうち現在31種を判定し、勲章と記録済み条件を都市間で累積して、受賞都市とゲーム内年月を保存します。紺とシャンパンゴールドの新画面に、分類・検索・絞り込み・並べ替え・個別条件の詳細を追加し、スマートフォンにも対応。オリジナルの七宝風勲章を等級別に用意し、隠し情報は獲得まで非公開です。政府の株取引を自身の価格変動に沿って約定させ、即座の売買で利益が出る問題も修正。既存セーブは引き続き利用できます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.10.4 — 【香城茶餐廳】
 
 - 廣東話／台灣中文：【香城茶餐廳】

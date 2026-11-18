@@ -1,0 +1,161 @@
+/* A quiet display cabinet: the artwork carries the colour, the UI stays in navy and brass. */
+.toast.toast-medal { background: #754664; }
+#medal-cabinet-dialog {
+  --mc-bg: #111d2c; --mc-panel: #172536; --mc-line: #2c3c4d;
+  --mc-text: #eeeae1; --mc-muted: #9aa9ba; --mc-gold: #dec18a;
+  color: var(--mc-text); font-family: 'Noto Sans TC', 'Segoe UI', sans-serif;
+  padding: 24px; isolation: isolate;
+}
+#medal-cabinet-dialog * { box-sizing: border-box; }
+#medal-cabinet-dialog .dialog-overlay { background: #050c16b8; backdrop-filter: blur(7px); }
+#medal-cabinet-dialog .dialog-box {
+  width: min(1180px, 100%); max-width: 1180px; min-width: 0;
+  height: min(790px, 92vh); height: min(790px, 92dvh); max-height: 100%;
+  overflow: hidden; border: 1px solid #66717b; border-radius: 14px;
+  background: var(--mc-bg); box-shadow: 0 24px 100px #0009, inset 0 1px #ffffff14;
+}
+#medal-cabinet-dialog button, #medal-cabinet-dialog input, #medal-cabinet-dialog select { font: inherit; }
+#medal-cabinet-dialog button { cursor: pointer; }
+#medal-cabinet-dialog button:focus-visible, #medal-cabinet-dialog input:focus-visible, #medal-cabinet-dialog select:focus-visible,
+#medal-cabinet-dialog [tabindex="0"]:focus-visible { outline: 2px solid var(--mc-gold); outline-offset: 3px; }
+#medal-cabinet-dialog .mc-header { display: flex; align-items: center; gap: 18px; padding: 23px 28px; border-bottom: 1px solid var(--mc-line); flex-shrink: 0; }
+#medal-cabinet-dialog .mc-seal { width: 58px; flex: 0 0 58px; height: 64px; }
+#medal-cabinet-dialog .mc-seal svg { width: 100%; height: 100%; }
+#medal-cabinet-dialog .mc-heading { flex: 1; min-width: 0; }
+#medal-cabinet-dialog .mc-eyebrow { color: var(--mc-gold); font-size: 9px; letter-spacing: 2.5px; font-weight: 600; }
+#medal-cabinet-dialog h1 { font-size: 25px; font-weight: 600; letter-spacing: 3px; margin: 5px 0; line-height: 1.3; }
+#medal-cabinet-dialog .mc-subtitle { color: var(--mc-muted); font-size: 11px; margin: 0; }
+#medal-cabinet-dialog .mc-completion { width: 180px; flex-shrink: 0; margin-right: 18px; }
+#medal-cabinet-dialog .mc-completion-label { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--mc-muted); }
+#medal-cabinet-dialog .mc-completion-label strong { color: var(--mc-text); font-size: 30px; font-weight: 500; line-height: 1.3; font-variant-numeric: tabular-nums; }
+#medal-cabinet-dialog .mc-completion-label small { margin-left: auto; font-size: 12px; color: var(--mc-gold); }
+#medal-cabinet-dialog .mc-progress { height: 3px; background: #ffffff12; border-radius: 3px; overflow: hidden; margin-top: 9px; }
+#medal-cabinet-dialog .mc-progress span { display: block; height: 100%; width: var(--progress, 0%); background: var(--mc-gold); border-radius: inherit; }
+#medal-cabinet-dialog .mc-close { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid #435061; border-radius: 6px; color: #c7cdd5; background: #ffffff05; font-size: 22px; line-height: 1; align-self: flex-start; }
+#medal-cabinet-dialog .mc-close:hover { color: #fff; background: #ffffff12; }
+#medal-cabinet-dialog .dialog-body { flex: 1; min-height: 0; padding: 0; overflow: hidden; background: transparent; color: inherit; font: inherit; line-height: 1.5; white-space: normal; }
+#medal-cabinet-dialog .mc-layout { display: grid; grid-template-columns: 166px minmax(0, 1fr) 288px; height: 100%; }
+#medal-cabinet-dialog .mc-nav { padding: 24px 12px; background: #0c172480; border-right: 1px solid var(--mc-line); display: flex; flex-direction: column; gap: 7px; overflow-y: auto; }
+#medal-cabinet-dialog .mc-nav-label { margin: 0 10px 12px; color: #7f91a5; font-size: 10px; letter-spacing: 2px; }
+#medal-cabinet-dialog .mc-series { display: flex; align-items: center; gap: 7px; padding: 12px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #9cabbc; text-align: left; font-size: 11px; }
+#medal-cabinet-dialog .mc-series:hover { background: #ffffff06; color: #eeeae1; }
+#medal-cabinet-dialog .mc-series[aria-pressed="true"] { background: #dec18a10; border-color: #dec18a36; color: var(--mc-gold); }
+#medal-cabinet-dialog .mc-series-icon { width: 14px; flex-shrink: 0; text-align: center; font-size: 14px; }
+#medal-cabinet-dialog .mc-series-count { margin-left: auto; flex-shrink: 0; font-size: 9px; font-variant-numeric: tabular-nums; opacity: .8; }
+#medal-cabinet-dialog .mc-nav-note { margin: auto 10px 0; padding-top: 30px; font-size: 10px; color: #8294a8; line-height: 1.8; }
+#medal-cabinet-dialog .mc-gallery { min-width: 0; display: flex; flex-direction: column; padding: 24px 22px 0; }
+#medal-cabinet-dialog .mc-gallery-heading { display: flex; align-items: baseline; gap: 9px; margin-bottom: 18px; }
+#medal-cabinet-dialog h2 { font-size: 16px; font-weight: 500; margin: 0; letter-spacing: 1px; }
+#medal-cabinet-dialog .mc-result-count { font-size: 10px; color: var(--mc-muted); }
+#medal-cabinet-dialog .mc-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+#medal-cabinet-dialog .mc-filters { display: flex; gap: 3px; background: #0a1421; padding: 3px; border-radius: 5px; }
+#medal-cabinet-dialog .mc-filter { padding: 6px 11px; border: 0; border-radius: 3px; color: #93a4b8; background: transparent; font-size: 11px; }
+#medal-cabinet-dialog .mc-filter[aria-pressed="true"] { background: #2c3a4a; color: #f0e8d8; }
+#medal-cabinet-dialog .mc-search { min-width: 100px; width: 120px; flex: 1; border: 1px solid var(--mc-line); border-radius: 5px; padding: 7px 9px; color: var(--mc-text); background: #0d1826; font-size: 11px; }
+#medal-cabinet-dialog .mc-search::placeholder { color: #8698ad; }
+#medal-cabinet-dialog .mc-sort { color: #aab7c7; background: #111d2c; border: 0; padding: 6px 0; max-width: 120px; font-size: 10px; }
+#medal-cabinet-dialog .mc-scroll { overflow-y: auto; min-height: 0; flex: 1; padding: 3px 4px 22px; margin: 0 -4px; scrollbar-width: thin; scrollbar-color: #415064 transparent; overscroll-behavior: contain; }
+#medal-cabinet-dialog .medal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; align-content: start; }
+#medal-cabinet-dialog .medal-card { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; min-height: 184px; padding: 13px 9px 12px; border: 1px solid #2b3a4c; border-radius: 7px; background: linear-gradient(145deg, #1b2a3c, #152132); color: #aab7c7; text-align: center; transition: border-color .15s, background .15s; }
+#medal-cabinet-dialog .medal-card:hover { border-color: #738096; background: #203044; }
+#medal-cabinet-dialog .medal-card[aria-pressed="true"] { border-color: #dec18a; box-shadow: inset 0 0 0 1px #dec18a30; background: radial-gradient(ellipse at 50% 20%, #dec18a13, transparent 85%), #1d2b3b; }
+#medal-cabinet-dialog .mc-card-id { position: absolute; top: 9px; left: 10px; font-size: 8px; color: #8292a6; letter-spacing: 1px; }
+#medal-cabinet-dialog .mc-earned-mark { position: absolute; top: 8px; right: 9px; color: var(--mc-gold); font-size: 12px; }
+#medal-cabinet-dialog .medal-emblem { display: block; width: 91px; height: 97px; flex-shrink: 0; margin: 0 auto 6px; }
+#medal-cabinet-dialog .medal-emblem svg { width: 100%; height: 100%; display: block; }
+#medal-cabinet-dialog .medal-card:not(.is-earned) .medal-emblem { filter: grayscale(.9); opacity: .44; }
+#medal-cabinet-dialog .medal-card.is-earned { color: #f1e9d9; }
+#medal-cabinet-dialog .medal-name { display: block; font-size: 12px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+#medal-cabinet-dialog .mc-card-tier { display: block; font-size: 9px; color: #9baabd; margin: 3px 0 6px; }
+#medal-cabinet-dialog .mc-card-status { display: block; font-size: 9px; color: #91a2b5; margin-top: auto; padding-top: 4px; }
+#medal-cabinet-dialog .is-earned .mc-card-status { color: #cdb787; }
+#medal-cabinet-dialog .is-unavailable .mc-card-status { color: #9da3b7; }
+#medal-cabinet-dialog .mc-card-progress { display: block; width: 66%; height: 2px; background: #ffffff0c; margin: 6px auto 0; }
+#medal-cabinet-dialog .mc-card-progress i { display: block; height: 100%; background: #aab7c7; width: var(--progress); }
+#medal-cabinet-dialog .mc-empty { grid-column: 1 / -1; text-align: center; padding: 70px 20px; color: var(--mc-muted); font-size: 12px; }
+#medal-cabinet-dialog .mc-detail { border-left: 1px solid var(--mc-line); background: #0d1825; min-width: 0; overflow-y: auto; padding: 20px 23px 24px; scrollbar-width: thin; scrollbar-color: #415064 transparent; overscroll-behavior: contain; }
+#medal-cabinet-dialog .mc-detail-top { display: flex; justify-content: space-between; align-items: center; font-size: 9px; letter-spacing: 1.5px; color: #8495a9; }
+#medal-cabinet-dialog .mc-detail-back { display: none; color: var(--mc-gold); background: transparent; border: 1px solid #dec18a40; border-radius: 4px; padding: 7px 10px; }
+#medal-cabinet-dialog .mc-detail-art { display: grid; place-items: center; height: 200px; margin: 10px -5px 4px; background: radial-gradient(ellipse, #dec18a0e 0%, transparent 66%); position: relative; }
+#medal-cabinet-dialog .mc-detail-art::before { content: ''; position: absolute; width: 168px; height: 168px; border: 1px solid #dec18a13; border-radius: 50%; }
+#medal-cabinet-dialog .mc-detail-art .medal-emblem { width: 165px; height: 180px; margin: 0; z-index: 1; }
+#medal-cabinet-dialog .mc-detail-art.is-unearned .medal-emblem { filter: saturate(.5); opacity: .65; }
+#medal-cabinet-dialog .mc-detail-tier { text-align: center; color: var(--mc-gold); font-size: 10px; letter-spacing: 2px; margin: 5px 0 9px; }
+#medal-cabinet-dialog .mc-detail-name { text-align: center; font-size: 20px; font-weight: 500; line-height: 1.5; margin: 0 0 12px; letter-spacing: 1px; overflow-wrap: anywhere; }
+#medal-cabinet-dialog .mc-status-pill { display: table; margin: 0 auto 22px; border: 1px solid #8091a542; border-radius: 30px; padding: 3px 12px; color: #adbac9; font-size: 10px; }
+#medal-cabinet-dialog .mc-status-pill.is-earned { color: var(--mc-gold); background: #dec18a0c; border-color: #dec18a40; }
+#medal-cabinet-dialog .mc-detail-section { border-top: 1px solid var(--mc-line); padding-top: 17px; margin-top: 18px; }
+#medal-cabinet-dialog .mc-detail-section h3 { font-size: 10px; font-weight: 500; letter-spacing: 1.5px; color: #aebdce; margin: 0 0 9px; }
+#medal-cabinet-dialog .mc-description { color: #c4ceda; font-size: 12px; line-height: 1.9; margin: 0; overflow-wrap: anywhere; }
+#medal-cabinet-dialog .medal-parts { list-style: none; padding: 0; margin: 13px 0 0; }
+#medal-cabinet-dialog .medal-parts li { display: flex; align-items: flex-start; gap: 8px; color: #a6b4c5; margin-bottom: 10px; font-size: 11px; }
+#medal-cabinet-dialog .medal-parts .is-done { color: #d7c394; }
+#medal-cabinet-dialog .mc-part-check { flex-shrink: 0; width: 15px; height: 15px; line-height: 13px; border: 1px solid #647182; border-radius: 50%; text-align: center; font-size: 10px; }
+#medal-cabinet-dialog .is-done .mc-part-check { border-color: #bfa773; background: #dec18a13; }
+#medal-cabinet-dialog .mc-part-city { display: block; font-size: 9px; color: #889aad; margin-top: 3px; }
+#medal-cabinet-dialog .mc-detail-note { font-size: 10px; color: #95a7bb; line-height: 1.8; margin: 12px 0 0; }
+#medal-cabinet-dialog .mc-earned-city { font-size: 14px; color: #dfc38d; margin: 0 0 3px; overflow-wrap: anywhere; }
+#medal-cabinet-dialog .mc-earned-date { font-size: 11px; color: #9aaabd; margin: 0; }
+#medal-cabinet-dialog .mc-footer { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--mc-line); padding: 11px 25px; color: #91a2b5; font-size: 10px; flex-shrink: 0; }
+#medal-cabinet-dialog .mc-footer kbd { font-family: inherit; font-size: 9px; border: 1px solid #455265; border-radius: 3px; padding: 1px 4px; margin-right: 5px; }
+#medal-cabinet-dialog .mc-load-notice { color: var(--mc-gold); font-size: 11px; margin-bottom: 12px; }
+#medal-cabinet-dialog .mc-retry { color: var(--mc-gold); background: transparent; border: 1px solid #dec18a40; border-radius: 4px; margin-left: 8px; padding: 4px 8px; }
+@media (max-width: 1050px) {
+  #medal-cabinet-dialog .mc-layout { grid-template-columns: 144px minmax(0, 1fr) 250px; }
+  #medal-cabinet-dialog .mc-series-icon { display: none; }
+  #medal-cabinet-dialog .mc-gallery { padding: 20px 16px 0; }
+  #medal-cabinet-dialog .medal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #medal-cabinet-dialog .mc-detail { padding-inline: 18px; }
+}
+@media (max-width: 760px) {
+  #medal-cabinet-dialog { padding: 10px; }
+  #medal-cabinet-dialog .dialog-box { height: 94vh; height: 94dvh; }
+  #medal-cabinet-dialog .mc-header { padding: 17px 18px; gap: 12px; }
+  #medal-cabinet-dialog .mc-seal { display: none; }
+  #medal-cabinet-dialog h1 { font-size: 21px; letter-spacing: 2px; }
+  #medal-cabinet-dialog .mc-eyebrow { font-size: 8px; letter-spacing: 1.5px; }
+  #medal-cabinet-dialog .mc-completion { width: 110px; margin-right: 0; }
+  #medal-cabinet-dialog .mc-completion-label strong { font-size: 25px; }
+  #medal-cabinet-dialog .mc-completion-label small { display: none; }
+  #medal-cabinet-dialog .mc-subtitle { display: none; }
+  #medal-cabinet-dialog .mc-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  #medal-cabinet-dialog .mc-nav { flex-direction: row; padding: 10px 14px; gap: 5px; border-right: 0; border-bottom: 1px solid var(--mc-line); overflow-x: auto; }
+  #medal-cabinet-dialog .mc-nav-label, #medal-cabinet-dialog .mc-nav-note, #medal-cabinet-dialog .mc-series-icon { display: none; }
+  #medal-cabinet-dialog .mc-series { flex-shrink: 0; padding: 8px 10px; font-size: 11px; }
+  #medal-cabinet-dialog .mc-series-count { font-size: 9px; }
+  #medal-cabinet-dialog .mc-gallery { padding: 16px 16px 0; }
+  #medal-cabinet-dialog .mc-gallery-heading { margin-bottom: 12px; }
+  #medal-cabinet-dialog .medal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #medal-cabinet-dialog .mc-detail { display: none; border: 0; }
+  #medal-cabinet-dialog .mc-layout.is-detail-open { grid-template-rows: minmax(0, 1fr); }
+  #medal-cabinet-dialog .is-detail-open .mc-nav, #medal-cabinet-dialog .is-detail-open .mc-gallery { display: none; }
+  #medal-cabinet-dialog .is-detail-open .mc-detail { display: block; }
+  #medal-cabinet-dialog .mc-detail-back { display: inline-block; font-size: 11px; }
+  #medal-cabinet-dialog .mc-footer { padding-inline: 18px; }
+  #medal-cabinet-dialog .mc-footer-shortcut { display: none; }
+}
+@media (max-width: 480px) {
+  #medal-cabinet-dialog .mc-completion { width: 83px; }
+  #medal-cabinet-dialog .mc-completion-label { font-size: 10px; gap: 4px; }
+  #medal-cabinet-dialog .medal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #medal-cabinet-dialog .mc-sort { margin-left: auto; }
+  #medal-cabinet-dialog .mc-search { width: 90px; }
+  #medal-cabinet-dialog .mc-header { gap: 9px; padding-inline: 15px; }
+  #medal-cabinet-dialog h1 { font-size: 19px; }
+}
+[data-ui-profile="touch"] #medal-cabinet-dialog .dialog-box { width: min(1180px, 100%); overflow: hidden; }
+[data-ui-profile="touch"] #medal-cabinet-dialog .dialog-body { max-height: none; overflow: hidden; }
+[data-ui-profile="touch"] #medal-cabinet-dialog :is(.mc-series, .mc-filter, .mc-detail-back, .mc-close, .mc-retry) { min-height: 44px; }
+[data-ui-profile="touch"] #medal-cabinet-dialog :is(.mc-search, .mc-sort) { min-height: 44px; font-size: 16px; }
+@media (max-height: 480px) and (min-width: 761px) {
+  #medal-cabinet-dialog { padding: 8px; }
+  #medal-cabinet-dialog .dialog-box { height: 96dvh; }
+  #medal-cabinet-dialog .mc-header { padding: 10px 20px; }
+  #medal-cabinet-dialog .mc-seal { width: 40px; flex-basis: 40px; height: 45px; }
+  #medal-cabinet-dialog .mc-subtitle { display: none; }
+  #medal-cabinet-dialog .mc-detail-art { height: 140px; }
+  #medal-cabinet-dialog .mc-detail-art .medal-emblem { width: 120px; height: 130px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #medal-cabinet-dialog * { transition: none !important; }
+}

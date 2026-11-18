@@ -250,8 +250,26 @@
     return { face, name: say(speaker.name) };
   }
 
-  // Plays lines one at a time (a click moves on); the clock stops while it is open.
-  function playCampaignDialogue(lines) {
+  // A cut-scene's backdrop: the screen dimmed behind the box (over the title screen too), with a
+  // picture when one is given. A click on it moves the scene on like a click on the box.
+  function showDialogueBackdrop(image, onClick) {
+    let layer = document.getElementById('campaign-backdrop');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'campaign-backdrop';
+      document.body.appendChild(layer);
+    }
+    layer.style.backgroundImage = typeof image === 'string' && image
+      ? `linear-gradient(rgba(8,12,18,0.15), rgba(8,12,18,0.15)), url("${encodeURI(image)}")` : '';
+    layer.onclick = onClick;
+    layer.style.display = 'block';
+    return layer;
+  }
+
+  // Plays lines one at a time (a click moves on); the clock stops while it is open. A line with
+  // `choices` waits for one of its buttons, and the chosen option's `lines` play next.
+  // options.backdrop (true, or a picture's path) plays the lines as a cut-scene.
+  function playCampaignDialogue(lines, options = {}) {
     const list = (lines || []).filter(Boolean);
     if (!list.length || typeof document === 'undefined') return runtime.dialogue;
     runtime.dialogue = runtime.dialogue.then(() => new Promise((resolve) => {
@@ -260,30 +278,42 @@
       if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.PAUSED);
       runtime.dialogueOpen = true;
       let index = 0;
+      let backdrop = null;
       const show = () => {
         const line = list[index];
+        const scene = backdrop ? ' is-scene' : '';
         if (line.card) {
-          box.className = 'is-card';
+          box.className = `is-card${scene}`;
           box.innerHTML = `<div class="cd-card">${escapeHtml(say(line.card))}</div>
             ${line.hint ? `<div class="cd-hint">${escapeHtml(say(line.hint))}</div>` : ''}
             <div class="cd-next">${escapeHtml(say(L('撳一下繼續 ▶', 'Click to continue ▶', 'クリックで続く ▶')))}</div>`;
         } else {
           const { face, name } = renderSpeaker(line.speaker);
-          box.className = '';
+          const choices = Array.isArray(line.choices)
+            ? `<div class="cd-choices">${line.choices.map((choice, i) => `<button type="button" data-choice="${i}">${escapeHtml(say(choice.text))}</button>`).join('')}</div>`
+            : `<div class="cd-next">${index + 1} / ${list.length} ▶</div>`;
+          box.className = `${line.speaker === 'queen' ? 'is-royal' : ''}${scene}`.trim();
           box.innerHTML = `${face}<div class="cd-body"><div class="cd-name">${escapeHtml(name)}</div>
-            <div class="cd-text">${escapeHtml(say(line.text))}</div>
-            <div class="cd-next">${index + 1} / ${list.length} ▶</div></div>`;
+            <div class="cd-text">${escapeHtml(say(line.text))}</div>${choices}</div>`;
         }
       };
-      const next = () => {
+      const next = (event) => {
+        const line = list[index];
+        if (Array.isArray(line.choices)) {
+          const button = event?.target?.closest?.('[data-choice]');
+          if (!button) return;
+          list.splice(index + 1, 0, ...((line.choices[Number(button.dataset.choice)] || {}).lines || []).filter(Boolean));
+        }
         index += 1;
         if (index < list.length) { show(); return; }
         box.removeEventListener('click', next);
         box.style.display = 'none';
+        if (backdrop) { backdrop.style.display = 'none'; backdrop.onclick = null; }
         runtime.dialogueOpen = false;
         if (previousSpeed !== null && typeof setGameSpeed === 'function') setGameSpeed(previousSpeed);
         resolve();
       };
+      if (options.backdrop) backdrop = showDialogueBackdrop(options.backdrop, next);
       box.addEventListener('click', next);
       box.style.display = 'flex';
       show();
@@ -291,50 +321,21 @@
     return runtime.dialogue;
   }
 
-  // PROLOGUE 00《女皇密令》: the letter, a reply, the Crown's answer; then the arrival.
+  // PROLOGUE 00《女皇密令》 as a cut-scene: the letter on the desk, read out by Her Majesty; the
+  // player's reply and her answer; then the arrival in North District, over the city.
+  function getCampaignPrologueScene() {
+    const p = CAMPAIGN_PROLOGUE;
+    const ask = { speaker: 'mayor', text: p.ask, choices: p.replies.map((reply) => ({
+      text: reply.text,
+      lines: [{ speaker: 'mayor', text: reply.text }, { speaker: 'queen', text: reply.answer }],
+    })) };
+    return [...p.opening, ...p.letter, ask, p.departure];
+  }
+
   function playCampaignPrologue() {
-    return new Promise((resolve) => {
-      let dialog = document.getElementById('campaign-letter-dialog');
-      if (!dialog) {
-        dialog = document.createElement('div');
-        dialog.id = 'campaign-letter-dialog';
-        dialog.className = 'sim-dialog';
-        dialog.setAttribute('role', 'dialog');
-        document.body.appendChild(dialog);
-      }
-      const p = CAMPAIGN_PROLOGUE;
-      dialog.innerHTML = `
-        <div class="dialog-overlay"></div>
-        <div class="dialog-box" style="max-width:620px">
-          <div class="dialog-title-bar"><span>✉ ${escapeHtml(say(L('你有一封新郵件', 'You have new mail', '新着メールがあります')))}</span></div>
-          <div class="dialog-body campaign-letter">
-            <div class="cl-meta"><b>${escapeHtml(say(L('寄件者', 'From', '差出人')))}：</b>${escapeHtml(say(p.from))}</div>
-            <div class="cl-meta"><b>${escapeHtml(say(L('主旨', 'Subject', '件名')))}：</b>${escapeHtml(say(p.subject))}</div>
-            <div class="cl-letter">${p.letter.map((line) => `<p>${escapeHtml(say(line))}</p>`).join('')}</div>
-            <div class="cl-replies">${p.replies.map((reply, i) => `<button type="button" data-reply="${i}">${escapeHtml(say(reply.text))}</button>`).join('')}</div>
-            <div class="cl-answer" hidden></div>
-          </div>
-        </div>`;
-      const previousSpeed = typeof getGameSpeed === 'function' ? getGameSpeed() : null;
-      if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.PAUSED);
-      dialog.style.display = 'flex';
-      dialog.querySelector('.cl-replies').addEventListener('click', (event) => {
-        const button = event.target.closest('[data-reply]');
-        if (!button) return;
-        const reply = p.replies[Number(button.dataset.reply)];
-        dialog.querySelector('.cl-replies').hidden = true;
-        const answer = dialog.querySelector('.cl-answer');
-        answer.hidden = false;
-        answer.innerHTML = `<p class="cl-you">${escapeHtml(say(L('你', 'You', 'あなた')))}：「${escapeHtml(say(reply.text))}」</p>
-          <p class="cl-crown">👑 ${escapeHtml(say(L('皇室即時自動回信', 'An instant reply from the Crown', '王室からの自動返信')))}：「${escapeHtml(say(reply.answer))}」</p>
-          <button type="button" class="dialog-ok-btn" data-go>${escapeHtml(say(L('出發去北區', 'Set off for North District', '北区へ出発')))}</button>`;
-        answer.querySelector('[data-go]').addEventListener('click', () => {
-          dialog.style.display = 'none';
-          if (previousSpeed !== null && typeof setGameSpeed === 'function') setGameSpeed(previousSpeed);
-          playCampaignDialogue(p.arrival).then(resolve);
-        });
-      });
-    });
+    playCampaignDialogue(getCampaignPrologueScene(), { backdrop: CAMPAIGN_PROLOGUE.backdrop || true });
+    // replayed from the title screen there is no city to arrive in: the arrival stays a cut-scene
+    return playCampaignDialogue(CAMPAIGN_PROLOGUE.arrival, { backdrop: isLandingVisible() });
   }
 
   // ── Objectives panel and tutorial ─────────────────────────────────────────
@@ -511,7 +512,7 @@
         <div class="dialog-overlay"></div>
         <div class="dialog-box" style="max-width:440px">
           <div class="dialog-title-bar"><span>${escapeHtml(say(L('限期已過', 'Time is up', '期限切れ')))}</span></div>
-          <div class="dialog-body campaign-plain">${escapeHtml(say(L('二十四個月內未攞到一星。', 'The first star was not reached in twenty-four months.', '24か月以内に一つ目の星に届きませんでした。')))}</div>
+          <div class="dialog-body campaign-plain">${escapeHtml(say(L('十二個月內未攞到一星。', 'The first star was not reached in twelve months.', '12か月以内に一つ目の星に届きませんでした。')))}</div>
           <div class="dialog-footer">
             <button type="button" class="dialog-cancel-btn" data-choice="free">${escapeHtml(say(L('繼續自由建設', 'Keep building freely', '自由建設を続ける')))}</button>
             <button type="button" class="dialog-ok-btn" data-choice="retry">${escapeHtml(say(L('重新開始本章', 'Restart the chapter', 'この章をやり直す')))}</button>
@@ -713,16 +714,20 @@
       #campaign-dialogue .cd-body { flex: 1; min-width: 0; }
       #campaign-dialogue .cd-name { font-weight: 700; color: #1e5cb3; }
       #campaign-dialogue .cd-next { text-align: right; font-size: 11px; opacity: 0.6; }
-      .campaign-plain.dialog-body, .campaign-letter.dialog-body { white-space: normal; font-family: Arial, sans-serif; line-height: 1.55; }
-      .campaign-letter .cl-meta { font-size: 12px; color: #3a4148; }
-      .campaign-letter .cl-letter { margin: 10px 0; padding: 10px 12px; background: #fff; border-left: 4px solid #1e5cb3; font-size: 13px; }
-      .campaign-letter .cl-letter p { margin: 0 0 8px; }
-      .campaign-letter .cl-replies { display: grid; gap: 6px; }
-      .campaign-letter .cl-replies button { font: 13px Arial, sans-serif; text-align: left; padding: 6px 10px; border: 1px solid #8794a3; border-radius: 4px; background: #f4f7fa; cursor: pointer; }
-      .campaign-letter .cl-replies button:hover { background: #dbe6f3; }
-      .campaign-letter .cl-crown { color: #8e1b5b; font-weight: 700; }
+      #campaign-dialogue .cd-choices { display: grid; gap: 6px; margin-top: 8px; }
+      #campaign-dialogue .cd-choices button { font: 14px Arial, sans-serif; text-align: left; padding: 6px 10px; border: 1px solid #8794a3; border-radius: 4px; background: #f4f7fa; color: #1e2427; cursor: pointer; }
+      #campaign-dialogue .cd-choices button:hover { background: #dbe6f3; }
+      /* Her Majesty speaks on royal paper */
+      #campaign-dialogue.is-royal { background: #fbf6e9; border-color: #8e1b5b; }
+      #campaign-dialogue.is-royal .cd-name { color: #8e1b5b; }
+      #campaign-dialogue.is-royal .cd-portrait { border-color: #c9a227; }
+      /* a cut-scene: the screen dimmed behind the box (room for a picture), over the title screen too */
+      #campaign-backdrop { position: fixed; inset: 0; z-index: 510; display: none; cursor: pointer;
+        background: rgba(8,12,18,0.78) center / cover no-repeat; }
+      #campaign-dialogue.is-scene { z-index: 520; }
+      .campaign-plain.dialog-body { white-space: normal; font-family: Arial, sans-serif; line-height: 1.55; }
       /* over the title screen (z-index 400), as the save list is */
-      #campaign-select-dialog, #campaign-letter-dialog, #campaign-failure-dialog { z-index: 500; }
+      #campaign-select-dialog, #campaign-failure-dialog { z-index: 500; }
       #campaign-select-dialog .cs-summary { margin-bottom: 8px; color: #3a4148; }
       /* the map no taller than the screen allows, so the chapter's details and 開始 stay in view */
       #campaign-select-dialog .cs-map { position: relative; width: fit-content; margin: 0 auto; }
@@ -754,7 +759,7 @@
 
   Object.assign(globalThis, {
     startCampaignChapter, openCampaignSelect, closeCampaignSelect, onCampaignCityLoaded, exportCampaignStart,
-    buildCampaignSnapshot, renderCampaignPanel, playCampaignDialogue,
+    buildCampaignSnapshot, renderCampaignPanel, playCampaignDialogue, playCampaignPrologue, getCampaignPrologueScene,
     getCampaignProfile: () => runtime.profile,
   });
 })();

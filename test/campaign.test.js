@@ -41,15 +41,18 @@ test('the 18 chapters, in order, each on a district map the game has; chapter 01
 });
 
 test('every line of the story and every objective reads in three languages, by a known speaker', () => {
-  const lines = [...campaign.CAMPAIGN_PROLOGUE.arrival, ...ch01.intro, ...ch01.outro, ...ch01.failure,
+  const prologue = campaign.CAMPAIGN_PROLOGUE;
+  const lines = [...prologue.opening, ...prologue.letter, prologue.departure, ...prologue.arrival,
+    ...prologue.replies.flatMap((reply) => [{ speaker: 'mayor', text: reply.text }, { speaker: 'queen', text: reply.answer }]),
+    { speaker: 'mayor', text: prologue.ask }, ...ch01.intro, ...ch01.outro, ...ch01.failure,
     ...ch01.events.flatMap((event) => event.lines), ...ch01.tutorial];
   lines.forEach((line) => {
     const text = line.card || line.text;
     ['zhHant', 'en', 'ja'].forEach((lang) => assert.ok(text[lang], `${JSON.stringify(text.zhHant)} in ${lang}`));
     if (!line.card) assert.ok(campaign.CAMPAIGN_SPEAKERS[line.speaker], `speaker ${line.speaker}`);
   });
-  campaign.CAMPAIGN_PROLOGUE.letter.forEach((line) => assert.ok(line.zhHant && line.en && line.ja));
-  assert.equal(campaign.CAMPAIGN_PROLOGUE.replies.length, 4, 'the four replies of 《你確定唔係詐騙電郵？》');
+  assert.ok(prologue.letter.every((line) => line.speaker === 'queen'), 'Her Majesty reads the letter out');
+  assert.equal(prologue.replies.length, 4, 'the four replies of 《你確定唔係詐騙電郵？》');
   ch01.stars.forEach((star) => star.objectives.forEach((objective) => {
     assert.ok(objective.label.zhHant && objective.label.en && objective.label.ja, objective.id);
   }));
@@ -76,33 +79,33 @@ test('chapter 01 star one: power, R/C/I with jobs, 3,000 people, a surplus with 
   assert.equal(items.find((item) => item.id === 'population').done, false);
 });
 
-test('the month\'s turn: stars come in order, star one has 24 months, the mid-chapter event fires once', () => {
+test('the month\'s turn: stars come in order, star one has 12 months, the mid-chapter event fires once', () => {
   const run = campaign.createCampaignRun('ch01', 100, { roadTiles: 0, powerLines: 0 });
-  assert.equal(run.deadlineMonthIndex, 124);
+  assert.equal(run.deadlineMonthIndex, 112);
   let result = campaign.advanceCampaignRun(run, ch01, { population: 1600, demandR: 0.7 }, 105);
   assert.deepEqual(result.events.map((event) => event.id), ['landRush']);
   result = campaign.advanceCampaignRun(run, ch01, { population: 1600, demandR: 0.7 }, 106);
   assert.deepEqual(result.events, [], 'once');
-  assert.equal(campaign.getCampaignMonthsLeft(run, 110), 14);
+  assert.equal(campaign.getCampaignMonthsLeft(run, 110), 2);
 
   // star two is met too, but only after star one; star three is not
   const big = { ...starOneCity(), population: 12000, unemploymentRate: 0.05, transit: { bus: 300 },
     buildings: { fire_station: 1, power_plant_solar: 1, police_station: 1, hospital: 1, park_small: 2 } };
-  result = campaign.advanceCampaignRun(run, ch01, big, 124);
+  result = campaign.advanceCampaignRun(run, ch01, big, 112);
   assert.deepEqual(result.newStars, [1, 2], 'met on the deadline month counts');
   assert.equal(run.stars, 2);
   assert.equal(run.failed, false);
-  assert.equal(campaign.getCampaignMonthsLeft(run, 130), null, 'no limit after star one');
+  assert.equal(campaign.getCampaignMonthsLeft(run, 120), null, 'no limit after star one');
 
   const late = campaign.createCampaignRun('ch01', 100);
-  result = campaign.advanceCampaignRun(late, ch01, { population: 10 }, 123);
+  result = campaign.advanceCampaignRun(late, ch01, { population: 10 }, 111);
   assert.equal(result.failedNow, false);
-  result = campaign.advanceCampaignRun(late, ch01, { population: 10 }, 124);
-  assert.equal(result.failedNow, true, 'twenty-four months without star one');
-  result = campaign.advanceCampaignRun(late, ch01, starOneCity(), 125);
+  result = campaign.advanceCampaignRun(late, ch01, { population: 10 }, 112);
+  assert.equal(result.failedNow, true, 'twelve months without star one');
+  result = campaign.advanceCampaignRun(late, ch01, starOneCity(), 113);
   assert.deepEqual(result.newStars, [], 'a failed run waits for the player\'s choice');
   late.freePlay = true;
-  assert.deepEqual(campaign.advanceCampaignRun(late, ch01, starOneCity(), 126).newStars, [], 'free building earns no stars');
+  assert.deepEqual(campaign.advanceCampaignRun(late, ch01, starOneCity(), 114).newStars, [], 'free building earns no stars');
 });
 
 test('教學: each step is done by doing it, from where the city stood; the budget step waits for 明白; it can be skipped', () => {
@@ -140,7 +143,7 @@ test('a stored run is cleaned; the player\'s best stars only go up; chapters ope
   const run = campaign.normalizeCampaignRun({ chapterId: 'ch01', startMonthIndex: 50, stars: 9, eventsShown: { landRush: true, 'bad id!': true },
     tutorial: { step: 3, base: { roadTiles: 4 } } });
   assert.equal(run.stars, 3);
-  assert.equal(run.deadlineMonthIndex, 74);
+  assert.equal(run.deadlineMonthIndex, 62);
   assert.deepEqual(Object.keys(run.eventsShown), ['landRush']);
   assert.equal(run.tutorial.step, 3);
 
@@ -218,6 +221,20 @@ test('runtime: a run on the city earns its star at the month\'s turn and the pla
   context.city.campaign = null;
   clock['gameclock:month']();
   assert.equal(context.toasts.filter((toast) => toast.message.includes('一星')).length, 1, 'a city that is no run is not judged');
+});
+
+test('序幕: Her Majesty reads the letter out over the desk picture, the player answers, she replies', () => {
+  const { context } = loadRuntime();
+  const scene = context.getCampaignPrologueScene();
+  assert.ok(scene[0].card, 'it opens on a title card');
+  assert.equal(scene.filter((line) => line.speaker === 'queen').length, campaign.CAMPAIGN_PROLOGUE.letter.length);
+  const ask = scene.find((line) => Array.isArray(line.choices));
+  assert.equal(ask.speaker, 'mayor');
+  assert.equal(ask.choices.length, 4);
+  ask.choices.forEach((choice) => assert.equal(choice.lines.map((line) => line.speaker).join(','), 'mayor,queen'));
+  assert.ok(scene[scene.length - 1].card, 'and sets off for North District');
+  assert.ok(fs.existsSync(path.join(ROOT, campaign.CAMPAIGN_PROLOGUE.backdrop)), 'the desk picture ships (WebP, as UI/news packs)');
+  assert.match(campaign.CAMPAIGN_PROLOGUE.backdrop, /\.webp$/);
 });
 
 test('wiring: scripts, the title-screen button, the menu, the city\'s field, loading and the server', () => {

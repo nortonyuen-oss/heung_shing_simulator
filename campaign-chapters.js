@@ -11,7 +11,7 @@
   'use strict';
 
   const CAMPAIGN_SCHEMA_VERSION = 1;
-  const CAMPAIGN_DEADLINE_MONTHS = 24;
+  const CAMPAIGN_DEADLINE_MONTHS = 12;
 
   const T = (zhHant, en, ja) => Object.freeze({ zhHant, en, ja });
   const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
@@ -20,14 +20,18 @@
   const pct = (value) => `${Math.round(num(value) * 100)}%`;
   const money = (value) => `${num(value) < 0 ? '-' : '+'}$${fmt(Math.abs(num(value)))}`;
 
-  // Who speaks. Portraits are the council's (UI/officials); the rest wait for art (a glyph until then).
+  // Who speaks. The mayor and treasurer are the council's portraits (UI/officials); the campaign's own
+  // cast are 256 px headshots (UI/campaign/portraits) cut from Norton's harbour portraits in UI/officials
+  // (香港港灣三人角色肖像, engineer.png; queen.png before Tower Bridge), so they share one style; a speaker
+  // without art shows a glyph.
   const CAMPAIGN_SPEAKERS = Object.freeze({
     mayor: { name: T('市長', 'Mayor', '市長'), portrait: 'UI/officials/chiefExecutive.PNG' },
-    secretary: { name: T('市政秘書', 'Municipal Secretary', '市政秘書'), glyph: '📋' },
+    secretary: { name: T('金毛玲', 'Kam Mo-ling', '金毛玲'), portrait: 'UI/campaign/portraits/secretary.png', glyph: '📋' },
     treasurer: { name: T('財政官', 'Treasurer', '財政官'), portrait: 'UI/officials/headOfTreasury.PNG' },
-    transport: { name: T('運輸署代表', 'Transport Department', '運輸署代表'), glyph: '🚌' },
-    resident: { name: T('街坊', 'Resident', '住民'), glyph: '🧓' },
-    queen: { name: T('女皇陛下', 'Her Majesty', '女王陛下'), glyph: '👑' },
+    transport: { name: T('署長', 'Commissioner', '署長'), portrait: 'UI/campaign/portraits/transport.png', glyph: '🚌' },
+    resident: { name: T('街坊', 'Resident', '住民'), portrait: 'UI/campaign/portraits/resident.png', glyph: '🧓' },
+    engineer: { name: T('工程師', 'Engineer', '技師'), portrait: 'UI/campaign/portraits/engineer.png', glyph: '🛠' },
+    queen: { name: T('女皇陛下', 'Her Majesty', '女王陛下'), portrait: 'UI/campaign/portraits/queen.png', glyph: '👑' },
   });
 
   // The 18 chapters (劇本 目錄). mapId is the district map (hk-district-maps.js) the chapter is
@@ -54,38 +58,45 @@
   ]);
   const CAMPAIGN_CHAPTERS_BY_ID = Object.freeze(Object.fromEntries(CAMPAIGN_CHAPTERS.map((chapter) => [chapter.id, chapter])));
 
-  // PROLOGUE 00《女皇密令》: the letter, the four replies and the Crown's answers, the arrival.
+  // PROLOGUE 00《女皇密令》: a royal letter on the desk of the player's tong lau flat, read out by Her
+  // Majesty herself; the player's reply and her answer; then the arrival. `backdrop` is the picture
+  // behind the scene: the sealed letter on the desk, the 樂聲 fan, half a cup of iced lemon tea
+  // (Norton's UI/news/phase0.png, as WebP like the other UI/news art).
   const CAMPAIGN_PROLOGUE = Object.freeze({
-    from: T('HER MAJESTY\'S SECRET OFFICE／女皇陛下辦公室', 'HER MAJESTY\'S SECRET OFFICE', 'HER MAJESTY\'S SECRET OFFICE／女王陛下事務局'),
-    subject: T('女皇密令：香城市長緊急任命通知', 'Secret Order: Urgent Appointment of the Mayor of Heung Shing', '女王密令：香城市長緊急任命通知'),
-    letter: Object.freeze([
-      T('致未來的香城市長：', 'To the future Mayor of Heung Shing:', '未来の香城市長へ'),
-      T('本皇室現以最高機密等級通知閣下：經過極其嚴謹、無可奉告及絕對不容上訴之遴選程序，閣下已獲委任為香城市長，即日生效。',
-        'The Crown informs you, at the highest level of secrecy, that after a most rigorous, undisclosable and entirely unappealable selection, you have been appointed Mayor of Heung Shing, with immediate effect.',
-        '王室は最高機密をもって通知する。極めて厳正、詳細非公開、かつ一切の異議を認めない選考の結果、貴殿は本日付で香城市長に任命された。'),
-      T('香城山川壯麗，百業待興，惟道路不通、庫房緊絀，市民對現屆政府之滿意程度……不宜在此透露。',
-        'Heung Shing has fine hills and harbours and every trade waiting to grow - but its roads go nowhere, its treasury is thin, and the public\'s view of the present government is... best not set down here.',
-        '香城の山河は壮麗にして百業は興隆を待つ。ただし道路は通じず、財政は逼迫し、現政府への市民の満足度は……ここには記さない。'),
-      T('閣下須走遍十八區，先建民居、道路、工業與交通，再治理經濟、民生、文化、金融及城市制度。',
-        'You shall travel all eighteen districts: first homes, roads, industry and transport; then the economy, people\'s livelihoods, culture, finance and the city\'s institutions.',
-        '貴殿は十八区を巡り、まず住宅・道路・工業・交通を整え、次に経済・民生・文化・金融・都市制度を治めること。'),
-      T('任命之有效期，以市民仍然願意給予閣下機會為準。', 'Your appointment lasts as long as the people are still willing to give you a chance.', '任期は、市民がなお貴殿に機会を与える限りとする。'),
-      T('請謹記：政績不等於民望；繁華不等於安居；城市不只屬於政府。', 'Remember: achievements are not popularity; prosperity is not a home; a city does not belong to its government alone.', '心せよ。実績は民意にあらず、繁栄は安住にあらず、都市は政府だけのものにあらず。'),
-      T('女皇陛下', 'Her Majesty', '女王陛下'),
-      T('附註：旅費自付。保險、夜間加班及市民投訴處理費用恕不發還。', 'P.S. Travel at your own expense. Insurance, overtime and the handling of complaints will not be reimbursed.', '追伸：旅費は自己負担。保険、夜間残業、市民苦情処理の費用は払い戻さない。'),
+    backdrop: 'UI/news/phase0.webp',
+    opening: Object.freeze([
+      { card: T('序幕《女皇密令》', 'Prologue: The Secret Order', '序章《女王の密令》'),
+        hint: T('一封蓋住皇家火漆嘅信，擺咗喺你唐樓書桌上……', 'A letter under a royal wax seal lies on the desk of your tong lau flat...', '王室の封蝋が押された手紙が、唐楼の机の上に置かれている……') },
     ]),
+    letter: Object.freeze([
+      { speaker: 'queen', text: T('未來的香城市長：本皇室現以最高機密等級通知閣下——經過極其嚴謹、無可奉告及絕對不容上訴之遴選程序，閣下已獲委任為香城市長，即日生效。',
+        'Future Mayor of Heung Shing: the Crown informs you, at the highest level of secrecy, that after a most rigorous, undisclosable and entirely unappealable selection, you have been appointed Mayor of Heung Shing, with immediate effect.',
+        '未来の香城市長よ。王室は最高機密をもって通知する――極めて厳正、詳細非公開、かつ一切の異議を認めない選考の結果、貴殿は本日付で香城市長に任命された。') },
+      { speaker: 'queen', text: T('香城山川壯麗，百業待興，惟道路不通、庫房緊絀，市民對現屆政府之滿意程度……不宜在此透露。',
+        'Heung Shing has fine hills and harbours and every trade waiting to grow - but its roads go nowhere, its treasury is thin, and the public\'s view of the present government is... best not said here.',
+        '香城の山河は壮麗にして百業は興隆を待つ。ただし道路は通じず、財政は逼迫し、現政府への市民の満足度は……ここでは言わずにおこう。') },
+      { speaker: 'queen', text: T('閣下須走遍十八區，先建民居、道路、工業與交通，再治理經濟、民生、文化、金融及城市制度。',
+        'You shall travel all eighteen districts: first homes, roads, industry and transport; then the economy, people\'s livelihoods, culture, finance and the city\'s institutions.',
+        '貴殿は十八区を巡り、まず住宅・道路・工業・交通を整え、次に経済・民生・文化・金融・都市制度を治めること。') },
+      { speaker: 'queen', text: T('任命之有效期，以市民仍然願意給予閣下機會為準。', 'Your appointment lasts as long as the people are still willing to give you a chance.', '任期は、市民がなお貴殿に機会を与える限りとする。') },
+      { speaker: 'queen', text: T('請謹記：政績不等於民望；繁華不等於安居；城市不只屬於政府。', 'Remember: achievements are not popularity; prosperity is not a home; a city does not belong to its government alone.', '心せよ。実績は民意にあらず、繁栄は安住にあらず、都市は政府だけのものにあらず。') },
+      { speaker: 'queen', text: T('噢，還有——旅費自付。保險、夜間加班及市民投訴處理費用，恕不發還。', 'Oh, and one more thing - travel at your own expense. Insurance, overtime and the handling of complaints will not be reimbursed.', 'ああ、それと――旅費は自己負担。保険、夜間残業、市民苦情処理の費用は払い戻さない。') },
+    ]),
+    // The player picks a reply (said by the mayor) and Her Majesty answers it.
+    ask: T('（點樣回覆女皇陛下？）', '(How do you answer Her Majesty?)', '（女王陛下にどう返事する？）'),
     replies: Object.freeze([
       { text: T('遵命！臣定必竭盡所能！', 'At once! I shall do my utmost!', '御意！全力を尽くします！'),
         answer: T('甚好。皇室對閣下寄予厚望，尤其係電費。', 'Very good. The Crown expects great things of you - especially the electricity bill.', 'よろしい。王室は貴殿に大いに期待している。特に電気代について。') },
       { text: T('市長幾錢人工？有冇雙糧？', 'What does a mayor earn? Is there a year-end bonus?', '市長の給料は？ボーナスは？'),
         answer: T('本職屬高度榮譽性質。薪酬由財政官在有錢時再議。', 'The post is a high honour. Pay will be discussed by the Treasurer when there is money.', '本職は極めて名誉ある職である。報酬は財政官が金のある時に改めて協議する。') },
-      { text: T('你係咪釣魚電郵？', 'Is this a phishing email?', 'これってフィッシングメール？'),
+      { text: T('你係咪詐騙信？', 'Is this a scam letter?', 'これって詐欺の手紙？'),
         answer: T('本信已通過皇家最高級資安檢查。至於閣下點證實，係另一個問題。', 'This letter has passed the Crown\'s highest security check. How you would verify that is another matter.', '本状は王室最高レベルのセキュリティ審査を通過している。貴殿がそれをどう確かめるかは別の問題である。') },
       { text: T('我聽日要返工，唔做得唔得？', 'I have work tomorrow. Can I say no?', '明日は仕事なんですが、断れませんか？'),
         answer: T('任命已刊憲。祝閣下上任愉快。', 'The appointment has been gazetted. We wish you a pleasant start.', '任命は官報に掲載済みである。就任おめでとう。') },
     ]),
+    departure: Object.freeze({ card: T('出發去北區', 'Off to North District', '北区へ出発') }),
     arrival: Object.freeze([
-      { speaker: 'secretary', text: T('市長，你終於到喇！我係你嘅市政秘書，負責向你解釋每一個……唔合理嘅政策。', 'Mayor, you\'re finally here! I\'m your Municipal Secretary - I explain every... unreasonable policy to you.', '市長、ようやく到着ですね！市政秘書です。あらゆる……不合理な政策をご説明する係です。') },
+      { speaker: 'secretary', text: T('市長，你終於到喇！我係你嘅秘書金毛玲，負責向你解釋每一個……唔合理嘅政策。', 'Mayor, you\'re finally here! I\'m Kam Mo-ling, your secretary - I explain every... unreasonable policy to you.', '市長、ようやく到着ですね！秘書の金毛玲です。あらゆる……不合理な政策をご説明する係です。') },
       { speaker: 'mayor', text: T('前任市長呢？', 'Where\'s the last mayor?', '前任の市長は？') },
       { speaker: 'secretary', text: T('辭職信搵唔到。總之呢度而家歸你管。', 'We can\'t find the resignation letter. Anyway, this is all yours now.', '辞表が見つかりません。とにかく、ここは今日からあなたの管轄です。') },
       { speaker: 'treasurer', text: T('庫房有幾多錢，我有份報告；但你唔好太大期望。', 'I have a report on what\'s in the treasury. Don\'t get your hopes up.', '金庫の残高は報告書にまとめてあります。期待はしないでください。') },
@@ -204,14 +215,14 @@
     ]),
     outroForum: {
       headline: T('【政府新聞】北區新市鎮正式開張', '[Government News] North District new town opens', '【政府発表】北区ニュータウン正式開業'),
-      body: T('市政秘書表示，新市鎮人口突破三千、收支轉正，整體發展「暢順」，政府會繼續「提升」及「優化」。', 'The Municipal Secretary said the new town has passed 3,000 people and balanced its books; development is "smooth", and the government will keep "enhancing" and "optimising".', '市政秘書は、ニュータウンの人口が3,000人を超え収支も黒字化し、発展は「順調」で、政府は今後も「向上」と「最適化」に努めると述べた。'),
+      body: T('市長秘書金毛玲表示，新市鎮人口突破三千、收支轉正，整體發展「暢順」，政府會繼續「提升」及「優化」。', 'The mayor\'s secretary, Kam Mo-ling, said the new town has passed 3,000 people and balanced its books; development is "smooth", and the government will keep "enhancing" and "optimising".', '市長秘書の金毛玲は、ニュータウンの人口が3,000人を超え収支も黒字化し、発展は「順調」で、政府は今後も「向上」と「最適化」に努めると述べた。'),
       comments: Object.freeze([
         T('三千人都叫新市鎮？我屋企條村都多過呢個數。', 'Three thousand people is a new town? My village has more than that.', '3,000人でニュータウン？うちの村の方が多いぞ。'),
         T('路燈有咗，下一步可唔可以有巴士？', 'We have street lights now. Can we have a bus next?', '街灯はついた。次はバスをお願いできる？'),
       ]),
     },
     failure: Object.freeze([
-      { speaker: 'secretary', text: T('市長，二十四個月過咗……女皇密令話，任命有效期以市民仍然願意畀機會為準。', 'Mayor, twenty-four months have passed... The Secret Order says the appointment lasts as long as the people still give you a chance.', '市長、24か月が過ぎました……女王の密令によれば、任期は市民がまだ機会を与えてくれる限りだそうです。') },
+      { speaker: 'secretary', text: T('市長，十二個月過咗……女皇密令話，任命有效期以市民仍然願意畀機會為準。', 'Mayor, twelve months have passed... The Secret Order says the appointment lasts as long as the people still give you a chance.', '市長、12か月が過ぎました……女王の密令によれば、任期は市民がまだ機会を与えてくれる限りだそうです。') },
     ]),
   });
 

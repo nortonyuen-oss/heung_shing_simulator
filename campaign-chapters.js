@@ -434,8 +434,11 @@
   });
 
   // CHAPTER 04 南區《南島奇蹟》: the first metro with riders, the fishing port and Ocean Park.
-  // Every chapter starts on its own 256x256 district map (Norton 2026-11-19: keeps the game as it
-  // plays everywhere else). 24 months for the Dragon Boat race.
+  // Every chapter plays on its own 256x256 district map, never a made-up one (Norton 2026-11-19).
+  // Star 1 should fit in about 24 months, and the metro (30,000) and Ocean Park (35,000) are out of
+  // reach from bare land, so this one starts from a built 香港仔 and 黃竹坑 of about 15,000
+  // (UI/campaign/ch04.json; left alone it levels off near 23,000). 24 months also covers the
+  // yearly Dragon Boat race. Without the file: a new city on the bare map.
   const CH04 = Object.freeze({
     id: 'ch04',
     startFile: 'UI/campaign/ch04.json',
@@ -524,10 +527,12 @@
   });
 
   // CHAPTER 07 屯門《塞車塞到痴線》: buses across districts, the light rail, the jams, night safety.
-  // On the 屯門 district map; the light rail opens at 15,000 people with the council's funding.
+  // A new city on the bare 屯門 district map; the light rail opens at 15,000 people with the
+  // council's funding, so star 1 gets 24 months.
   const CH07 = Object.freeze({
     id: 'ch07',
     startFile: 'UI/campaign/ch07.json',
+    deadlineMonths: 24,
     fresh: { cityName: T('屯門', 'Tuen Mun', '屯門'), budget: 120000, transportExpansion: true },
     intro: Object.freeze([
       { speaker: 'transport', text: T('屯門公路現時車流量較高，但整體交通情況仍然……', 'Traffic on Tuen Mun Road is currently heavy, but overall conditions remain...', '屯門公路の交通量は現在やや多めですが、全体としては依然……') },
@@ -626,10 +631,13 @@
   });
 
   // CHAPTER 12 東區《叮叮遊港島》: the double-decker trams, the Island line and the buses together.
-  // On the 東區 district map; the Island line opens at 30,000 people with the council's funding.
+  // The Island line opens at 30,000 people with the council's funding, so (Norton 2026-11-19) the
+  // chapter starts from a built 北角 of about 15,000 on the 東區 district map, with the main road
+  // through to 柴灣 (UI/campaign/ch12.json; left alone it levels off near 23,000), and 24 months.
   const CH12 = Object.freeze({
     id: 'ch12',
     startFile: 'UI/campaign/ch12.json',
+    deadlineMonths: 24,
     fresh: { cityName: T('東區', 'Eastern', '東区'), budget: 150000, transportExpansion: true },
     intro: Object.freeze([
       { speaker: 'tram', text: T('叮叮行得慢，但好多街坊日日靠佢出入。', 'The ding ding is slow, but a lot of people rely on it every day.', 'ディンディンは遅いけれど、毎日頼りにしている住民が大勢いる。') },

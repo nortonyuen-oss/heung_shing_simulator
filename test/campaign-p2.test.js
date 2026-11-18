@@ -98,15 +98,19 @@ test('P2: a festival counts only when held after the chapter began (the history 
   assert.equal(festival({ festivalHeldYear: { christmas: 1902, midAutumn: 1903 } }), true);
 });
 
-test('P2: star one has 12 months, or 24 where the Dragon Boat race (once a year) is asked for', () => {
-  assert.deepEqual(P2.map((id) => campaign.getCampaignDeadlineMonths(id)), [12, 24, 24, 12, 12]);
+test('P2: star one fits in 24 months at most - 24 for the Dragon Boat race or a metro / light rail', () => {
+  assert.deepEqual(P2.map((id) => campaign.getCampaignDeadlineMonths(id)), [12, 24, 24, 24, 24]);
   assert.equal(campaign.getCampaignDeadlineMonths('ch01'), 12);
   assert.equal(campaign.createCampaignRun('ch04', 200).deadlineMonthIndex, 224);
   assert.equal(campaign.normalizeCampaignRun({ chapterId: 'ch03', startMonthIndex: 50 }).deadlineMonthIndex, 74);
-  // the chapters with a Dragon Boat objective are the 24-month ones
+  // Norton 2026-11-19: 每一局一星大概落在24個月之內
   P2.forEach((id) => {
-    const asks = specs[id].stars[0].objectives.some((objective) => objective.id === 'dragonBoat');
-    assert.equal(asks, campaign.getCampaignDeadlineMonths(id) === 24, id);
+    const months = campaign.getCampaignDeadlineMonths(id);
+    assert.ok(months <= 24, id);
+    const ids = specs[id].stars[0].objectives.map((objective) => objective.id);
+    // a yearly race, or a line that opens only at 15,000 / 30,000 people with the council's funding
+    const slow = ids.includes('dragonBoat') || ids.includes('metro') || ids.includes('lightRail') || ids.includes('metroBus');
+    assert.equal(months, slow ? 24 : 12, id);
   });
 });
 
@@ -125,22 +129,44 @@ test('P2: unlocking steps over chapters still to come; a starred chapter stays o
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch18').map((chapter) => chapter.id), []);
 });
 
-test('P2: every chapter starts on its own 256x256 district map (Norton 2026-11-19)', () => {
+test('P2: every chapter plays on its own 256x256 district map; 04 and 12 start from a built town on it', () => {
   const maps = source('hk-district-maps.js');
+  const BUILT = { ch04: 'aberdeen', ch12: 'eastern' };
   P2.forEach((id) => {
     const spec = specs[id];
-    assert.ok(!spec.requiresStartFile, `${id} needs no built start city`);
+    assert.ok(!spec.requiresStartFile, id);
     assert.ok(spec.fresh.budget >= 60000 && spec.fresh.transportExpansion === true, id);
     ['zhHant', 'en', 'ja'].forEach((lang) => assert.ok(spec.fresh.cityName[lang], `${id} city name in ${lang}`));
     const mapId = campaign.CAMPAIGN_CHAPTERS_BY_ID[id].mapId;
     assert.ok(maps.includes(`{"id":"${mapId}","centre"`), `${id} plays on ${mapId}`);
+    const file = path.join(ROOT, spec.startFile);
+    assert.equal(fs.existsSync(file), !!BUILT[id], `${id} ${BUILT[id] ? 'ships' : 'has no'} start city`);
+    if (!BUILT[id]) return;
+    // Norton 2026-11-19: prebuilt cities are fine, but on the district map as it is (地圖基底唔使刻意創造);
+    // about 15,000 people, so the metro (30,000) is work but within reach
+    const start = JSON.parse(fs.readFileSync(file, 'utf8'));
+    assert.equal(start.format, 'heung-shing-campaign-start');
+    assert.equal(start.chapterId, id);
+    const save = start.save_data;
+    assert.equal(mapId, BUILT[id]);
+    assert.equal(save.city.districtProfileId, mapId, `${id} keeps the district's traits`);
+    assert.deepEqual([save.mapWidth, save.mapHeight], [256, 256]);
+    assert.ok(save.city.population >= 13000 && save.city.population <= 17000, `${id}: ${save.city.population} people`);
+    assert.equal(save.city.budget, spec.fresh.budget, `${id} starts with the chapter's money`);
+    assert.ok(!save.city.campaign, `${id}: a start file starts clean`);
+    // the camera opens on the town, not the hills or the sea
+    const { centerRow, centerCol } = save.viewpoint;
+    const near = Object.keys(save.buildingData).filter((key) => {
+      const [row, col] = key.split(':').map(Number);
+      return Math.abs(row - centerRow) <= 10 && Math.abs(col - centerCol) <= 10;
+    });
+    assert.ok(near.length >= 10, `${id}: ${near.length} buildings in view`);
   });
-  // a start file stays an option (exportCampaignStart), and a chapter without either says so
+  // without its file a chapter still starts, on the bare district map; one with neither says so
   // before the player is asked to leave the city
   const js = source('campaign.js');
   assert.match(js, /if \(!file && \(spec\.requiresStartFile \|\| !spec\.fresh\)\)/);
   assert.ok(js.indexOf('const file = await fetchCampaignStartFile') < js.indexOf("'開始新章節會離開而家個城市"));
-  assert.ok(!fs.existsSync(path.join(ROOT, 'UI/campaign/ch04.json')), 'no built city ships for 04');
 });
 
 function loadRuntime() {

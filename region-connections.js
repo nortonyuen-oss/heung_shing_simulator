@@ -250,13 +250,14 @@ function getRegionTransitExitTiles(row, col, side) {
   return connection ? connection.tiles.map(([r, c]) => ({ row: r, col: c })) : [];
 }
 
-// Every mode's lines off the map together (buses and ferries; the metro in phase 3):
+// Every mode's lines off the map together - buses, ferries and the metro:
 // riders last month, by destination and mode, and the riders a month they can carry.
 function getRegionTransitSummary() {
   const summary = { lines: 0, riders: 0, capacity: 0, byDestination: {}, byMode: {}, byModeDestination: {}, destinations: [] };
   const parts = [
     typeof getTransportOffMapSummary === 'function' ? getTransportOffMapSummary() : null,
     typeof getFerryOffMapSummary === 'function' ? getFerryOffMapSummary() : null,
+    typeof getMetroOffMapSummary === 'function' ? getMetroOffMapSummary() : null,
   ];
   parts.filter((part) => part?.lines > 0).forEach((part) => {
     summary.lines += part.lines;

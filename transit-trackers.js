@@ -271,7 +271,8 @@ function resolveMetroTrackerTarget(scene, id) {
   const v = state.trains.find((x) => String(x.id) === String(id));
   if (!v) return null;
   const line = state.lines.find((l) => l.id === v.lineId);
-  const stations = line ? getMetroLineStations(line, state) : [];
+  // (with a line's far end off the map, named "往金鐘（區外）")
+  const stations = line ? (typeof getMetroLineStops === 'function' ? getMetroLineStops(line, state) : getMetroLineStations(line, state)) : [];
   const schedule = line ? getMetroLineSchedule(line, state) : null;
   const sky = transitSkyClock();
   const running = typeof isMetroRunning === 'function' ? isMetroRunning(sky) : true;

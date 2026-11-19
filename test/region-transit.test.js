@@ -434,3 +434,140 @@ test('the ferry windows name the far end and pick its district', () => {
     assert.equal(i18n.split(`'${key}':`).length - 1, 3, `${key} in three languages`);
   });
 });
+
+// ── phase 3: metro lines on off the map ─────────────────────────────────────────────────────
+
+function loadMetroOffMapWorld() {
+  const context = vm.createContext({ console, MAP_WIDTH: 64, MAP_HEIGHT: 64, WATER: 5 });
+  vm.runInContext(`
+    var mapData = Array.from({ length: 64 }, () => Array(64).fill(1));
+    function isInsideMap(r, c) { return r >= 0 && c >= 0 && r < 64 && c < 64; }
+    function t(key, vars = {}) { return key + JSON.stringify(vars); }
+    var toasts = [];
+    function showToast(text, kind) { toasts.push([text, kind]); }
+    var city = { population: 40000, year: 1900, month: 3, regionFlows: { visitors: 0 } };
+    var buildingData = {};
+    var transport = { company: { cash: 1000000, cashFraction: 0 }, metro: null };
+    function getTransportExpansionState() { return transport; }
+    function isTransportExpansionActive() { return true; }
+    function spendTransportConstruction(cost) { if (transport.company.cash < cost) return false; transport.company.cash -= cost; return true; }
+    function getRegionDestinations() { return { n: [{ id: 'central-western', km: 2 }, { id: 'wan-chai', km: 3 }], e: [], s: [], w: [] }; }
+    function getRegionDestination(side, id) { return getRegionDestinations()[side].find((d) => d.id === id) || null; }
+    function getRegionTransitLegTiles(km) { return Math.max(12, Math.min(60, Math.round(km * 4))); }
+    function getRegionDestinationName(id) { return id === 'central-western' ? '中環' : id; }
+    function getRegionTransitRiderShares() { return { out: 0.3, in: 0.2 }; }
+    function getTransportStopCatchmentUnits(point) { return point.fixedUnits || { originUnits: 100, destinationUnits: 50, returnUnits: 9, residents: 0 }; }
+    function getTransportStopRidersForHour(point) { const u = getTransportStopCatchmentUnits(point); return u.originUnits + (u.returnUnits || 0); }
+    var TRANSPORT_RIDER_SHARE = 0.18;
+  `, context);
+  vm.runInContext(read('metro.js'), context, { filename: 'metro.js' });
+  vm.runInContext(`
+    transport.metro = normalizeMetroState({
+      unlocked: true,
+      stations: [
+        { id: 'st-a', row: 40, col: 40, name: '香港仔' },
+        { id: 'st-b', row: 20, col: 40, name: '黃竹坑' },
+        { id: 'st-c', row: 50, col: 40, name: '鴨脷洲' },
+        { id: 'st-s', row: 30, col: 10, name: '地面', surface: true },
+      ],
+      lines: [],
+    });
+    var metro = transport.metro;
+  `, context);
+  return context;
+}
+
+test('a metro line drawn to the map edge runs on off the map: the tunnel and the leg paid, the drawing done', () => {
+  const c = loadMetroOffMapWorld();
+  const ev = (code) => vm.runInContext(code, c);
+  ev("metroLineDraft = null; handleMetroLineClick(null, 40, 40); handleMetroLineClick(null, 20, 40);");
+  assert.equal(ev('metro.lines.length'), 1);
+  const cashBefore = ev('transport.company.cash');
+  ev('handleMetroLineClick(null, 1, 41)');
+  const line = ev('metro.lines[0]');
+  assert.deepEqual({ side: line.offMap.side, destination: line.offMap.destination, row: line.offMap.row, col: line.offMap.col },
+    { side: 'n', destination: 'central-western', row: 0, col: 41 });
+  assert.equal(ev('metroLineDraft'), null, 'the drawing ends off the map');
+  const tunnel = ev('metroTunnelBetween({ row: 20, col: 40 }, { row: 0, col: 41 }, metroIsSea).cost');
+  assert.equal(cashBefore - ev('transport.company.cash'), tunnel + 12 * ev('METRO.tunnelCostPerLandTile'), 'the tunnel to the edge and on out there');
+  assert.match(ev('toasts.at(-1)[0]'), /metro\.line\.offMapAdded/);
+  // the far end: straight on past the edge, as far again as the leg; the timetable runs to it
+  const stops = ev('getMetroLineStops(metro.lines[0])');
+  assert.equal(stops.length, 3);
+  const far = stops[2];
+  assert.equal(far.offMap, true);
+  assert.equal(far.name, 'transport.offMap.stopName{"place":"中環"}');
+  const toEdge = Math.hypot(20, 1);
+  assert.ok(Math.abs(Math.hypot(far.row - 20, far.col - 40) - (toEdge + 12)) < 1e-9);
+  const schedule = ev('getMetroLineSchedule(metro.lines[0])');
+  assert.ok(Math.abs(schedule.cycle - (4 * ev('METRO.dwellMinutes') + 2 * (20 + toEdge + 12) / ev('METRO.speedTilesPerMinute'))) < 1e-9);
+  // a train out at the far end is off the map: not drawn
+  const out = ev('metroTrainPointAt(getMetroLineSchedule(metro.lines[0]), getMetroLineSchedule(metro.lines[0]).legs[2].start + 0.1, 0)');
+  assert.equal(out.state, 'atStation');
+  assert.equal(ev(`getMetroOffMapAlpha({ r: ${out.r}, c: ${out.c} }, 'n')`), 0);
+  assert.equal(ev("getMetroOffMapAlpha({ r: 0.5, c: 40 }, 'n')"), 0.5);
+  // one end off the map only; a surface line none
+  ev('handleMetroLineClick(null, 40, 40)');
+  assert.deepEqual([...ev('metroLineDraft ? Object.keys(metroLineDraft) : []')].sort(), ['lineId', 'prepend'], 'carried on from its first station, at the front');
+  ev('handleMetroLineClick(null, 1, 41)');
+  assert.match(ev('toasts.at(-1)[0]'), /metro\.line\.offMapOne/);
+  ev('handleMetroLineClick(null, 50, 40)');
+  assert.deepEqual([...ev('metro.lines[0].stationIds')], ['st-c', 'st-a', 'st-b'], 'a station added at the front');
+  assert.ok(ev('metro.lines[0].offMap'), 'still off the map at the back');
+  ev("metroLineDraft = { firstStationId: 'st-s' }; handleMetroLineClick(null, 1, 10)");
+  assert.match(ev('toasts.at(-1)[0]'), /metro\.line\.offMapSurface/);
+});
+
+test('trains call at the far end: riders off and on out there, paid by the tile, counted for the month', () => {
+  const c = loadMetroOffMapWorld();
+  const ev = (code) => vm.runInContext(code, c);
+  ev(`
+    metro.lines.push(normalizeMetroState({ stations: metro.stations, lines: [{ id: 'line-1', stationIds: ['st-a', 'st-b'],
+      offMap: { side: 'n', destination: 'central-western', row: 0, col: 40 } }] }).lines[0]);
+    buyMetroTrain('line-1');
+    var line = metro.lines[0];
+    metro.stations[0].waitingByLine = { 'line-1': 300 };
+  `);
+  // an hour's riders: the stations' and the far end's
+  ev('accrueMetroStationsForHour(metro, 2)');
+  assert.ok(ev("line.offMap.waitingByLine['line-1']") > 0, 'outsiders and residents coming home queue out there');
+  // a whole round trip in the day
+  ev('callMetroTrains(metro, 180, 180 + getMetroLineSchedule(line).cycle + 1)');
+  assert.ok(ev('line.monthToDateOffMapPassengers') > 0);
+  assert.ok(ev('line.monthToDateRevenue') > 0);
+  ev('line.monthToDateOffMapPassengers = 640; settleMetroMonth({ year: 1900, month: 2 })');
+  assert.equal(ev('line.history.at(-1).offMapPassengers'), 640);
+  const summary = ev('getMetroOffMapSummary()');
+  assert.equal(summary.mode, 'metro');
+  assert.equal(summary.lines, 1);
+  assert.deepEqual({ ...summary.byDestination }, { 'central-western': 640 });
+  assert.ok(summary.capacity > 0);
+  assert.ok(ev("setMetroLineOffMapDestination('line-1', 'wan-chai')"));
+  assert.equal(ev('getMetroOffMapLegTiles(line.offMap)'), 12);
+  // a save keeps it; a surface line keeps none, and a line of one station without it goes
+  const saved = ev(`normalizeMetroState(JSON.parse(JSON.stringify({ ...metro, lines: [...metro.lines,
+    { id: 'line-2', stationIds: ['st-s'], surface: true, offMap: { side: 'n', destination: 'x', row: 0, col: 10 } },
+    { id: 'line-3', stationIds: ['st-a'] }] })))`);
+  assert.deepEqual([...saved.lines.map((l) => l.id)], ['line-1']);
+  assert.equal(saved.lines[0].offMap.destination, 'wan-chai');
+  assert.equal(saved.lines[0].history.at(-1).offMapPassengers, 640);
+});
+
+test('the metro windows name the far end and pick its district; 南區 三星 asks for the line to 金鐘', () => {
+  const ui = read('metro-ui.js');
+  assert.match(ui, /data-metro-offmap-line="\$\{metroUiEscape\(line\.id\)\}"/);
+  assert.match(ui, /metroLineDraft = line\.offMap \? \{ lineId: line\.id, prepend: true \} : \{ lineId: line\.id \};/);
+  assert.match(read('transport-ui.js'), /handleMetroUiChange\(event\)\) return refreshTransportUi\(\);/);
+  assert.match(read('transit-trackers.js'), /getMetroLineStops\(line, state\)/);
+  assert.match(read('region-connections.js'), /getMetroOffMapSummary\(\)/);
+  const i18n = read('i18n.js');
+  ['region.transit.mode.metro', 'metro.line.offMapAdded', 'metro.line.offMapSurface', 'metro.line.offMapOne'].forEach((key) => {
+    assert.equal(i18n.split(`'${key}':`).length - 1, 3, `${key} in three languages`);
+  });
+  const campaign = require('../campaign-chapters.js');
+  const admiralty = campaign.CAMPAIGN_CHAPTER_SPECS.ch04.stars[2].objectives.find((objective) => objective.id === 'region');
+  assert.equal(admiralty.check({ regionConnections: 3 }), false, 'a road out is not the line');
+  assert.equal(admiralty.check({ offMap: { metro: { 'central-western': 120 } } }), true);
+  assert.equal(admiralty.check({ offMap: { metro: { 'wan-chai': 5 } } }), true, '金鐘 lies between the two');
+  assert.equal(admiralty.check({ offMap: { bus: { 'central-western': 900 } } }), false, 'a bus is not the railway');
+});

@@ -482,8 +482,11 @@
         title: T('南島假期', 'Southern Holiday', '南島の休日'),
         objectives: Object.freeze([
           ridersObjective('metroRiders', 'metro', 10000, T('地鐵每月載客 10,000 人次', 'The metro carries 10,000 riders a month', '地下鉄の月間乗客10,000人')),
-          { id: 'region', label: T('有區外連線（接駁金鐘方向）', 'A region connection (towards Admiralty)', '区外連絡（金鐘方面へ）'),
-            check: (s) => num(s.regionConnections) > 0, progress: (s) => fmt(s.regionConnections) },
+          // 南港島綫接駁至金鐘方向: a metro line on off the map to 中環 or 灣仔, 金鐘 between them
+          // (docs/region-transit-design.md phase 3)
+          { id: 'region', label: T('南港島綫接駁金鐘方向（地鐵開出區外往中環或灣仔，有乘客）', 'The South Island line to Admiralty (a metro line off the map to Central or Wan Chai, with riders)', '南港島線を金鐘方面へ（区外の中環・湾仔へ向かう地下鉄に乗客）'),
+            check: (s) => num(s.offMap?.metro?.['central-western']) + num(s.offMap?.metro?.['wan-chai']) > 0,
+            progress: (s) => `🚇 ${fmt(num(s.offMap?.metro?.['central-western']) + num(s.offMap?.metro?.['wan-chai']))}` },
           { id: 'tourism', label: T('旅遊吸引力達 75', 'Tourism appeal of 75', '観光魅力度75'),
             check: (s) => num(s.tourismAppeal) >= 75, progress: (s) => `${fmt(s.tourismAppeal)} / 75` },
           { id: 'traffic', label: T('交通擠塞指數不高於 40%', 'Traffic congestion at 40% or less', '交通渋滞指数40%以下'),

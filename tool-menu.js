@@ -416,6 +416,7 @@ function getToolCategoryForTool(tool) {
     || tool === 'legislative-council'
     || tool === 'stock-exchange'
     || tool === 'public-market'
+    || tool === 'community-centre'
     || tool === 'harbor'
     || tool === 'airport'
   ) return 'services';

@@ -321,9 +321,11 @@ function updateHealthMetrics() {
     weightedPop += pop;
   });
 
-  const communityHealthBonus = typeof sumSpecialBuildingEffect === 'function'
+  const communityHealthBonus = (typeof sumSpecialBuildingEffect === 'function'
     ? Math.min(0.03, sumSpecialBuildingEffect('communitySupportBonus') * 0.5)
-    : 0;
+    : 0)
+    // 社區醫療補助 (welfare.js)
+    + (isPolicyActive('communityHealthSubsidy') && typeof WELFARE_TUNING !== 'undefined' ? WELFARE_TUNING.communityHealthBonus : 0);
   const targetHealth = weightedPop > 0
     ? clamp(weightedHealthSum / weightedPop + communityHealthBonus, 0, 1)
     : 0.5;
@@ -384,7 +386,8 @@ function updateEpidemicState(targetHealth, targetCoverage, utilization, weighted
   const policyProtection =
     (isPolicyActive('smokingBan') ? 0.16 : 0)
     + (isPolicyActive('schoolHealthProgram') ? 0.12 : 0)
-    + (isPolicyActive('cleanAir') ? 0.08 : 0);
+    + (isPolicyActive('cleanAir') ? 0.08 : 0)
+    + (isPolicyActive('communityHealthSubsidy') && typeof WELFARE_TUNING !== 'undefined' ? WELFARE_TUNING.communityHealthProtection : 0);
 
   const risk = clamp(
     0.04
@@ -637,6 +640,10 @@ function updateDemand() {
   city.regionFlows = regionFlows;
   if (regionFlows?.out > 0 && labourForce > 0) {
     city.unemploymentRate = clamp(1 - (totalJobCap + regionFlows.out) / labourForce, 0, 1);
+  }
+  // 青年就業計劃 (welfare.js): training and placements take a share off the jobless
+  if (isPolicyActive('youthEmploymentScheme') && typeof WELFARE_TUNING !== 'undefined') {
+    city.unemploymentRate = clamp(city.unemploymentRate * (1 - WELFARE_TUNING.youthEmploymentCut), 0, 1);
   }
 
   // Legacy jobRatio kept for demandR (unchanged behaviour)
@@ -912,6 +919,9 @@ function computeHappiness(scene) {
     ? getTransportHappinessBonus()
     : 0;
   // 貨櫃車 past the windows (port-freight.js)
+  // 福利法案 and 危樓 (welfare.js)
+  const welfareBonus = typeof getWelfareHappinessBonus === 'function' ? getWelfareHappinessBonus() : 0;
+  const oldBuildingPenalty = typeof getOldBuildingHappinessPenalty === 'function' ? getOldBuildingHappinessPenalty() : 0;
   const portTruckPenalty = typeof getPortFreightCityHappinessPenalty === 'function'
     ? getPortFreightCityHappinessPenalty()
     : 0;
@@ -919,11 +929,11 @@ function computeHappiness(scene) {
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
       + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
-      + roadBonus + policyBonus + lawBonus + healthBonus + landmarkHappinessBonus + transportHappinessBonus
+      + roadBonus + policyBonus + lawBonus + healthBonus + landmarkHappinessBonus + transportHappinessBonus + welfareBonus
       + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
       + ridiculeMemeBonus
       - taxPenalty - pollPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty
-      - ridiculeReputationPenalty - portTruckPenalty,
+      - ridiculeReputationPenalty - portTruckPenalty - oldBuildingPenalty,
     0, 1
   );
 }

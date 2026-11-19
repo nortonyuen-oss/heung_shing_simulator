@@ -165,6 +165,39 @@ function buildPublicMarketInspectHtml(row, col) {
   </div>`;
 }
 
+// 福利 (welfare.js): the city's welfare coverage and who each bill in force reaches, on a 社區中心
+function buildWelfareInspectHtml() {
+  if (typeof getWelfareState !== 'function') return '';
+  const state = getWelfareState();
+  const n = (value) => Math.round(value).toLocaleString();
+  const coverage = Math.round(state.coverage * 100);
+  const bills = WELFARE_POLICY_IDS.filter((id) => state.bills[id]?.active)
+    .map((id) => `<div class="insp-row insp-muted">${t('welfare.billLine', { name: getCouncilPolicyDisplayTitle(id), value: n(state.bills[id].beneficiaries) })}</div>`).join('');
+  return `<div class="insp-section">
+    <div class="insp-row ${coverage >= 60 ? 'insp-ok' : 'insp-warn'}">${t('welfare.coverage', { value: coverage, needy: n(state.needy), reached: n(state.reached) })}</div>
+    <div class="insp-row insp-muted">${t('welfare.centreReach', { value: n(state.centreReached || 0) })}</div>
+    ${bills || `<div class="insp-row insp-muted">${t('welfare.noBills')}</div>`}
+  </div>`;
+}
+
+// 舊樓 (welfare.js): a home's age and condition, and below the repair mark the two ways out
+function buildOldBuildingInspectHtml(id, record) {
+  if (typeof getOldBuildingCondition !== 'function' || typeof OLD_BUILDING_TUNING === 'undefined') return '';
+  const condition = getOldBuildingCondition(record);
+  const built = Number(record?.builtMonthIndex);
+  const now = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : built;
+  const years = Number.isFinite(built) ? Math.max(0, Math.floor((now - built) / 12)) : 0;
+  const dangerous = condition < OLD_BUILDING_TUNING.dangerousBelow;
+  const canRepair = condition < OLD_BUILDING_TUNING.repairTo;
+  const safeId = String(id).replace(/[^0-9:]/g, '');
+  return `<div class="insp-row ${dangerous ? 'insp-warn' : 'insp-muted'}">${t('oldBuilding.state', { years, condition: Math.round(condition) })}</div>
+    ${dangerous ? `<div class="insp-row insp-warn">${t('oldBuilding.dangerous')}</div>` : ''}
+    ${canRepair ? `<div class="insp-row">
+      <button class="insp-action-btn" type="button" onclick="repairOldBuilding('${safeId}')">${t('oldBuilding.repair', { cost: getOldBuildingRepairCost(record).toLocaleString() })}</button>
+      <button class="insp-action-btn" type="button" onclick="redevelopOldBuilding('${safeId}')">${t('oldBuilding.rebuild')}</button>
+    </div>` : ''}`;
+}
+
 // 貨櫃貨運 (port-freight.js): this port's cargo, where it comes from, and the trucks past homes
 function buildContainerPortInspectHtml(portId) {
   if (typeof getPortFreightState !== 'function') return '';
@@ -285,6 +318,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     legislative_council: `🏛️ ${t('building.legislativeCouncil')}`,
     stock_exchange: `🏦 ${t('building.stockExchange')}`,
     public_market: `🛒 ${t('building.publicMarket')}`,
+    community_centre: `🤝 ${t('building.communityCentre')}`,
     event_ground: `▧ ${t('park.eventGround')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
     park_large: `🌲 ${t('building.largePark')}`,
@@ -303,6 +337,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     legislative_council: t('inspect.legislativeCouncil'),
     stock_exchange: t('inspect.stockExchange'),
     public_market: t('inspect.publicMarket', { upkeep: SPECIAL_BUILDING_EFFECTS.public_market.upkeep }),
+    community_centre: t('inspect.communityCentre', { radius: typeof WELFARE_TUNING !== 'undefined' ? WELFARE_TUNING.communityCentreRadius : 12, upkeep: SPECIAL_BUILDING_EFFECTS.community_centre.upkeep }),
     event_ground: t('inspect.eventGround', { upkeep: UPKEEP_EVENT_GROUND }),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
     park_large: t('inspect.parkRadius', { radius: LARGE_PARK_RADIUS, upkeep: UPKEEP_PARK_LARGE }),
@@ -321,6 +356,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     legislative_council:'#4d6bbf',
     stock_exchange:'#c39a2d',
     public_market:'#699e70',
+    community_centre:'#c27a3a',
     event_ground:'#d0bc94',
     park_small:'#58d66a',
     park_large:'#32b457',
@@ -419,6 +455,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData.type === 'public_market') {
       html += buildPublicMarketInspectHtml(inspectRecord.anchorRow, inspectRecord.anchorCol);
     }
+    if (bData.type === 'community_centre') html += buildWelfareInspectHtml();
   }
 
   // Zone / residential building
@@ -463,7 +500,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
       bldgHtml = `
         <div class="insp-bldg-name" style="color:${zColor}">${dispName}</div>
         <div class="insp-row insp-muted">${populationRow}</div>
-        <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>`;
+        <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>
+        ${isResidentialBldg ? buildOldBuildingInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`, bData) : ''}`;
     } else {
       bldgHtml = `<div class="insp-row insp-muted">${t('inspect.emptyLot')}</div>`;
       // 公屋／居屋 come only as whole blocks (housing-types.js): a strip too narrow stays open

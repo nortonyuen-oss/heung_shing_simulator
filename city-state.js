@@ -130,6 +130,9 @@ const city = {
   portFreightHistory: [],
   // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
   housingZones: {},
+  // 舊樓 (welfare.js): homes repaired and blocks redeveloped, all time
+  buildingRepairs: 0,
+  buildingRebuilds: 0,
   // 區外交通: each side's districts a line can run off the map to, nearest first ({ id, km })
   regionDestinations: null,
   // 海底隧道 (undersea-tunnel.js): its two portals (tiles, direction, approach roads) and the sea tiles it runs under
@@ -165,6 +168,11 @@ const city = {
     busSeatbeltMandate: false,
     nightBazaarWeekend: false,
     transportOperatingSubsidy: false,
+    elderlyLivingAllowance: false,
+    lowIncomeFamilySubsidy: false,
+    publicHousingRentSupport: false,
+    communityHealthSubsidy: false,
+    youthEmploymentScheme: false,
   },
   council: createDefaultCouncilState(),
   loans: [],
@@ -363,6 +371,11 @@ function resetGameState() {
     busSeatbeltMandate: false,
     nightBazaarWeekend: false,
     transportOperatingSubsidy: false,
+    elderlyLivingAllowance: false,
+    lowIncomeFamilySubsidy: false,
+    publicHousingRentSupport: false,
+    communityHealthSubsidy: false,
+    youthEmploymentScheme: false,
   };
   city.council = createDefaultCouncilState(city.activePolicies);
   city.loans = [];
@@ -478,6 +491,8 @@ function resetGameState() {
   city.portFreight = null;
   city.portFreightHistory = [];
   city.housingZones = {};
+  city.buildingRepairs = 0;
+  city.buildingRebuilds = 0;
   city.regionDestinations = null;
   city.underseaTunnels = [];
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
@@ -515,6 +530,8 @@ const CITY_STATE_POLICY_IDS = Object.freeze([
   'tourismPromotion', 'foreignInvestmentIncentive', 'districtCouncilElection',
   'icac', 'legislativeCouncilElection', 'stockExchangeAct', 'elderlyTwoDollarFare',
   'arcticPenguinReserve', 'busSeatbeltMandate', 'nightBazaarWeekend', 'transportOperatingSubsidy',
+  'elderlyLivingAllowance', 'lowIncomeFamilySubsidy', 'publicHousingRentSupport', 'communityHealthSubsidy',
+  'youthEmploymentScheme',
 ]);
 
 function isNormalizedCityStateObject(value) {
@@ -1523,6 +1540,8 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
     if (policy.id === 'nightBazaarWeekend') cost += countNightBazaarGroundTiles() * 6;
     if (policy.id === 'transportOperatingSubsidy' && typeof getTransportOperatingSubsidyDue === 'function') cost += getTransportOperatingSubsidyDue();
+    // 福利法案 (welfare.js): so much more per thousand people reached
+    if (typeof isWelfarePolicy === 'function' && isWelfarePolicy(policy.id)) cost += getWelfareMonthlyCost(policy.id) - policy.monthlyBase;
   });
   return Math.round(cost);
 }

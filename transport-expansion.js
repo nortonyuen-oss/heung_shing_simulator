@@ -177,6 +177,7 @@ const TRANSPORT_DESTINATION_UNITS = Object.freeze({
   legislative_council: 90,
   stock_exchange: 160,
   public_market: 90,
+  community_centre: 40,
   park_small: 25,
   park_large: 80,
   park_flagship: 160,

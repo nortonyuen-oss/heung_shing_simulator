@@ -38,6 +38,7 @@ const INFRA_COSTS = {
 // (tool-menu.js:getToolCategoryForTool) but share this same unlock/effect wiring.
 const LANDMARK_TOOL_BUILDING_TYPES = {
   'public-market':     'public_market',
+  'community-centre':  'community_centre',
   'exhibition-center': 'exhibition_center',
   'cultural-center':   'cultural_center',
   'space-museum':      'space_museum',

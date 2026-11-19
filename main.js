@@ -673,6 +673,7 @@ function getBuildingTypeLabel(type) {
     legislative_council: 'building.legislativeCouncil',
     stock_exchange: 'building.stockExchange',
     public_market: 'building.publicMarket',
+    community_centre: 'building.communityCentre',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',

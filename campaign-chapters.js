@@ -1645,6 +1645,8 @@
       villageHouses: Math.max(0, Math.floor(num(snapshot?.villageHouses))),
       taxCI: Math.max(0, num(snapshot?.taxCI)),
       industrialCount: Math.max(0, Math.floor(num(snapshot?.industrialCount))),
+      // 舊樓 (P4 第 15 章): repairs made before the chapter began are not the chapter's
+      buildingRepairs: Math.max(0, Math.floor(num(snapshot?.buildingRepairs))),
       monthIndex: Math.floor(num(snapshot?.monthIndex ?? monthIndex)),
     };
   }

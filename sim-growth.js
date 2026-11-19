@@ -980,6 +980,9 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     commercialTier: zone === ZONE_COM
       ? (options.commercialTier ?? selectedModel?.commercialTier ?? 'L')
       : undefined,
+    // 舊樓 (welfare.js): built this month, in good repair
+    builtMonthIndex: zone === ZONE_RES && typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : undefined,
+    condition: zone === ZONE_RES ? 100 : undefined,
   };
   markPowerGridDirty();
   invalidateBuildingCountCache();

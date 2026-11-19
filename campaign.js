@@ -330,6 +330,25 @@
     return facts;
   }
 
+  // 福利同舊樓 (welfare.js, P4 第 15 章): the welfare coverage and the bills that reach anyone; the
+  // 危樓, the residents' average condition and the repairs made; 治安指數 = 100 - the crime rate (%)
+  function collectWelfareFacts() {
+    const facts = {
+      welfareCoverage: 0, welfareBills: 0, dangerousBuildings: 0, buildingSafetyIndex: 100, buildingRepairs: 0,
+      safetyIndex: Math.round(100 - Math.max(0, Math.min(1, Number(city.crimeRateIndex) || 0)) * 100),
+    };
+    try {
+      const state = typeof getWelfareState === 'function' ? getWelfareState() : null;
+      facts.welfareCoverage = Number(state?.coverage) || 0;
+      facts.welfareBills = Number(state?.activeWithBeneficiaries) || 0;
+      const homes = typeof getOldBuildingStats === 'function' ? getOldBuildingStats() : null;
+      facts.dangerousBuildings = Number(homes?.dangerous) || 0;
+      facts.buildingSafetyIndex = Number.isFinite(Number(homes?.safetyIndex)) ? Number(homes.safetyIndex) : 100;
+      facts.buildingRepairs = Number(homes?.repaired) || 0;
+    } catch { /* no welfare yet */ }
+    return facts;
+  }
+
   function buildCampaignSnapshot() {
     const base = typeof collectMedalSnapshot === 'function' ? collectMedalSnapshot() : { buildings: {}, transit: {} };
     const buildings = base.buildings || {};
@@ -365,6 +384,7 @@
       ...collectDragonBoatFacts().facts,
       ...collectP3Facts(),
       ...collectHousingFacts(),
+      ...collectWelfareFacts(),
       crimeRate: Number(city.crimeRateIndex) || 0,
       tourismAppeal: Number(city.tourismAppeal) || 0,
       pollution: Number(city.pollution) || 0,

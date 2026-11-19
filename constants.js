@@ -92,6 +92,13 @@ const CITY_POLICY_DEFS = [
   // costs each month (transport-expansion.js settleTransportMonth); monthlyBase is the admin on top.
   { id: 'transportOperatingSubsidy', titleKey: 'policy.transportOperatingSubsidy.title', descKey: 'policy.transportOperatingSubsidy.desc', monthlyBase: 40, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'treasury_head' },
   { id: 'nightBazaarWeekend', titleKey: 'policy.nightBazaarWeekend.title', descKey: 'policy.nightBazaarWeekend.desc', monthlyBase: 140, unlockPopulation: 10000, category: 'financeEconomy', moverId: 'councillor_tourism' },
+  // 福利法案 (welfare.js, docs/campaign-p4-design.md §3.1): each reaches a group of residents; the
+  // cost grows with the people reached (welfare.js WELFARE_POLICIES), monthlyBase is the base of it
+  { id: 'elderlyLivingAllowance', titleKey: 'policy.elderlyLivingAllowance.title', descKey: 'policy.elderlyLivingAllowance.desc', monthlyBase: 200, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
+  { id: 'lowIncomeFamilySubsidy', titleKey: 'policy.lowIncomeFamilySubsidy.title', descKey: 'policy.lowIncomeFamilySubsidy.desc', monthlyBase: 180, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_democracy' },
+  { id: 'publicHousingRentSupport', titleKey: 'policy.publicHousingRentSupport.title', descKey: 'policy.publicHousingRentSupport.desc', monthlyBase: 120, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_democracy' },
+  { id: 'communityHealthSubsidy', titleKey: 'policy.communityHealthSubsidy.title', descKey: 'policy.communityHealthSubsidy.desc', monthlyBase: 200, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
+  { id: 'youthEmploymentScheme', titleKey: 'policy.youthEmploymentScheme.title', descKey: 'policy.youthEmploymentScheme.desc', monthlyBase: 160, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_liberty' },
 ];
 
 const HSI_BASE_LEVEL = 20000;
@@ -1044,6 +1051,13 @@ function selectServiceBuildingModel(buildingType, existingCount = 0, randomValue
 // placeInfraBuilding() pipeline as SERVICE_BUILDING_MODELS, but gated by
 // SPECIAL_BUILDING_UNLOCKS instead of budget alone.
 const SPECIAL_BUILDING_MODELS = {
+  // 社區中心 (welfare.js): the library's art until its own (Norton 2026-11-19: 社區中心用圖書館就得)
+  community_centre: {
+    spriteKey: 'community_centre_2x2',
+    path: 'Models/government/2x2/library2-01.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
   public_market: {
     spriteKey: 'public_market_2x2',
     path: 'Models/publicMarket/pm_market3x3_style_v3.png',
@@ -1517,6 +1531,7 @@ const SPECIAL_BUILDING_UNLOCKS = {
   indoor_coliseum:    { unlockPopulation: 30000, maxCount: 1 },
   murray_house:       { unlockAttractiveness: 60, maxCount: 1 },
   ocean_park:         { requiresResolution: 'oceanParkDevelopmentProject', hideUntilApproved: true, maxCount: 1 },
+  community_centre:   { unlockPopulation: 3000 },
   football_stadium:   { unlockPopulation: 40000, maxCount: 1 },
   airport:            { requiresResolution: 'roseGardenAirportProject', hideUntilApproved: true, maxCount: 1 },
   container_port:     { unlockPopulation: 15000 },
@@ -1531,6 +1546,8 @@ const SPECIAL_BUILDING_UNLOCKS = {
 // nearby land value like POWER_PLANT_STATS; revenue/upkeep feed the monthly
 // budget in city-state.js.
 const SPECIAL_BUILDING_EFFECTS = {
+  // reaches the people in need within WELFARE_TUNING.communityCentreRadius (welfare.js)
+  community_centre:   { happinessBonus: 0.004, communitySupportBonus: 0.01, upkeep: 160 },
   public_market:      { landValueBonus: 0.02, landValueRadius: 6, upkeep: 80 },
   exhibition_center: { attractivenessBonus: 6,  landValueBonus: 0.10, landValueRadius: 10, revenue: 260, upkeep: 900 },
   cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
@@ -1565,6 +1582,7 @@ const SPECIAL_BUILDING_EFFECTS = {
 };
 
 const SPECIAL_BUILDING_COSTS = {
+  community_centre:   1800,
   public_market:      3200,
   exhibition_center: 15000,
   cultural_center:    9000,
@@ -1669,6 +1687,7 @@ const BUILDING_POWER_DEMAND = {
   heritage_temple: 3,
   fish_market: 6,
   public_market: 8,
+  community_centre: 6,
   seafood_restaurant: 4,
   fish_loading_bay: 1,
   yacht_club: 5,

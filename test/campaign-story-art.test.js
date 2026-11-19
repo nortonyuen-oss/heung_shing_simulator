@@ -27,12 +27,12 @@ test('story art: the stars\' and events\' scenes are Norton\'s Event boards', ()
   const scenes = specs.flatMap((spec) => [spec.outroScene, ...(spec.events || []).map((event) => event.scene)]).filter(Boolean);
   assert.deepEqual(
     Object.fromEntries(specs.filter((spec) => spec.outroScene).map((spec) => [spec.id, path.basename(spec.outroScene, '.webp')])),
-    { ch04: 'southIslandLine', ch07: 'lightRail', ch12: 'tramway', ch16: 'firework02', ch17: 'firework1', ch18: '18DistrictCompleted' },
+    { ch04: 'southIslandLine', ch07: 'lightRail', ch12: 'tramway', ch14: 'kowloonWalledCity', ch16: 'firework02', ch17: 'firework1', ch18: '18DistrictCompleted' },
   );
   assert.equal(campaign.CAMPAIGN_CHAPTER_SPECS.ch12.events.find((event) => event.id === 'birthdayTram').scene, 'UI/campaign/events/singerBirthday.webp');
   scenes.forEach((scene) => assert.ok(exists(scene), scene));
-  // the walled city waits for chapter 14
-  assert.ok(exists('UI/campaign/events/kowloonWalledCity.webp'));
+  // the walled city: chapter 14's star and its first film
+  assert.equal(campaign.CAMPAIGN_CHAPTER_SPECS.ch14.events.find((event) => event.id === 'filmShoot').scene, 'UI/campaign/events/kowloonWalledCity.webp');
   const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
   assert.match(runtime, /playCampaignDialogue\(spec\.intro, \{ backdrop: getCampaignChapterScene\(chapterId\) \|\| false, reveal: true \}\)/);
   assert.match(runtime, /playCampaignDialogue\(spec\.outro, \{ backdrop: spec\.outroScene \|\| false, reveal: true \}\)/);
@@ -50,8 +50,7 @@ test('story art: Norton\'s NPCs have their faces and lines', () => {
     assert.equal(speaker.portrait, `UI/campaign/portraits/${id}.webp`);
     assert.ok(exists(speaker.portrait), speaker.portrait);
     ['zhHant', 'en', 'ja'].forEach((lang) => assert.ok(speaker.name[lang], `${id} in ${lang}`));
-    // 古大樂 waits for chapter 14's film shoot
-    if (id !== 'filmStar') assert.ok(said.has(id), `${id} speaks somewhere`);
+    assert.ok(said.has(id), `${id} speaks somewhere`);
   });
   assert.equal(campaign.CAMPAIGN_SPEAKERS.parent, undefined, 'Jayden\'s mum speaks for the parents now');
   const ch06 = campaign.CAMPAIGN_CHAPTER_SPECS.ch06;

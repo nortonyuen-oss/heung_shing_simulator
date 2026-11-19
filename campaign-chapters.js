@@ -75,6 +75,11 @@
     bankGirl: { name: T('iBank 港女', 'iBank Girl', 'iBankガール'), portrait: 'UI/campaign/portraits/bankGirl.webp', glyph: '💼' },
     tycoon: { name: T('李超人', 'Superman Li', '李超人'), portrait: 'UI/campaign/portraits/tycoon.webp', glyph: '🏙' },
     barber: { name: T('醬爆', 'Jeung Bao', '醤爆'), portrait: 'UI/campaign/portraits/barber.webp', glyph: '✂' },
+    // P4 phase 6 (chapters 10, 11, 14, 15): voices of the script without a board yet - a glyph
+    aviation: { name: T('航空署代表', 'Civil Aviation', '航空局代表'), glyph: '✈️' },
+    portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), glyph: '⚓' },
+    volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), glyph: '🙋' },
+    producer: { name: T('製片人', 'Film Producer', '映画プロデューサー'), glyph: '🎬' },
     // 第 14 章《古大樂、共金寶、林豐開機》 (P4 phase 6)
     filmStar: { name: T('古大樂', 'Koo Dai-lok', '古大楽'), portrait: 'UI/campaign/portraits/filmStar.webp', glyph: '🎬' },
   });
@@ -1688,9 +1693,425 @@
     ]),
   });
 
+  // ── P4 phase 6: chapters 10, 11, 14 and 15 (docs/campaign-p4-design.md §13) ─────────────────────
+
+  // CHAPTER 10 離島《飛越香城》: the airport's routes and passengers (airport-routes.js), 東涌 grown
+  // round it, the 東涌綫 and 機場快綫 off the map into town, and the night noise. On the 赤鱲角 map.
+  // 天壇大佛 is the big Buddha that already exists; the cable car is an easter egg, never a condition.
+  const metroOffMap = (s) => Object.values(s.offMap?.metro || {}).reduce((sum, riders) => sum + num(riders), 0);
+  const townServices = (s) => ['police_station', 'fire_station', 'hospital'].every((type) => built(s, type)) && (built(s, 'primary_school') || built(s, 'secondary_school'));
+  const CH10 = Object.freeze({
+    id: 'ch10',
+    startFile: 'UI/campaign/ch10.json',
+    deadlineMonths: 24,
+    fresh: { cityName: T('東涌', 'Tung Chung', '東涌'), budget: 150000, transportExpansion: true },
+    intro: Object.freeze([
+      { speaker: 'aviation', text: T('香城已具備國際級機場硬件！', 'Heung Shing has a world-class airport!', '香城には国際級の空港設備がそろいました！') },
+      { speaker: 'treasurer', text: T('咁客喺邊？', 'So where are the passengers?', 'で、乗客はどこに？') },
+      { speaker: 'resident', text: T('我住東涌，飛機日日起飛，但我坐巴士出城仲要轉兩次。', 'I live in Tung Chung. Planes take off every day, but getting into town by bus takes me two changes.', '東涌に住んでいます。飛行機は毎日飛ぶのに、バスで街に出るには2回乗り換え。') },
+      { speaker: 'engineer', text: T('東涌綫同機場快綫要由地圖邊出市區：機場同新市鎮都要有站。', 'The Tung Chung line and the Airport Express run off the map into town - the airport and the new town both need stations.', '東涌線とエアポートエクスプレスは地図の端から市街へ。空港にもニュータウンにも駅が要る。') },
+      { card: T('任務開始：離島《飛越香城》', 'Mission start: Islands - "Flying Over Heung Shing"', '任務開始：離島「香城を飛び越えて」'),
+        hint: T('喺機場開至少 3 條有乘客嘅航線，每月 40,000 人次；東涌人口達 50,000，有警署、消防局、醫院同學校；東涌綫或機場快綫有乘客出市區，加 2 條巴士線；機場費夠付航線開支；實施夜間宵禁，交通擠塞 50% 以下。',
+          'Open at least 3 routes carrying passengers at the airport, 40,000 a month; grow Tung Chung to 50,000 with police, fire, a hospital and a school; get riders onto the Tung Chung line or Airport Express into town, plus 2 bus routes; make the airport\'s charges cover its routes; impose a night curfew, and keep congestion under 50%.',
+          '空港で乗客のいる路線を3本以上、月40,000人に。東涌の人口を50,000人にし、警察・消防・病院・学校をそろえる。東涌線かエアポートエクスプレスで市街へ乗客を運び、バス路線を2本。空港使用料で路線経費をまかなう。夜間の運航を禁止し、渋滞50%未満。') },
+    ]),
+    stars: Object.freeze([
+      {
+        title: T('飛越香城', 'Flying Over Heung Shing', '香城を飛び越えて'),
+        objectives: Object.freeze([
+          { id: 'flights', label: T('至少 3 條有乘客嘅航線，每月旅客 40,000 人次', 'At least 3 routes carrying passengers, 40,000 passengers a month', '乗客のいる路線3本以上、月間40,000人'),
+            check: (s) => num(s.airportRoutes) >= 3 && num(s.airportPassengers) >= 40000,
+            progress: (s) => `✈️ ${fmt(s.airportRoutes)} / 3 · ${fmt(s.airportPassengers)} / 40,000` },
+          { id: 'tungChung', label: T('東涌人口達 50,000，有警署、消防局、醫院同學校', 'Tung Chung reaches 50,000, with police, fire, a hospital and a school', '東涌の人口50,000人、警察・消防・病院・学校'),
+            check: (s) => num(s.population) >= 50000 && townServices(s), progress: (s) => `${fmt(s.population)} / 50,000 · ${tick(townServices(s))}` },
+          { id: 'rail', label: T('東涌綫或機場快綫有乘客出市區，至少 2 條有乘客嘅巴士線', 'Riders on the Tung Chung line or Airport Express into town, and at least 2 bus routes with passengers', '東涌線かエアポートエクスプレスで市街へ乗客、乗客のいるバス路線2本以上'),
+            check: (s) => metroOffMap(s) > 0 && num(s.busRoutes) >= 2, progress: (s) => `🚇 ${fmt(metroOffMap(s))} · 🚌 ${fmt(s.busRoutes)} / 2` },
+          { id: 'airportBooks', label: T('機場費夠付航線開支', 'The airport\'s charges cover its routes', '空港使用料で路線経費をまかなう'),
+            check: (s) => num(s.airportRoutes) > 0 && num(s.airportFees) >= num(s.airportCost),
+            progress: (s) => `$${fmt(s.airportFees)} / $${fmt(s.airportCost)}` },
+          // (the curfew costs the night's seats: the 40,000 passengers are harder with it - the trade-off)
+          { id: 'noise', label: T('實施夜間宵禁（23:00–06:00）；交通擠塞 50% 以下', 'A night curfew (23:00-06:00); congestion under 50%', '夜間の運航禁止（23:00〜06:00）、渋滞50%未満'),
+            check: (s) => !!s.airportCurfew && num(s.trafficIndex) <= 0.5,
+            progress: (s) => `🌙 ${tick(!!s.airportCurfew)} · 🚗 ${pct(s.trafficIndex)}` },
+          balanceObjective(0.6),
+        ]),
+      },
+      {
+        title: T('天壇大佛', 'The Big Buddha', '天壇大仏'),
+        objectives: Object.freeze([
+          { id: 'buddha', label: T('起天壇大佛', 'Build the Big Buddha', '天壇大仏を建てる'),
+            check: (s) => built(s, 'buddha_statue'), progress: (s) => tick(built(s, 'buddha_statue')) },
+          busRoutesObjective(4),
+          { id: 'tourism', label: T('旅遊吸引力達 65', 'Tourism appeal of 65', '観光魅力度65'),
+            check: (s) => num(s.tourismAppeal) >= 65, progress: (s) => `${fmt(s.tourismAppeal)} / 65` },
+          { id: 'happiness', label: T('滿意度達 65%', 'Happiness of 65%', '満足度65%'),
+            check: (s) => num(s.happiness) >= 0.65, progress: (s) => pct(s.happiness) },
+        ]),
+      },
+      {
+        title: T('香城通世界', 'Heung Shing to the World', '香城、世界へ'),
+        objectives: Object.freeze([
+          { id: 'world', label: T('至少 6 條有乘客嘅航線，當中 2 條長途', 'At least 6 routes carrying passengers, 2 of them long-haul', '乗客のいる路線6本以上、うち長距離2本'),
+            check: (s) => num(s.airportRoutes) >= 6 && num(s.airportLongHaul) >= 2,
+            progress: (s) => `✈️ ${fmt(s.airportRoutes)} / 6 · 🛫 ${fmt(s.airportLongHaul)} / 2` },
+          { id: 'passengers', label: T('每月旅客 120,000 人次', '120,000 passengers a month', '月間旅客120,000人'),
+            check: (s) => num(s.airportPassengers) >= 120000, progress: (s) => `${fmt(s.airportPassengers)} / 120,000` },
+          { id: 'town', label: T('人口達 80,000，失業率低於 6%', '80,000 people, unemployment under 6%', '人口80,000人、失業率6%未満'),
+            check: (s) => num(s.population) >= 80000 && num(s.unemploymentRate) < 0.06, progress: (s) => `${fmt(s.population)} / 80,000 · ${pct(s.unemploymentRate)}` },
+          { id: 'content', label: T('滿意度達 70%', 'Happiness of 70%', '満足度70%'),
+            check: (s) => num(s.happiness) >= 0.7, progress: (s) => pct(s.happiness) },
+          { id: 'reserve', label: T('財政儲備達 $300,000', 'Reserves of $300,000', '財政準備金$300,000'),
+            check: (s) => num(s.funds) >= 300000, progress: (s) => `$${fmt(s.funds)} / $300,000` },
+        ]),
+      },
+    ]),
+    // 中段事件《昂坪衫碌玲》: the cable car, an idea for later - never a condition (劇本)
+    events: Object.freeze([
+      {
+        id: 'cableCar',
+        when: (s) => built(s, 'buddha_statue'),
+        lines: Object.freeze([
+          { speaker: 'tourism', text: T('天壇大佛開幕！下一步，我哋建議起一條纜車上山——「昂坪衫碌玲」！', 'The Big Buddha is open! Next, we propose a cable car up the mountain - the "Ngong Ping Sam Luk Ling"!', '天壇大仏が開幕！次は山へのロープウェイ、「昂坪サンロッリン」を提案します！') },
+          { speaker: 'resident', text: T('昂坪衫碌玲係咪新款衫褲品牌？', 'Is the Ngong Ping Sam Luk Ling a new clothing brand?', '昂坪サンロッリンって新しい服のブランド？') },
+          { speaker: 'secretary', text: T('纜車屬未來擴充項目，暫時唔計入任何目標。', 'The cable car is a future expansion and counts towards nothing for now.', 'ロープウェイは将来の拡張計画で、今のところ目標には入りません。') },
+        ]),
+        forum: {
+          headline: T('天壇大佛開幕，旅遊署再提「昂坪衫碌玲」', 'The Big Buddha opens; the Tourism Board floats the "Ngong Ping Sam Luk Ling" again', '天壇大仏が開幕、観光局が再び「昂坪サンロッリン」を提案'),
+          body: T('旅遊巴每日由東涌接載旅客上山，政府表示纜車計劃「仍在研究」。', 'Tour buses carry visitors up the mountain from Tung Chung every day; the government says the cable car is "still under study".', '観光バスが毎日東涌から山へ観光客を運ぶ。政府はロープウェイ計画を「検討中」としている。'),
+          comment: T('機場係有咗，搭到去機場先算。', 'We have an airport - now let us see if we can get to it.', '空港はできた。たどり着けるかは別の話。'),
+        },
+      },
+    ]),
+    outro: Object.freeze([
+      { speaker: 'aviation', text: T('飛機終於唔再只係畫圈，香城真正連接世界！', 'The planes are not just flying in circles any more - Heung Shing is truly connected to the world!', '飛行機はもう円を描くだけじゃない。香城は本当に世界とつながった！') },
+      { speaker: 'treasurer', text: T('飛機帶入嘅貨，最終都要靠碼頭同物流送出入。', 'Whatever the planes bring in, the ports and the trucks must carry in and out in the end.', '飛行機が運ぶ荷物も、最後は港と物流で出し入れするしかない。') },
+    ]),
+    outroForum: {
+      headline: T('【政府新聞】香城國際機場航線網絡正式啟航', '[Government News] Heung Shing International Airport\'s route network takes off', '【政府発表】香城国際空港の路線網が正式に就航'),
+      body: T('航空署表示，機場已開通多條國際航線，東涌綫及機場快綫接駁市區，夜間噪音得到管理。', 'The Civil Aviation Department says several international routes are open, the Tung Chung line and Airport Express link it to town, and the night noise is managed.', '航空局によると、国際線が複数就航し、東涌線とエアポートエクスプレスが市街と結ばれ、夜間の騒音も管理されている。'),
+      comments: Object.freeze([
+        T('終於唔使轉兩程巴士出市區。', 'No more two bus changes to get into town.', 'やっとバス2回乗り換えなしで市街へ。'),
+        T('昂坪衫碌玲係咪新款衫褲品牌？', 'Is the Ngong Ping Sam Luk Ling a new clothing brand?', '昂坪サンロッリンって新しい服のブランド？'),
+      ]),
+    },
+    failure: Object.freeze([
+      { speaker: 'aviation', text: T('市長，期限過咗，跑道上面仍然只係得示範飛機……', 'Mayor, time is up, and the runway still has only demonstration planes...', '市長、期限が過ぎました。滑走路にはまだデモ機しかありません……') },
+    ]),
+  });
+
+  // CHAPTER 11 葵青《貨櫃碼頭24小時》 (port-freight.js): 150,000 people round a port that never sleeps -
+  // its cargo in TEU, the trucks kept off the homes' roads, 青衣's passengers by rail. Not all port.
+  const CH11 = Object.freeze({
+    id: 'ch11',
+    startFile: 'UI/campaign/ch11.json',
+    deadlineMonths: 24,
+    fresh: { cityName: T('葵青', 'Kwai Tsing', '葵青'), budget: 200000, transportExpansion: true },
+    intro: Object.freeze([
+      { speaker: 'portMaster', text: T('一日二十四小時，貨櫃船嚟、貨櫃船走。', 'Twenty-four hours a day, container ships come and container ships go.', '一日24時間、コンテナ船が来ては去っていく。') },
+      { speaker: 'resident', text: T('咁我哋要幾時先瞓到覺？', 'Then when are we supposed to sleep?', 'じゃあ私たちはいつ寝ればいいの？') },
+      { speaker: 'transport', text: T('加多條路就得啦……應該。', 'Just add another road... probably.', '道路を一本増やせば……たぶん大丈夫。') },
+      { speaker: 'tycoon', text: T('碼頭生意好，地價自然升——大家都有得賺。', 'When the port does well, land prices rise - everybody makes money.', '港が儲かれば地価も上がる。みんなが儲かるのさ。') },
+      { card: T('任務開始：葵青《貨櫃碼頭24小時》', 'Mission start: Kwai Tsing - "The 24-Hour Container Port"', '任務開始：葵青「24時間コンテナ埠頭」'),
+        hint: T('人口達 150,000；貨櫃碼頭每月 8,000 TEU；行經住宅嘅貨車少過一成；有警署、消防局、醫院同學校，住宅、商業、工業各佔建築一成半至六成；地鐵每月載客 5,000；失業率低於 7%，連續 3 個月盈餘。',
+          'Reach 150,000 people; the container ports carry 8,000 TEU a month; under 10% of the trucks drive past homes; police, fire, a hospital and a school, with homes, shops and industry each 15-60% of the buildings; 5,000 metro riders a month; unemployment under 7% and 3 months of surplus in a row.',
+          '人口150,000人。コンテナ埠頭で月8,000TEU。住宅沿いを走るトラックは1割未満。警察・消防・病院・学校、住宅・商業・工業はそれぞれ建物の15〜60%。地下鉄の月間乗客5,000人。失業率7%未満、3か月連続の黒字。') },
+    ]),
+    stars: Object.freeze([
+      {
+        title: T('貨如輪轉', 'Goods on the Move', '貨物は回る'),
+        objectives: Object.freeze([
+          { id: 'people', label: T('人口達 150,000', '150,000 people', '人口150,000人'),
+            check: (s) => num(s.population) >= 150000, progress: (s) => `${fmt(s.population)} / 150,000` },
+          { id: 'port', label: T('貨櫃碼頭每月 8,000 TEU', 'The container ports carry 8,000 TEU a month', 'コンテナ埠頭で月8,000TEU'),
+            check: (s) => num(s.portThroughput) >= 8000, progress: (s) => `${fmt(s.portThroughput)} / 8,000` },
+          // (the start town's trucks pass homes for about 13% of their driving: a bypass round them is the work)
+          { id: 'trucks', label: T('行經住宅嘅貨車少過一成', 'Under 10% of the trucks drive past homes', '住宅沿いを走るトラック1割未満'),
+            check: (s) => num(s.portThroughput) > 0 && num(s.portTruckResidentialShare) < 0.1, progress: (s) => `${pct(s.portTruckResidentialShare)} / 10%` },
+          { id: 'notAllPort', label: T('唔可以全區變貨櫃場：有警署、消防局、醫院同學校，住宅、商業、工業各佔一成半至六成', 'Not all port: police, fire, a hospital and a school, with homes, shops and industry each 15-60% of the buildings', '全部を港にしない：警察・消防・病院・学校、住宅・商業・工業はそれぞれ15〜60%'),
+            check: (s) => townServices(s) && balancedSectors(s), progress: (s) => `${tick(townServices(s))} · ${sectorShares(s).map(pct).join(' / ')}` },
+          ridersObjective('rail', 'metro', 5000, T('地鐵每月載客 5,000 人次（青衣客運）', 'The metro carries 5,000 riders a month (Tsing Yi\'s passengers)', '地下鉄の月間乗客5,000人（青衣の旅客）')),
+          { id: 'books', label: T('失業率低於 7%，連續 3 個月盈餘', 'Unemployment under 7% and 3 months of surplus in a row', '失業率7%未満、3か月連続の黒字'),
+            check: (s) => num(s.population) > 0 && num(s.unemploymentRate) < 0.07 && num(s.surplusStreak) >= 3,
+            progress: (s) => `${pct(s.unemploymentRate)} · ${fmt(s.surplusStreak)} / 3` },
+        ]),
+      },
+      {
+        title: T('全天候物流', 'Logistics Round the Clock', '全天候物流'),
+        objectives: Object.freeze([
+          { id: 'port', label: T('貨櫃碼頭每月 12,000 TEU', 'The container ports carry 12,000 TEU a month', 'コンテナ埠頭で月12,000TEU'),
+            check: (s) => num(s.portThroughput) >= 12000, progress: (s) => `${fmt(s.portThroughput)} / 12,000` },
+          { id: 'trucks', label: T('行經住宅嘅貨車少過 5%', 'Under 5% of the trucks drive past homes', '住宅沿いを走るトラック5%未満'),
+            check: (s) => num(s.portThroughput) > 0 && num(s.portTruckResidentialShare) < 0.05, progress: (s) => `${pct(s.portTruckResidentialShare)} / 5%` },
+          { id: 'people', label: T('人口達 180,000', '180,000 people', '人口180,000人'),
+            check: (s) => num(s.population) >= 180000, progress: (s) => `${fmt(s.population)} / 180,000` },
+          { id: 'happiness', label: T('滿意度達 65%，交通擠塞 50% 以下', 'Happiness of 65%, congestion under 50%', '満足度65%、渋滞50%未満'),
+            check: (s) => num(s.happiness) >= 0.65 && num(s.trafficIndex) <= 0.5, progress: (s) => `${pct(s.happiness)} · 🚗 ${pct(s.trafficIndex)}` },
+        ]),
+      },
+      {
+        title: T('港口與家園', 'Port and Home', '港と暮らし'),
+        objectives: Object.freeze([
+          { id: 'people', label: T('人口達 220,000', '220,000 people', '人口220,000人'),
+            check: (s) => num(s.population) >= 220000, progress: (s) => `${fmt(s.population)} / 220,000` },
+          { id: 'port', label: T('貨櫃碼頭每月 16,000 TEU', 'The container ports carry 16,000 TEU a month', 'コンテナ埠頭で月16,000TEU'),
+            check: (s) => num(s.portThroughput) >= 16000, progress: (s) => `${fmt(s.portThroughput)} / 16,000` },
+          { id: 'order', label: T('交通擠塞 45% 以下，滿意度達 75%', 'Congestion at 45% or less, happiness of 75%', '渋滞45%以下、満足度75%'),
+            check: (s) => num(s.trafficIndex) <= 0.45 && num(s.happiness) >= 0.75, progress: (s) => `🚗 ${pct(s.trafficIndex)} · ${pct(s.happiness)}` },
+          { id: 'reserve', label: T('財政儲備達 $400,000', 'Reserves of $400,000', '財政準備金$400,000'),
+            check: (s) => num(s.funds) >= 400000, progress: (s) => `$${fmt(s.funds)} / $400,000` },
+        ]),
+      },
+    ]),
+    // 中段事件《貨櫃車隊大遷徙》: the trucks fill the industrial roads - a way round the homes, not a short cut through them
+    events: Object.freeze([
+      {
+        id: 'truckMigration',
+        when: (s) => num(s.portThroughput) >= 6000 && num(s.portTruckResidentialShare) >= 0.1,
+        lines: Object.freeze([
+          { speaker: 'portMaster', text: T('貨運量升咗，工業幹道成條都係貨櫃車。', 'Throughput is up, and the industrial roads are wall-to-wall container trucks.', '取扱量が増えて、工業幹線はコンテナトラックだらけだ。') },
+          { speaker: 'resident', text: T('凌晨三點貨櫃車打招呼，震到我杯水有海浪。', 'Container trucks say hello at three in the morning - my glass of water has waves in it.', '朝3時にコンテナトラックがご挨拶。コップの水に波が立つ。') },
+          { speaker: 'engineer', text: T('起條貨運繞道避開住宅，貨車自然會行。撳碼頭睇貨車路線，紅色嗰段就係經過住宅。', 'Build a freight bypass round the homes and the trucks will take it. Click a port to see the truck routes: the red stretches pass homes.', '住宅を避ける貨物用の迂回路を作れば、トラックは自然にそちらを通る。埠頭をクリックしてトラックの経路を見よう。赤い区間が住宅沿いだ。') },
+        ]),
+        forum: {
+          headline: T('貨櫃車隊大遷徙：工業幹道塞到住宅門口', 'The great container-truck migration: the industrial roads back up to the front doors', 'コンテナトラック大移動：工業幹線の渋滞が住宅の前まで'),
+          body: T('碼頭吞吐量上升，貨櫃車佔滿車線。運輸署呼籲增設貨運專用道路及錯峰調度。', 'With the port\'s throughput rising, container trucks fill the lanes. The Transport Department calls for freight-only roads and staggered hours.', '埠頭の取扱量が増え、コンテナトラックが車線を埋める。運輸署は貨物専用道路と時差運行を呼びかけた。'),
+          comment: T('碼頭係24小時，我張床都係24小時搖搖船。', 'The port runs 24 hours - and so does my bed, rocking like a boat.', '埠頭は24時間、うちのベッドも24時間船みたいに揺れる。'),
+        },
+      },
+    ]),
+    outro: Object.freeze([
+      { speaker: 'portMaster', text: T('香城貨物出得去、入得嚟。', 'Heung Shing\'s goods go out and come in.', '香城の貨物は出ていき、入ってくる。') },
+      { speaker: 'secretary', text: T('下一步去港島東——嗰邊有一種交通工具，慢慢行都係城市風景。', 'Next, east Hong Kong Island - where there is a way of getting about that is part of the view even at walking pace.', '次は港島東部へ。ゆっくり走っても街の風景になる乗り物があります。') },
+    ]),
+    outroForum: {
+      headline: T('【政府新聞】葵青貨櫃碼頭吞吐量創新高，貨車改行繞道', '[Government News] Kwai Tsing\'s container port sets a record, and the trucks take the bypass', '【政府発表】葵青コンテナ埠頭が取扱量の最高を更新、トラックは迂回路へ'),
+      body: T('運輸署表示，碼頭每月處理超過 8,000 個標準貨櫃，大部分貨櫃車已改經工業區道路，避開住宅。', 'The Transport Department says the port now handles over 8,000 TEU a month, with most container trucks now taking the industrial roads round the homes.', '運輸署によると、埠頭は月8,000TEU超を扱い、コンテナトラックの大半は住宅を避けて工業区の道路を通るようになった。'),
+      comments: Object.freeze([
+        T('終於瞓到一晚好覺。', 'Finally, a good night\'s sleep.', 'やっと一晩ぐっすり眠れた。'),
+        T('貨櫃車改道，我杯水冇再有海浪。', 'The trucks took the bypass - no more waves in my glass.', 'トラックが迂回して、コップの水に波が立たなくなった。'),
+      ]),
+    },
+    failure: Object.freeze([
+      { speaker: 'resident', text: T('市長，期限過咗，貨櫃車仲喺我樓下排隊……', 'Mayor, time is up, and the container trucks are still queueing under my window...', '市長、期限が過ぎました。コンテナトラックはまだうちの下に並んでいます……') },
+    ]),
+  });
+
+  // CHAPTER 14 九龍城《啟德再起飛》 (cruise-terminal.js): 220,000 people at Kai Tak, the cruise terminal
+  // linked into town, the 屯馬綫 and the buses, the call-day jam managed, a big shopping centre. The
+  // walled city park and its films are phase 7: until then the cultural centre stands in (〔暫代〕).
+  const CH14 = Object.freeze({
+    id: 'ch14',
+    startFile: 'UI/campaign/ch14.json',
+    deadlineMonths: 24,
+    fresh: { cityName: T('九龍城', 'Kowloon City', '九龍城'), budget: 250000, transportExpansion: true },
+    intro: Object.freeze([
+      { speaker: 'tourism', text: T('政府建議原貌重建九龍城寨，打造世界級文化旅遊景點。', 'The government proposes rebuilding the Kowloon Walled City as it was - a world-class cultural attraction.', '政府は九龍城砦を元の姿で再建し、世界級の文化観光地にすることを提案します。') },
+      { speaker: 'resident', text: T('你哋當年拆咗佢，而家又起返嚟賣飛？', 'You tore it down back then, and now you are building it again to sell tickets?', '昔取り壊したくせに、今度はまた建ててチケットを売るの？') },
+      { speaker: 'secretary', text: T('歷史保育，與時並進。', 'Heritage conservation, moving with the times.', '歴史保存も、時代とともに。') },
+      { speaker: 'mayor', text: T('等陣，城寨仲住人㗎？', 'Wait - does anyone still live in the Walled City?', 'ちょっと待って、城砦にはまだ人が住むの？') },
+      { speaker: 'engineer', text: T('唔住。今次係主題樂園、歷史展覽同電影拍攝基地，唔係住宅區。', 'No one. This time it is a theme park, a history exhibition and a film base - not homes.', '住まない。今回はテーマパークと歴史展示と映画の撮影拠点で、住宅じゃない。') },
+      { speaker: 'filmStar', text: T('拍戲基地？我第一個報名。', 'A film base? Count me in first.', '撮影拠点？真っ先に応募するよ。') },
+      { card: T('任務開始：九龍城《啟德再起飛》', 'Mission start: Kowloon City - "Kai Tak Takes Off Again"', '任務開始：九龍城「啓徳ふたたび飛ぶ」'),
+        hint: T('人口達 220,000；接通啟德郵輪碼頭，上月有郵輪埋岸，四成半旅客搭公共交通入市區；地鐵每月載客 10,000，3 條巴士線；郵輪泊岸日附近道路擠塞六成以下；15 座甲級商廈或大型商場（GigaBox）；旅遊吸引力 60，罪案率低於 30%，每月收支正數。',
+          'Reach 220,000 people; connect the Kai Tak cruise terminal so a ship called last month and 45% of its passengers rode public transport into town; 10,000 metro riders a month and 3 bus routes; the roads near the terminal under 60% busy on a call day; 15 grade-A towers or big malls (GigaBox); tourism appeal 60, crime under 30%, a monthly surplus.',
+          '人口220,000人。啓徳クルーズターミナルをつなぎ、先月寄港があって乗客の45%が公共交通で市街へ。地下鉄の月間乗客10,000人、バス路線3本。寄港日のターミナル周辺の渋滞60%未満。Aクラスのビルか大型モール（GigaBox）15棟。観光魅力度60、犯罪率30%未満、月の黒字。') },
+    ]),
+    stars: Object.freeze([
+      {
+        title: T('啟德新城', 'Kai Tak New Town', '啓徳新城'),
+        objectives: Object.freeze([
+          { id: 'people', label: T('人口達 220,000', '220,000 people', '人口220,000人'),
+            check: (s) => num(s.population) >= 220000, progress: (s) => `${fmt(s.population)} / 220,000` },
+          { id: 'cruise', label: T('上月有郵輪埋岸，四成半旅客搭公共交通入市區', 'A cruise ship called last month, and 45% of its passengers rode public transport into town', '先月クルーズ船が寄港し、乗客の45%が公共交通で市街へ'),
+            check: (s) => num(s.cruiseCalls) > 0 && num(s.cruisePassengers) > 0 && num(s.cruiseTransitShare) >= 0.45 - 1e-9,
+            progress: (s) => `🛳 ${fmt(s.cruiseCalls)} · ${pct(s.cruiseTransitShare)} / 45%` },
+          { id: 'rail', label: T('地鐵每月載客 10,000 人次（屯馬綫），至少 3 條有乘客嘅巴士線', '10,000 metro riders a month (the Tuen Ma line) and at least 3 bus routes with passengers', '地下鉄の月間乗客10,000人（屯馬線）、乗客のいるバス路線3本以上'),
+            check: (s) => num(s.transit?.metro) >= 10000 && num(s.busRoutes) >= 3, progress: (s) => `🚇 ${fmt(s.transit?.metro)} / 10,000 · 🚌 ${fmt(s.busRoutes)} / 3` },
+          { id: 'peak', label: T('郵輪泊岸日，碼頭附近道路擠塞六成以下', 'On a call day, the roads near the terminal under 60% busy', '寄港日のターミナル周辺の渋滞60%未満'),
+            check: (s) => num(s.cruiseCallsThisMonth) > 0 && num(s.cruisePeakTraffic) < 0.6, progress: (s) => pct(s.cruisePeakTraffic) },
+          // (the start town has about 7)
+          { id: 'gigabox', label: T('大型商業中心（GigaBox）：15 座甲級商廈或大型商場', 'A big shopping centre (GigaBox): 15 grade-A towers or big malls', '大型商業センター（GigaBox）：Aクラスのビルか大型モール15棟'),
+            check: (s) => num(s.gradeAOffices) >= 15, progress: (s) => `${fmt(s.gradeAOffices)} / 15` },
+          { id: 'order', label: T('旅遊吸引力達 60，罪案率低於 30%，每月收支正數', 'Tourism appeal of 60, crime under 30%, a monthly surplus', '観光魅力度60、犯罪率30%未満、月の黒字'),
+            check: (s) => num(s.tourismAppeal) >= 60 && num(s.crimeRate) < 0.3 && num(s.monthlyNet) > 0,
+            progress: (s) => `${fmt(s.tourismAppeal)} / 60 · 🚓 ${pct(s.crimeRate)} · ${money(s.monthlyNet)}` },
+        ]),
+      },
+      {
+        title: T('城寨重生', 'The Walled City Reborn', '城砦の再生'),
+        objectives: Object.freeze([
+          { id: 'walledCity', label: T('興建九龍城寨文化園區（暫用文化中心，待第 7 期美術）', 'Build the Walled City heritage park (the cultural centre for now, until its art)', '九龍城砦文化パークを建設（美術待ちの間は文化センターで代用）'),
+            check: (s) => built(s, 'cultural_center'), progress: (s) => tick(built(s, 'cultural_center')) },
+          { id: 'tourRoute', label: T('郵輪、地鐵、文化園區連成旅遊動線：六成郵輪旅客搭公共交通，地鐵每月 15,000 人次', 'Cruise, metro and the park as one tourist route: 60% of cruise passengers by public transport, 15,000 metro riders a month', 'クルーズ・地下鉄・文化パークを結ぶ観光ルート：クルーズ客の60%が公共交通、地下鉄の月間乗客15,000人'),
+            check: (s) => num(s.cruiseTransitShare) >= 0.6 - 1e-9 && num(s.transit?.metro) >= 15000,
+            progress: (s) => `${pct(s.cruiseTransitShare)} / 60% · 🚇 ${fmt(s.transit?.metro)} / 15,000` },
+          { id: 'tourism', label: T('旅遊吸引力達 70', 'Tourism appeal of 70', '観光魅力度70'),
+            check: (s) => num(s.tourismAppeal) >= 70, progress: (s) => `${fmt(s.tourismAppeal)} / 70` },
+          { id: 'happiness', label: T('滿意度達 70%', 'Happiness of 70%', '満足度70%'),
+            check: (s) => num(s.happiness) >= 0.7, progress: (s) => pct(s.happiness) },
+        ]),
+      },
+      {
+        title: T('城寨宇宙', 'The Walled City Universe', '城砦ユニバース'),
+        objectives: Object.freeze([
+          { id: 'tourism', label: T('旅遊吸引力達 80', 'Tourism appeal of 80', '観光魅力度80'),
+            check: (s) => num(s.tourismAppeal) >= 80, progress: (s) => `${fmt(s.tourismAppeal)} / 80` },
+          { id: 'order', label: T('交通擠塞 45% 以下，滿意度達 75%', 'Congestion at 45% or less, happiness of 75%', '渋滞45%以下、満足度75%'),
+            check: (s) => num(s.trafficIndex) <= 0.45 && num(s.happiness) >= 0.75, progress: (s) => `🚗 ${pct(s.trafficIndex)} · ${pct(s.happiness)}` },
+          { id: 'reserve', label: T('財政儲備達 $400,000', 'Reserves of $400,000', '財政準備金$400,000'),
+            check: (s) => num(s.funds) >= 400000, progress: (s) => `$${fmt(s.funds)} / $400,000` },
+        ]),
+      },
+    ]),
+    // 中段事件《古大樂、共金寶、林豐開機》: the first film at the walled city park (its stand-in for now)
+    events: Object.freeze([
+      {
+        id: 'filmShoot',
+        when: (s) => built(s, 'cultural_center'),
+        scene: 'UI/campaign/events/kowloonWalledCity.webp',
+        lines: Object.freeze([
+          { speaker: 'producer', text: T('今次我哋有古大樂、共金寶、林豐，套戲叫《九龍城寨之圍揪》！', 'This time we have Koo Dai-lok, Kung Kam-po and Lam Fung - the film is called "Twilight of the Walled-In"!', '今回は古大楽、共金宝、林豊の出演、タイトルは『九龍城砦之囲揪』！') },
+          { speaker: 'filmStar', text: T('（喺同一條巷第七次跑步）再嚟一次！', '(running down the same alley for the seventh time) Again!', '（同じ路地を7回目のダッシュ）もう一回！') },
+          { speaker: 'secretary', text: T('本港電影業正式迎來黃金十年！', 'Our film industry enters its golden decade!', '本港の映画産業はついに黄金の十年へ！') },
+          { speaker: 'treasurer', text: T('拍戲封街，門票賣唔到，補貼照畀。你哋計咗條數未？', 'The shoot closes the streets, no tickets get sold, and the subsidy is paid all the same. Has anyone done the sums?', '撮影で通行止め、チケットは売れず、補助金はそのまま。計算はしたのか？') },
+        ]),
+        forum: {
+          headline: T('【城寨】《圍揪》開鏡，古大樂被目擊第七次喺同一條巷跑步', '[Walled City] "Walled-In" starts shooting; Koo Dai-lok seen running down the same alley for the seventh time', '【城砦】『囲揪』クランクイン、古大楽が同じ路地を7回走る姿を目撃'),
+          body: T('政府稱活化歷史帶動盛事經濟，城寨園區首部電影開拍。', 'The government says reviving history drives the events economy, as the park\'s first film begins shooting.', '政府は歴史の活用がイベント経済を牽引するとし、城砦パーク初の映画が撮影に入った。'),
+          comment: T('以前城寨唔敢入，依家排兩個鐘隊先有得入。', 'We used to be afraid to go into the Walled City - now you queue two hours to get in.', '昔は城砦に入るのが怖かった。今は2時間並ばないと入れない。'),
+        },
+      },
+    ]),
+    outroScene: 'UI/campaign/events/kowloonWalledCity.webp',
+    outro: Object.freeze([
+      { speaker: 'tourism', text: T('啟德起飛，城寨重生，香城電影業前景無限！', 'Kai Tak takes off, the Walled City is reborn, and Heung Shing\'s films have a bright future!', '啓徳は飛び立ち、城砦はよみがえり、香城の映画の未来は無限大！') },
+      { speaker: 'secretary', text: T('下一站深水埗。嗰邊啲居民唔係要求觀光地標，係要求安居。', 'Next stop Sham Shui Po. The people there are not asking for landmarks - they are asking for a safe home.', '次は深水埗。あそこの住民が求めるのは観光名所ではなく、安心して暮らせる家です。') },
+    ]),
+    outroForum: {
+      headline: T('【政府新聞】啟德郵輪碼頭投入服務，郵輪旅客搭地鐵入市區', '[Government News] The Kai Tak cruise terminal opens, and its passengers take the metro into town', '【政府発表】啓徳クルーズターミナルが開業、乗客は地下鉄で市街へ'),
+      body: T('旅遊署表示，郵輪泊岸日交通有序，屯馬綫及巴士接駁旅客往返市區，啟德新區人口突破 220,000。', 'The Tourism Board says call days run smoothly, the Tuen Ma line and buses carry the passengers to and from town, and Kai Tak\'s new district has passed 220,000 people.', '観光局によると、寄港日の交通は秩序立ち、屯馬線とバスが乗客を市街と結び、啓徳新区の人口は220,000人を超えた。'),
+      comments: Object.freeze([
+        T('又賣城寨雪糕？', 'Walled City ice cream now?', 'また城砦アイス売ってるの？'),
+        T('拍多十套都得，記住唔好再住人啦！', 'Shoot ten more films if you like - just do not let anyone live there again!', 'あと十本撮ってもいいけど、もう人は住ませるなよ！'),
+      ]),
+    },
+    failure: Object.freeze([
+      { speaker: 'tourism', text: T('市長，期限過咗，郵輪仲喺海上等埋岸……', 'Mayor, time is up, and the cruise ship is still waiting at sea to come alongside...', '市長、期限が過ぎました。クルーズ船はまだ沖で着岸を待っています……') },
+    ]),
+  });
+
+  // CHAPTER 15 深水埗《獅子山下》 (welfare.js, housing-types.js): 240,000 people in an old, crowded district -
+  // 治安 from about 35 to 70, three welfare bills that reach anyone, the coverage, the 危樓 repaired, the
+  // books in surplus. Welfare and crime are two measures apart: being poor is never a crime here (劇本).
+  const lowIncomeShare = (s) => {
+    const w = s.residentialByWealth || {};
+    const total = num(w.L) + num(w.M) + num(w.H) + num(w.UH);
+    return total > 0 ? num(w.L) / total : 0;
+  };
+  const repairsSince = (s, base) => Math.max(0, num(s.buildingRepairs) - num(base?.buildingRepairs));
+  const CH15 = Object.freeze({
+    id: 'ch15',
+    startFile: 'UI/campaign/ch15.json',
+    deadlineMonths: 24,
+    fresh: { cityName: T('深水埗', 'Sham Shui Po', '深水埗'), budget: 200000, transportExpansion: true },
+    intro: Object.freeze([
+      { speaker: 'resident', text: T('我住咗幾十年，最想就係個天花板唔好再漏水。', 'I have lived here for decades. All I want is for the ceiling to stop leaking.', '何十年も住んでいる。一番の願いは天井の雨漏りが止まることだ。') },
+      { speaker: 'volunteer', text: T('長者配藥要錢，失業人士要搵工，細路放學要地方去。', 'The elderly need money for medicine, the jobless need work, the kids need somewhere to go after school.', 'お年寄りは薬代が要る、失業者は仕事が要る、子どもは放課後の居場所が要る。') },
+      { speaker: 'police', text: T('近排有幾宗治安事件，街坊擔心夜晚出街。', 'There have been a few incidents lately, and residents are worried about going out at night.', '最近いくつか事件があって、住民は夜の外出を心配しています。') },
+      { speaker: 'busFan', text: T('我淨係想 112 準時啲：去鴨寮街買零件、去黃金商場睇電腦，搭巴士最方便。', 'All I want is the 112 on time: Apliu Street for parts, the Golden Arcade for computers - the bus is the easiest way.', '112番が時間どおりに来てほしいだけ。鴨寮街で部品、黄金商場でパソコン、バスが一番便利なんだ。') },
+      { speaker: 'treasurer', text: T('又要警務，又要公屋，又要福利。市長，呢關真係冇得只揀一樣。', 'Policing, public housing and welfare, all at once. Mayor, this time you cannot pick just one.', '警察も公営住宅も福祉も。市長、今回はひとつだけ選ぶわけにはいきません。') },
+      { speaker: 'secretary', text: T('本區就叫《獅子山下》。但我哋唔可以叫市民淨係靠捱過去。', 'This district is called "Below the Lion Rock". But we cannot just ask the people to tough it out.', 'この区は「獅子山の下」。でも、市民にただ耐えろとは言えません。') },
+      { card: T('任務開始：深水埗《獅子山下》', 'Mission start: Sham Shui Po - "Below the Lion Rock"', '任務開始：深水埗「獅子山の下」'),
+        hint: T('人口達 240,000，公屋住戶 40,000，基層住宅仍佔三成；治安指數由大約 35 升到 70；開 3 條有受惠人口嘅福利法案，福利覆蓋率 60%；滿意度 65%；開章後維修 10 座舊樓；連續 3 個月盈餘。弱勢居民唔係犯罪嘅同義詞：治安靠警力、照明同社區，福利照顧生活，兩樣各自計。',
+          'Reach 240,000 people, with 40,000 in public housing and low-income homes still 30%; raise the safety index from about 35 to 70; pass 3 welfare bills that reach people, with 60% welfare coverage; 65% happiness; repair 10 old buildings since the chapter began; 3 months of surplus in a row. Being poor is not a crime: safety comes from police, lighting and community, welfare from caring for people, and the two are measured apart.',
+          '人口240,000人、公営住宅の住民40,000人、低所得の住宅は3割を維持。治安指数を約35から70へ。受益者のいる福祉法案を3本、福祉カバー率60%。満足度65%。章の開始後に古い建物を10棟修繕。3か月連続の黒字。貧しさは犯罪ではない：治安は警察・照明・地域で、福祉は暮らしを支えるもので、別々に測る。') },
+    ]),
+    stars: Object.freeze([
+      {
+        title: T('安居有望', 'A Safe Home in Sight', '安心の住まいへ'),
+        objectives: Object.freeze([
+          { id: 'people', label: T('人口達 240,000，公屋住戶 40,000，基層住宅仍佔三成', '240,000 people, 40,000 in public housing, low-income homes still 30%', '人口240,000人、公営住宅40,000人、低所得の住宅3割'),
+            check: (s) => num(s.population) >= 240000 && num(s.publicHousingResidents) >= 40000 && lowIncomeShare(s) >= 0.3 - 1e-9,
+            progress: (s) => `${fmt(s.population)} / 240,000 · 🏢 ${fmt(s.publicHousingResidents)} / 40,000 · ${pct(lowIncomeShare(s))}` },
+          { id: 'safety', label: T('治安指數達 70', 'A safety index of 70', '治安指数70'),
+            check: (s) => num(s.safetyIndex) >= 70, progress: (s) => `${fmt(s.safetyIndex)} / 70` },
+          { id: 'welfare', label: T('3 條有受惠人口嘅福利法案，福利覆蓋率 60%', '3 welfare bills that reach people, 60% welfare coverage', '受益者のいる福祉法案3本、福祉カバー率60%'),
+            check: (s) => num(s.welfareBills) >= 3 && num(s.welfareCoverage) >= 0.6 - 1e-9,
+            progress: (s) => `📜 ${fmt(s.welfareBills)} / 3 · ${pct(s.welfareCoverage)} / 60%` },
+          { id: 'happiness', label: T('滿意度達 65%', 'Happiness of 65%', '満足度65%'),
+            check: (s) => num(s.happiness) >= 0.65, progress: (s) => pct(s.happiness) },
+          { id: 'repairs', label: T('開章後維修 10 座舊樓', '10 old buildings repaired since the chapter began', '章の開始後に古い建物を10棟修繕'),
+            check: (s, base) => repairsSince(s, base) >= 10, progress: (s, base) => `${fmt(repairsSince(s, base))} / 10` },
+          streakObjective(3),
+        ]),
+      },
+      {
+        title: T('守望相助', 'Neighbours Looking Out', '助け合い'),
+        objectives: Object.freeze([
+          { id: 'safety', label: T('治安指數達 80，福利覆蓋率 80%', 'A safety index of 80, 80% welfare coverage', '治安指数80、福祉カバー率80%'),
+            check: (s) => num(s.safetyIndex) >= 80 && num(s.welfareCoverage) >= 0.8 - 1e-9, progress: (s) => `${fmt(s.safetyIndex)} / 80 · ${pct(s.welfareCoverage)} / 80%` },
+          { id: 'repairs', label: T('開章後維修 25 座舊樓，危樓不多於 5 座', '25 old buildings repaired since the chapter began, and 5 dangerous ones at most', '章の開始後に25棟修繕、危険な建物は5棟以下'),
+            check: (s, base) => repairsSince(s, base) >= 25 && num(s.dangerousBuildings) <= 5,
+            progress: (s, base) => `${fmt(repairsSince(s, base))} / 25 · ⚠ ${fmt(s.dangerousBuildings)} / 5` },
+          { id: 'jobs', label: T('失業率低於 6%，每月收支正數', 'Unemployment under 6%, a monthly surplus', '失業率6%未満、月の黒字'),
+            check: (s) => num(s.population) > 0 && num(s.unemploymentRate) < 0.06 && num(s.monthlyNet) > 0, progress: (s) => `${pct(s.unemploymentRate)} · ${money(s.monthlyNet)}` },
+        ]),
+      },
+      {
+        title: T('真正安居樂業', 'Truly at Home', '本当の安住'),
+        objectives: Object.freeze([
+          { id: 'safety', label: T('治安指數同樓宇安全指數都達 90', 'Both the safety index and the building safety index at 90', '治安指数と建物の安全指数がともに90'),
+            check: (s) => num(s.safetyIndex) >= 90 && num(s.buildingSafetyIndex) >= 90, progress: (s) => `${fmt(s.safetyIndex)} · 🏚 ${fmt(s.buildingSafetyIndex)} / 90` },
+          { id: 'content', label: T('滿意度達 85%', 'Happiness of 85%', '満足度85%'),
+            check: (s) => num(s.happiness) >= 0.85, progress: (s) => pct(s.happiness) },
+          { id: 'community', label: T('街市保留，基層住宅仍佔兩成半（唔可以趕走基層換豪宅）', 'The market kept, and low-income homes still 25% (no pushing them out for luxury flats)', '市場を残し、低所得の住宅は25%（追い出して高級住宅にしない）'),
+            check: (s) => built(s, 'public_market') && lowIncomeShare(s) >= 0.25 - 1e-9, progress: (s) => `🛒 ${tick(built(s, 'public_market'))} · ${pct(lowIncomeShare(s))}` },
+          { id: 'books', label: T('連續 12 個月盈餘，財政儲備達 $200,000', '12 months of surplus in a row, reserves of $200,000', '12か月連続の黒字、財政準備金$200,000'),
+            check: (s) => num(s.surplusStreak) >= 12 && num(s.funds) >= 200000, progress: (s) => `${fmt(s.surplusStreak)} / 12 · $${fmt(s.funds)}` },
+        ]),
+      },
+    ]),
+    // 中段事件《拆樓定修樓？》: the first renewal under way - redevelopment or repair, both can win a star
+    events: Object.freeze([
+      {
+        id: 'tearDownOrRepair',
+        // (the second argument is the run: its base is the city as the chapter began)
+        when: (s, run) => repairsSince(s, run?.base) + Math.max(0, num(s.buildingRebuilds) - num(run?.base?.buildingRebuilds)) >= 3,
+        lines: Object.freeze([
+          { speaker: 'tycoon', text: T('起高級住宅，地價收入即時有得睇。', 'Build luxury flats, and the land premium shows up at once.', '高級住宅を建てれば、地価収入がすぐに見えますよ。') },
+          { speaker: 'resident', text: T('咁我哋搬去邊？拆樓之前可唔可以先講安置？', 'Then where do we go? Can we talk about rehousing before you tear anything down?', 'じゃあ私たちはどこへ？取り壊す前に、移転先の話をしてくれない？') },
+          { speaker: 'treasurer', text: T('補貼唔係免費，但失修引起嘅火警、搬遷同醫療支出亦唔係免費。', 'Subsidies are not free - but the fires, the moves and the medical bills that neglect brings are not free either.', '補助金はタダじゃない。でも放置して起きる火事や引っ越しや医療費もタダじゃない。') },
+        ]),
+        forum: {
+          headline: T('拆樓定修樓？深水埗舊區更新引起熱議', 'Tear down or repair? Sham Shui Po\'s renewal has everyone talking', '取り壊すか、直すか？深水埗の旧市街更新が話題に'),
+          body: T('發展商建議大型重建，住戶要求先講安置；政府表示兩種方案都要確保居住安全。', 'Developers propose a large redevelopment, residents ask for rehousing first; the government says either way, the homes must be safe.', '開発業者は大規模な再開発を提案、住民は移転先の確保を求める。政府はどちらでも住まいの安全が前提だとしている。'),
+          comment: T('市長話改善民生，我屋企個天花板仲漏緊水。', 'The mayor talks about better lives - my ceiling is still leaking.', '市長は暮らしの改善と言うけど、うちの天井はまだ雨漏りしてる。'),
+        },
+      },
+    ]),
+    outro: Object.freeze([
+      { speaker: 'resident', text: T('我唔係要豪華，我係想安心住落去。', 'I do not want luxury. I just want to live here in peace.', '贅沢はいらない。安心して住み続けたいだけ。') },
+      { speaker: 'secretary', text: T('市長，你開始識得處理香城最難計嗰種數——人嘅生活。', 'Mayor, you are starting to master the hardest sums in Heung Shing - people\'s lives.', '市長、香城で一番難しい計算――人の暮らし――がわかってきましたね。') },
+      { speaker: 'queen', text: T('若一座城最脆弱嘅人仍無處安身，這座城又算幾成功？', 'If a city\'s most vulnerable still have nowhere to live, how successful can that city be?', '最も弱い人々に身を寄せる場所がないなら、その都市はどれほど成功したと言えるでしょう？') },
+      { speaker: 'tourism', text: T('好消息！下一站灣仔，政府要搞盛事經濟！', 'Good news! Next stop Wan Chai - the government wants an events economy!', '朗報です！次は湾仔、政府はイベント経済をやりたいそうです！') },
+      { speaker: 'resident', text: T('又嚟？', 'Again?', 'また？') },
+    ]),
+    outroForum: {
+      headline: T('【政府新聞】深水埗治安改善，舊樓維修及福利服務全面推展', '[Government News] Sham Shui Po is safer, with old buildings repaired and welfare reaching out', '【政府発表】深水埗の治安が改善、古い建物の修繕と福祉サービスが全面展開'),
+      body: T('警方表示夜間照明恢復，社區巡邏加強；社會福利署表示福利覆蓋率提升，舊樓逐步維修。', 'The police say the night lighting is back and community patrols stepped up; the Social Welfare Department says coverage is up and old buildings are being repaired one by one.', '警察によると夜間の照明が戻り、地域巡回を強化。社会福祉署によると福祉の網が広がり、古い建物の修繕も進んでいる。'),
+      comments: Object.freeze([
+        T('救命，鴨寮街粒電阻由兩蚊變咗二十蚊精品紀念品。', 'Help - a resistor on Apliu Street went from two dollars to a twenty-dollar souvenir.', '助けて、鴨寮街の抵抗器が2ドルから20ドルの記念品になった。'),
+        T('天花板終於唔漏水。', 'The ceiling has finally stopped leaking.', 'やっと天井の雨漏りが止まった。'),
+      ]),
+    },
+    failure: Object.freeze([
+      { speaker: 'resident', text: T('市長，期限過咗，我屋企個天花板仲漏緊水……', 'Mayor, time is up, and my ceiling is still leaking...', '市長、期限が過ぎました。うちの天井はまだ雨漏りしています……') },
+    ]),
+  });
+
   const CAMPAIGN_CHAPTER_SPECS = Object.freeze({
     ch01: CH01, ch02: CH02, ch03: CH03, ch04: CH04, ch05: CH05, ch06: CH06, ch07: CH07, ch08: CH08, ch09: CH09,
-    ch12: CH12, ch13: CH13, ch16: CH16, ch17: CH17, ch18: CH18,
+    ch10: CH10, ch11: CH11, ch12: CH12, ch13: CH13, ch14: CH14, ch15: CH15, ch16: CH16, ch17: CH17, ch18: CH18,
   });
 
   function isCampaignChapterPlayable(chapterId) {
@@ -1724,6 +2145,7 @@
       industrialCount: Math.max(0, Math.floor(num(snapshot?.industrialCount))),
       // 舊樓 (P4 第 15 章): repairs made before the chapter began are not the chapter's
       buildingRepairs: Math.max(0, Math.floor(num(snapshot?.buildingRepairs))),
+      buildingRebuilds: Math.max(0, Math.floor(num(snapshot?.buildingRebuilds))),
       monthIndex: Math.floor(num(snapshot?.monthIndex ?? monthIndex)),
     };
   }

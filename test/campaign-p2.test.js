@@ -114,7 +114,7 @@ test('P2: star one fits in 24 months at most - 24 for the Dragon Boat race or a 
   });
 });
 
-test('unlocking steps over chapters still to come; a starred chapter stays open', () => {
+test('unlocking: each chapter opens the next; a starred chapter stays open', () => {
   const profile = (stars) => campaign.normalizeCampaignProfile({ chapters: Object.fromEntries(Object.entries(stars).map(([id, n]) => [id, { stars: n }])) });
   assert.equal(campaign.isCampaignChapterUnlocked(profile({}), 'ch02'), false);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1 }), 'ch02'), true);
@@ -124,14 +124,19 @@ test('unlocking steps over chapters still to come; a starred chapter stays open'
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch06'), false, '06 waits for 05');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch04: 1, ch05: 1 }), 'ch06'), true, '05 opens 06');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch06: 1 }), 'ch07'), true);
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch09: 1 }), 'ch12'), true, '09 opens 12 past 10 and 11');
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch13: 1 }), 'ch16'), true, '13 opens 16 past 14 and 15');
+  // P4: 10, 11, 14 and 15 are playable now - nothing is stepped over any more
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch09: 1 }), 'ch10'), true, '09 opens 10');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch09: 1 }), 'ch12'), false, '12 waits for 10 and 11');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch11: 1 }), 'ch12'), true, '11 opens 12');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch13: 1 }), 'ch14'), true, '13 opens 14');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch15: 1 }), 'ch16'), true, '15 opens 16');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch17: 1 }), 'ch18'), true);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch07: 2 }), 'ch07'), true, 'a starred chapter stays open');
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch04').map((chapter) => chapter.id), ['ch05']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch05').map((chapter) => chapter.id), ['ch06']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch01').map((chapter) => chapter.id), ['ch02']);
-  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch09').map((chapter) => chapter.id), ['ch10', 'ch12']);
+  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch09').map((chapter) => chapter.id), ['ch10']);
+  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch13').map((chapter) => chapter.id), ['ch14']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch12').map((chapter) => chapter.id), ['ch13']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch18').map((chapter) => chapter.id), []);
 });

@@ -333,7 +333,8 @@
   // 航班 (airport-routes.js, P4 第 10 章): the routes carrying anyone, the passengers a month, the daily
   // flights, the curfew and the residents under the noise
   function collectAirportFacts() {
-    const facts = { airportRoutes: 0, airportPassengers: 0, airportDailyFlights: 0, airportCurfew: false, airportNoiseResidents: 0 };
+    const facts = { airportRoutes: 0, airportPassengers: 0, airportDailyFlights: 0, airportCurfew: false, airportNoiseResidents: 0,
+      airportFees: 0, airportCost: 0, airportLongHaul: 0 };
     try {
       if (typeof getAirportState === 'function') {
         const state = getAirportState();
@@ -342,6 +343,9 @@
         facts.airportDailyFlights = state.dailyFlights;
         facts.airportCurfew = !!state.curfew;
         facts.airportNoiseResidents = state.noiseResidents;
+        facts.airportFees = state.fees;
+        facts.airportCost = state.cost;
+        facts.airportLongHaul = state.routes.filter((route) => route.passengers > 0 && AIRPORT_DESTINATIONS_BY_ID[route.id]?.haul === 'long').length;
       }
     } catch { /* no airport */ }
     return facts;
@@ -368,7 +372,7 @@
   // 危樓, the residents' average condition and the repairs made; 治安指數 = 100 - the crime rate (%)
   function collectWelfareFacts() {
     const facts = {
-      welfareCoverage: 0, welfareBills: 0, dangerousBuildings: 0, buildingSafetyIndex: 100, buildingRepairs: 0,
+      welfareCoverage: 0, welfareBills: 0, dangerousBuildings: 0, buildingSafetyIndex: 100, buildingRepairs: 0, buildingRebuilds: 0,
       safetyIndex: Math.round(100 - Math.max(0, Math.min(1, Number(city.crimeRateIndex) || 0)) * 100),
     };
     try {
@@ -379,6 +383,7 @@
       facts.dangerousBuildings = Number(homes?.dangerous) || 0;
       facts.buildingSafetyIndex = Number.isFinite(Number(homes?.safetyIndex)) ? Number(homes.safetyIndex) : 100;
       facts.buildingRepairs = Number(homes?.repaired) || 0;
+      facts.buildingRebuilds = Math.max(0, Math.floor(Number(city.buildingRebuilds) || 0));
     } catch { /* no welfare yet */ }
     return facts;
   }

@@ -22,7 +22,7 @@ const starOneCity = () => ({
   population: 3000, monthlyNet: 250, loanBalance: 0, happiness: 0.62,
 });
 
-test('the 18 chapters, in order, each on a district map the game has; P1, P2 and P3 chapters are playable', () => {
+test('the 18 chapters, in order, each on a district map the game has; all of them playable since P4', () => {
   assert.equal(campaign.CAMPAIGN_CHAPTERS.length, 18);
   campaign.CAMPAIGN_CHAPTERS.forEach((chapter, i) => {
     assert.equal(chapter.id, `ch${String(i + 1).padStart(2, '0')}`);
@@ -38,7 +38,7 @@ test('the 18 chapters, in order, each on a district map the game has; P1, P2 and
   assert.equal(campaign.CAMPAIGN_CHAPTERS_BY_ID.ch01.title.zhHant, '新任市長上場');
   assert.equal(campaign.CAMPAIGN_CHAPTERS_BY_ID.ch18.title.zhHant, '東方之珠：維多利亞港中心');
   assert.deepEqual([...campaign.CAMPAIGN_CHAPTERS.filter((chapter) => campaign.isCampaignChapterPlayable(chapter.id)).map((chapter) => chapter.id)],
-    ['ch01', 'ch02', 'ch03', 'ch04', 'ch05', 'ch06', 'ch07', 'ch08', 'ch09', 'ch12', 'ch13', 'ch16', 'ch17', 'ch18'], 'P1, P2, P3 and P4\'s ch05 (docs/campaign-levels-design.md §5)');
+    campaign.CAMPAIGN_CHAPTERS.map((chapter) => chapter.id), 'P1-P3, and P4\'s 05, 10, 11, 14 and 15 (docs/campaign-p4-design.md §13)');
 });
 
 test('every line of the story and every objective reads in three languages, by a known speaker', () => {

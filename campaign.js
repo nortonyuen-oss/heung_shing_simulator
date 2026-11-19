@@ -516,7 +516,8 @@
       runtime.profile.prologueSeen = true;
       scheduleCampaignProfileSave();
     }
-    await playCampaignDialogue(spec.intro);
+    // over the chapter's own scene, a cut-scene between the cities
+    await playCampaignDialogue(spec.intro, { backdrop: getCampaignChapterScene(chapterId) || false, reveal: true });
     renderCampaignPanel();
     return true;
   }
@@ -560,7 +561,9 @@
 
   // Plays lines one at a time (a click moves on); the clock stops while it is open. A line with
   // `choices` waits for one of its buttons, and the chosen option's `lines` play next.
-  // options.backdrop (true, or a picture's path) plays the lines as a cut-scene.
+  // options.backdrop (true, or a picture's path) plays the lines as a cut-scene; with options.reveal the
+  // picture shows alone for CAMPAIGN_SCENE_REVEAL_MS (or until a click) before the first line.
+  const CAMPAIGN_SCENE_REVEAL_MS = 1600;
   function playCampaignDialogue(lines, options = {}) {
     const list = (lines || []).filter(Boolean);
     if (!list.length || typeof document === 'undefined') return runtime.dialogue;
@@ -589,7 +592,19 @@
             <div class="cd-text">${escapeHtml(say(line.text))}</div>${choices}</div>`;
         }
       };
+      // over a chapter's board the board shows alone first - its title banner - then the band rises
+      let revealed = !(options.reveal && options.backdrop);
+      let revealTimer = null;
+      const reveal = () => {
+        if (revealed) return;
+        revealed = true;
+        clearTimeout(revealTimer);
+        box.style.display = 'flex';
+        box.classList.add('is-revealing');
+        setTimeout(() => box.classList.remove('is-revealing'), 400);
+      };
       const next = (event) => {
+        if (!revealed) { reveal(); return; }
         const line = list[index];
         if (Array.isArray(line.choices)) {
           const button = event?.target?.closest?.('[data-choice]');
@@ -607,8 +622,9 @@
       };
       if (options.backdrop) backdrop = showDialogueBackdrop(options.backdrop, next);
       box.addEventListener('click', next);
-      box.style.display = 'flex';
       show();
+      if (revealed) box.style.display = 'flex';
+      else { box.style.display = 'none'; revealTimer = setTimeout(reveal, CAMPAIGN_SCENE_REVEAL_MS); }
     }));
     return runtime.dialogue;
   }
@@ -842,7 +858,7 @@
         `⭐ 第${chapter.number}章 星${star}：「${say(spec.stars[star - 1].title)}」`)), 'medal');
     }
     if (star === 1) {
-      playCampaignDialogue(spec.outro);
+      playCampaignDialogue(spec.outro, { backdrop: spec.outroScene || false, reveal: true });
       postCampaignForum(spec.outroForum, `campaign-${run.chapterId}-star1`);
       // the next chapter, and past any still to come, the next one that can be played
       if (typeof showToast === 'function') getCampaignChaptersUnlockedBy(chapter.id).forEach((next) => {
@@ -896,7 +912,7 @@
     if (!spec) return;
     const result = advanceCampaignRun(run, spec, buildCampaignSnapshot(), monthIndexNow());
     result.events.forEach((event) => {
-      playCampaignDialogue(event.lines);
+      playCampaignDialogue(event.lines, { backdrop: event.scene || false, reveal: true });
       postCampaignForum(event.forum, `campaign-${run.chapterId}-${event.id}`);
     });
     result.newStars.forEach((star) => onCampaignStar(run, spec, star));
@@ -1073,24 +1089,67 @@
       #campaign-panel .cp-foot button { font: inherit; padding: 2px 8px; border-radius: 3px; border: 1px solid #8794a3; background: #f4f7fa; cursor: pointer; }
       .campaign-tutorial-highlight { outline: 3px solid #f2b51d !important; outline-offset: 1px; animation: campaign-pulse 1.2s ease-in-out infinite; }
       @keyframes campaign-pulse { 0%, 100% { outline-color: #f2b51d; } 50% { outline-color: rgba(242,181,29,0.25); } }
-      #campaign-dialogue { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); z-index: 250;
-        display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; cursor: pointer; background: #fdfdfb; color: #1e2427;
-        border: 2px solid #1e5cb3; border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,0.35); font: 15px/1.5 Arial, sans-serif; }
-      #campaign-dialogue.is-card { flex-direction: column; align-items: center; text-align: center; background: #1e2a3a; color: #fff; border-color: #f2b51d; }
-      #campaign-dialogue .cd-card { font-size: 20px; font-weight: 700; color: #ffd34d; }
-      #campaign-dialogue .cd-hint { font-size: 14px; }
+      /* the dialogue (Norton 2026-11-20: 參考大航海時代4): a wide band along the bottom on parchment, in the
+         chapter boards' maroon and gold, a big framed portrait on the left, the name on a plate, big text */
+      #campaign-dialogue { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); width: min(1080px, calc(100vw - 28px));
+        min-height: 236px; z-index: 250; box-sizing: border-box; display: flex; gap: 22px; align-items: center; padding: 16px 24px 14px 16px;
+        cursor: pointer; color: #3b2414; background: linear-gradient(180deg, #fcf5e1 0%, #f2e4bf 100%);
+        border: 3px solid #c9a227; border-radius: 6px;
+        box-shadow: 0 0 0 5px #6e1a1a, 0 0 0 7px #c9a227, 0 18px 42px rgba(0,0,0,0.55), inset 0 0 28px rgba(140,96,36,0.22);
+        font: 21px/1.6 "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+      #campaign-dialogue::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(160,118,30,0.5); border-radius: 3px; pointer-events: none; }
+      #campaign-dialogue.is-card { flex-direction: column; justify-content: center; text-align: center; gap: 10px;
+        background: linear-gradient(180deg, #7a1f1f 0%, #4f1111 100%); color: #fbf3dc; }
+      #campaign-dialogue.is-card::before { border-color: rgba(246,215,122,0.55); }
+      #campaign-dialogue .cd-card { font-size: 30px; font-weight: 700; color: #f6d77a; letter-spacing: 2px; }
+      #campaign-dialogue .cd-hint { font-size: 18px; max-width: 860px; }
       .cd-portrait { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #dfe6ee; border: 2px solid #8794a3; }
       .cd-glyph { display: grid; place-items: center; font-size: 34px; }
-      #campaign-dialogue .cd-body { flex: 1; min-width: 0; }
-      #campaign-dialogue .cd-name { font-weight: 700; color: #1e5cb3; }
-      #campaign-dialogue .cd-next { text-align: right; font-size: 11px; opacity: 0.6; }
-      #campaign-dialogue .cd-choices { display: grid; gap: 6px; margin-top: 8px; }
-      #campaign-dialogue .cd-choices button { font: 14px Arial, sans-serif; text-align: left; padding: 6px 10px; border: 1px solid #8794a3; border-radius: 4px; background: #f4f7fa; color: #1e2427; cursor: pointer; }
-      #campaign-dialogue .cd-choices button:hover { background: #dbe6f3; }
+      #campaign-dialogue .cd-portrait { flex: 0 0 208px; width: 208px; height: 208px; border-radius: 4px; object-fit: cover; background: #4a2a18;
+        border: 3px solid #c9a227; box-shadow: 0 0 0 3px #6e1a1a, 0 6px 14px rgba(0,0,0,0.35); }
+      #campaign-dialogue .cd-glyph { font-size: 104px; }
+      #campaign-dialogue .cd-body { flex: 1; min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
+      #campaign-dialogue .cd-name { align-self: flex-start; font-weight: 700; font-size: 19px; letter-spacing: 1px; color: #f6d77a;
+        background: linear-gradient(180deg, #7a1f1f, #561313); border: 2px solid #c9a227; border-radius: 3px; padding: 1px 16px; margin-bottom: 8px; }
+      #campaign-dialogue .cd-text { flex: 1; font-size: 22px; }
+      #campaign-dialogue .cd-next { text-align: right; font-size: 14px; color: #7a1f1f; opacity: 0.85; animation: campaign-next 1.1s ease-in-out infinite; }
+      #campaign-dialogue.is-card .cd-next { color: #f6d77a; }
+      @keyframes campaign-next { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.35; } }
+      #campaign-dialogue .cd-choices { display: grid; gap: 8px; margin-top: 10px; }
+      #campaign-dialogue .cd-choices button { font: 18px/1.4 inherit; font-family: inherit; text-align: left; padding: 8px 14px; border: 2px solid #c9a227; border-radius: 4px;
+        background: #fffaf0; color: #3b2414; cursor: pointer; }
+      #campaign-dialogue .cd-choices button:hover { background: #f6e3b0; }
       /* Her Majesty speaks on royal paper */
-      #campaign-dialogue.is-royal { background: #fbf6e9; border-color: #8e1b5b; }
-      #campaign-dialogue.is-royal .cd-name { color: #8e1b5b; }
-      #campaign-dialogue.is-royal .cd-portrait { border-color: #c9a227; }
+      #campaign-dialogue.is-royal { box-shadow: 0 0 0 5px #5b1240, 0 0 0 7px #c9a227, 0 18px 42px rgba(0,0,0,0.55), inset 0 0 28px rgba(140,96,36,0.22); }
+      #campaign-dialogue.is-royal .cd-name { background: linear-gradient(180deg, #8e1b5b, #5b1240); }
+      #campaign-dialogue.is-revealing { animation: campaign-rise 0.35s ease-out; }
+      @keyframes campaign-rise { from { opacity: 0; transform: translate(-50%, 24px); } to { opacity: 1; transform: translate(-50%, 0); } }
+      /* phones, and any short screen (a phone held sideways) */
+      @media (max-width: 700px), (max-height: 520px) {
+        #campaign-dialogue { min-height: 0; gap: 12px; padding: 12px 14px 10px 12px; bottom: 12px; font-size: 16px; }
+        #campaign-dialogue .cd-portrait { flex-basis: 96px; width: 96px; height: 96px; }
+        #campaign-dialogue .cd-glyph { font-size: 46px; }
+        #campaign-dialogue .cd-text { font-size: 16px; }
+        #campaign-dialogue .cd-name { font-size: 15px; }
+        #campaign-dialogue .cd-card { font-size: 22px; }
+        #campaign-dialogue .cd-hint { font-size: 15px; }
+      }
+      /* the touch UI's bars (mobile-ui.css, z-index 1100) stay under a dialogue and a cut-scene: the clock
+         is stopped while one is open */
+      [data-ui-profile="touch"] #campaign-backdrop { z-index: 2000; }
+      [data-ui-profile="touch"] #campaign-dialogue, [data-ui-profile="touch"] #campaign-dialogue.is-scene { z-index: 2010; bottom: calc(12px + env(safe-area-inset-bottom)); }
+      /* a phone held upright: the portrait and the name plate on one row, the words the full width below
+         (the board still fills the screen: Norton 2026-11-20, 我比較鍾意放大左既轉場圖) */
+      @media (max-width: 560px) and (orientation: portrait) {
+        /* (!important: the box is shown by an inline display: flex) */
+        #campaign-dialogue:not(.is-card) { display: grid !important; grid-template-columns: 76px 1fr; column-gap: 12px; row-gap: 6px; align-items: center; }
+        #campaign-dialogue:not(.is-card) .cd-body { display: contents; }
+        #campaign-dialogue .cd-portrait { grid-column: 1; grid-row: 1; width: 76px; height: 76px; }
+        #campaign-dialogue .cd-glyph { font-size: 38px; }
+        #campaign-dialogue .cd-name { grid-column: 2; grid-row: 1; margin-bottom: 0; justify-self: start; }
+        #campaign-dialogue .cd-text, #campaign-dialogue .cd-next, #campaign-dialogue .cd-choices { grid-column: 1 / -1; }
+        #campaign-dialogue .cd-text { font-size: 17px; }
+      }
       /* a cut-scene: the screen dimmed behind the box (room for a picture), over the title screen too */
       #campaign-backdrop { position: fixed; inset: 0; z-index: 510; display: none; cursor: pointer;
         background: rgba(8,12,18,0.78) center / cover no-repeat; }

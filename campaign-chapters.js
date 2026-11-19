@@ -49,14 +49,34 @@
     environment: { name: T('環境署代表', 'Environment Bureau', '環境局代表'), portrait: 'UI/officials/headOfObservatory.PNG', glyph: '🌿' },
     councillorA: { name: T('議員甲', 'Councillor A', '議員甲'), portrait: 'UI/officials/councilMember-democracyParty.PNG', glyph: '🗳' },
     councillorB: { name: T('議員乙', 'Councillor B', '議員乙'), portrait: 'UI/officials/councilMamber-freedom.PNG', glyph: '🗳' },
-    parent: { name: T('家長代表', 'Parents\' Rep', '保護者代表'), glyph: '👪' },
     education: { name: T('教育署代表', 'Education Bureau', '教育局代表'), glyph: '🎓' },
-    villager: { name: T('村代表', 'Village Rep', '村の代表'), glyph: '🏮' },
+    villager: { name: T('元朗阿伯', 'Yuen Long Uncle', '元朗のおじさん'), portrait: 'UI/campaign/portraits/villager.webp', glyph: '🏮' },
     factory: { name: T('工廠老闆', 'Factory Owner', '工場主'), glyph: '🏭' },
     worker: { name: T('工人代表', 'Workers\' Rep', '労働者代表'), glyph: '👷' },
     reporter: { name: T('記者', 'Reporter', '記者'), glyph: '🎤' },
     stallOwner: { name: T('夜市老闆', 'Night-Market Stallholder', '夜市の店主'), glyph: '🍲' },
-    commentator: { name: T('神童標', 'Wonder Boy Biu', '神童標'), glyph: '🐎' },
+    commentator: { name: T('神童標', 'Wonder Boy Biu', '神童標'), portrait: 'UI/campaign/portraits/commentator.webp', glyph: '🐎' },
+    // Norton's NPC boards (UI/storyBoardGraphics/NPC, 2026-11-20; scripts/prepare-campaign-story-images.js)
+    minibus: { name: T('紅Van司機', 'Red Minibus Driver', '赤バン運転手'), portrait: 'UI/campaign/portraits/minibus.webp', glyph: '🚐' },
+    // 荃灣's face: 曾Sir, the science park's absent-minded tutor (第 9 章《曾Sir又唔記得咗》)
+    scientist: { name: T('曾Sir', 'Mr Tsang', '曽先生'), portrait: 'UI/campaign/portraits/scientist.webp', glyph: '🔬' },
+    foodie: { name: T('為食 Viviane', 'Hungry Viviane', '食いしん坊ビビアン'), portrait: 'UI/campaign/portraits/foodie.webp', glyph: '🦞' },
+    railFan: { name: T('鐵路迷', 'Rail Fan', '鉄道ファン'), portrait: 'UI/campaign/portraits/railFan.webp', glyph: '📷' },
+    busFan: { name: T('巴士迷', 'Bus Fan', 'バスファン'), portrait: 'UI/campaign/portraits/busFan.webp', glyph: '🚌' },
+    jaydenMum: { name: T('Jayden 媽咪', 'Jayden\'s Mum', 'ジェイデンのママ'), portrait: 'UI/campaign/portraits/jaydenMum.webp', glyph: '👩' },
+    jayden: { name: T('Jayden', 'Jayden', 'ジェイデン'), portrait: 'UI/campaign/portraits/jayden.webp', glyph: '🎒' },
+    police: { name: T('Robinson 督察', 'Inspector Robinson', 'ロビンソン警部'), portrait: 'UI/campaign/portraits/police.webp', glyph: '👮' },
+    uncleBus: { name: T('巴士阿叔', 'Bus Uncle', 'バスおじさん'), portrait: 'UI/campaign/portraits/uncleBus.webp', glyph: '😤' },
+    chanHoNam: { name: T('浩南哥', 'Brother Ho-nam', 'ホーナム兄貴'), portrait: 'UI/campaign/portraits/chanHoNam.webp', glyph: '🕶' },
+    playboy: { name: T('情場浪子', 'The Charmer', '恋愛マスター'), portrait: 'UI/campaign/portraits/playboy.webp', glyph: '🍺' },
+    mkGirl: { name: T('MK妹', 'MK Girl', 'MKギャル'), portrait: 'UI/campaign/portraits/mkGirl.webp', glyph: '✌' },
+    singh: { name: T('Singh 哥', 'Mr Singh', 'シンさん'), portrait: 'UI/campaign/portraits/singh.webp', glyph: '🏪' },
+    goddess: { name: T('女神', 'The Goddess', '女神'), portrait: 'UI/campaign/portraits/goddess.webp', glyph: '🌅' },
+    bankGirl: { name: T('iBank 港女', 'iBank Girl', 'iBankガール'), portrait: 'UI/campaign/portraits/bankGirl.webp', glyph: '💼' },
+    tycoon: { name: T('李超人', 'Superman Li', '李超人'), portrait: 'UI/campaign/portraits/tycoon.webp', glyph: '🏙' },
+    barber: { name: T('醬爆', 'Jeung Bao', '醤爆'), portrait: 'UI/campaign/portraits/barber.webp', glyph: '✂' },
+    // 第 14 章《古大樂、共金寶、林豐開機》 (P4 phase 6)
+    filmStar: { name: T('古大樂', 'Koo Dai-lok', '古大楽'), portrait: 'UI/campaign/portraits/filmStar.webp', glyph: '🎬' },
   });
 
   // The 18 chapters (劇本 目錄). mapId is the district map (hk-district-maps.js) the chapter is
@@ -140,6 +160,7 @@
       { speaker: 'mayor', text: T('壞消息呢？', 'And the bad news?', '悪い知らせは？') },
       { speaker: 'secretary', text: T('暫時冇電、冇幾多人，仲有……政府錢唔多。', 'For now there\'s no power, hardly anyone lives here, and... the government hasn\'t much money.', '今のところ電気はなく、人もほとんどいません。それに……政府にはあまりお金がありません。') },
       { speaker: 'resident', text: T('市長，我唔求國際金融中心住，條街有燈先啦。', 'Mayor, I\'m not asking for an international financial centre. Just light up the street first.', '市長、国際金融センターなんて望まないよ。まずは通りに明かりをつけてくれ。') },
+      { speaker: 'police', text: T('Robinson 督察報到。北區近邊境，夜晚冇燈，啲賊連匿都唔使匿。', 'Inspector Robinson reporting. This close to the border, with no lights at night, thieves don\'t even need to hide.', 'ロビンソン警部、着任しました。北区は境界に近い。夜に明かりがなければ、泥棒は隠れる必要すらない。') },
       { card: T('任務開始：北區《新任市長上場》', 'Mission start: North District - "A New Mayor Takes Office"', '任務開始：北区「新任市長登場」'),
         hint: T('建立供電、道路及住宅／商業／工業區，將常住人口提升至 3,000 並令收支轉正。', 'Bring in power, roads and residential, commercial and industrial zones; grow the population to 3,000 and balance the books.', '電力、道路、住宅・商業・工業区を整え、人口を3,000人にして収支を黒字にしよう。') },
     ]),
@@ -308,6 +329,7 @@
     fresh: { cityName: T('大埔', 'Tai Po', '大埔'), budget: 60000, transportExpansion: true },
     intro: Object.freeze([
       { speaker: 'resident', text: T('買咗樓先知，原來返工要行四十分鐘！', 'Only after buying the flat did I find out it is a forty-minute walk to work!', 'マンションを買ってから気づいた。職場まで歩いて40分だなんて！') },
+      { speaker: 'minibus', text: T('行咩路！坐我紅Van，大埔去旺角十五分鐘——點樣做到你唔好問。', 'Walk? Hop on my red van - Tai Po to Mong Kok in fifteen minutes. Don\'t ask how.', '歩く？俺の赤バンに乗れよ。大埔から旺角まで15分――どうやってかは聞くな。') },
       { speaker: 'transport', text: T('當局高度關注巴士班次不足嘅問題。', 'The authorities are highly concerned about the shortage of bus services.', '当局はバスの便数不足を深く憂慮しております。') },
       { speaker: 'treasurer', text: T('加車唔係唔得，條線開完要有人搭、有錢維護。', 'More buses, fine - but a route needs riders, and money to keep it running.', '増便は構わないが、路線には乗客と維持費が要る。') },
       { card: T('任務開始：大埔《安居樂業》', 'Mission start: Tai Po - "Settling In"', '任務開始：大埔「安居楽業」'),
@@ -363,6 +385,7 @@
         when: (s) => built(s, 'science_park'),
         lines: Object.freeze([
           { speaker: 'anchor', text: T('本台消息：香城科學園今日發表劃時代多功能科研產品——「攞你命3000」。', 'News just in: the Heung Shing Science Park today unveiled an epoch-making multi-purpose research product - the "Lo Nei Meng 3000".', '速報です。香城サイエンスパークは本日、画期的な多機能研究製品「ローネイメン3000」を発表しました。') },
+          { speaker: 'scientist', text: T('「攞你命3000」識炒餸、識吹頭、仲識自動報稅——淨係未識熄機。', 'The "Lo Nei Meng 3000" stir-fries, blow-dries and files your taxes - it just cannot switch itself off yet.', '「ローネイメン3000」は炒め物もドライヤーも税申告もこなす――ただ、まだ電源が切れない。') },
           { speaker: 'secretary', text: T('研發單位聲望大增。至於有冇實際商業效益……', 'The research team\'s prestige has soared. As for any actual commercial value...', '研究チームの評判はうなぎ上りです。実際の商業的価値については……') },
           { speaker: 'treasurer', text: T('……', '...', '……') },
           { card: T('攞你命3000', 'Lo Nei Meng 3000', 'ローネイメン3000'),
@@ -403,6 +426,7 @@
     fresh: { cityName: T('西貢', 'Sai Kung', '西貢'), budget: 80000, transportExpansion: true },
     intro: Object.freeze([
       { speaker: 'tourism', text: T('我哋計劃將香城建成東方遊艇天堂！', 'We plan to make Heung Shing the yacht paradise of the East!', '香城を東洋のヨット天国にする計画です！') },
+      { speaker: 'goddess', text: T('西貢海邊嘅日落係全港最靚——如果條海濱路行得通嘅話。', 'The sunset over the Sai Kung waterfront is the best in Hong Kong - if only you could walk along it.', '西貢の海辺の夕日は香港一きれい――海沿いの道を歩けさえすればね。') },
       { speaker: 'resident', text: T('你幫我條海濱路駁通先啦，我由呢頭行到嗰頭要兜半個鐘。', 'Join up the waterfront path first - it takes me half an hour to walk round from one end to the other.', 'まず海沿いの道をつないでくれ。端から端まで30分も回り道だ。') },
       { speaker: 'secretary', text: T('行人路，原來都可以算旅遊建設。', 'So a footpath counts as tourism infrastructure.', '歩道も観光インフラに数えられるんですね。') },
       { card: T('任務開始：西貢《東方遊艇天堂》', 'Mission start: Sai Kung - "Yacht Paradise of the East"', '任務開始：西貢「東洋のヨット天国」'),
@@ -498,6 +522,7 @@
     intro: Object.freeze([
       { speaker: 'tourism', text: T('政府正式提出《無處不旅遊》法案，並計劃成立北極企鵝保育基地！', 'The government is tabling the Tourism Everywhere Bill, and plans an Arctic penguin conservation base!', '政府は「どこでも観光」法案を正式に提出し、北極ペンギン保護基地の設立を計画しています！') },
       { speaker: 'resident', text: T('北極有企鵝㗎咩？', 'Are there penguins in the Arctic?', '北極にペンギンっていたっけ？') },
+      { speaker: 'foodie', text: T('企鵝我唔理，我淨係想知珍寶海鮮舫幾時再開。', 'Never mind penguins - I just want to know when the Jumbo reopens.', 'ペンギンはどうでもいい。ジャンボがいつ再開するのか知りたいだけ。') },
       { speaker: 'secretary', text: T('呢個屬於政策跨學科創新，細節容後公布。', 'This is cross-disciplinary policy innovation. Details to be announced.', 'これは政策の学際的イノベーションです。詳細は追って発表します。') },
       { speaker: 'engineer', text: T('你哋傾完企鵝未？黃竹坑交通仲塞緊。', 'Are you done with the penguins? Wong Chuk Hang is still jammed.', 'ペンギンの話は済んだ？黄竹坑はまだ渋滞してるよ。') },
       { card: T('任務開始：南區《南島奇蹟》', 'Mission start: Southern - "The Southern Island Miracle"', '任務開始：南区「南島の奇跡」'),
@@ -552,6 +577,7 @@
         when: (s) => num(s.typhoonShelters) > 0 && num(s.transit?.ferry) > 0 && !built(s, 'floating_restaurant'),
         lines: Object.freeze([
           { speaker: 'tourism', text: T('碼頭同觀光航線都有咗，珍寶海鮮舫可以重新開張！', 'With the piers and a sightseeing route running, the Jumbo can reopen!', '桟橋も観光航路もそろった。ジャンボ海鮮舫を再開できる！') },
+          { speaker: 'foodie', text: T('我第一個訂枱！龍蝦、蟶子、避風塘炒蟹——媽媽咪呀，好好味～', 'I am booking the first table! Lobster, razor clams, typhoon-shelter crab - mamma mia, so good~', '一番に予約！ロブスター、マテ貝、避風塘の蟹炒め――マンマミーア、おいしい～') },
           { speaker: 'treasurer', text: T('懷舊定宴會都好，海鮮舫要維修、要船費。', 'Nostalgic or banquet, a floating restaurant needs upkeep and boat fares.', '懐古でも宴会でも、水上レストランには維持費と船代がかかる。') },
           { card: T('珍寶海鮮舫復活', 'The Jumbo Returns', 'ジャンボ海鮮舫、復活'),
             hint: T('喺避風塘起返一艘海鮮舫，做返南區嘅海上地標。', 'Build a floating restaurant in the shelter - the South\'s landmark on the water again.', '避難港に水上レストランを建て、南区の海上ランドマークを取り戻そう。') },
@@ -563,8 +589,11 @@
         },
       },
     ]),
+    // the star's scene (Norton's Event boards): the South Island line over the water
+    outroScene: 'UI/campaign/events/southIslandLine.webp',
     outro: Object.freeze([
       { speaker: 'engineer', text: T('市長，第一條真正有乘客嘅地鐵開通喇。', 'Mayor, the first metro with real passengers is open.', '市長、本当に乗客を乗せる最初の地下鉄が開通しました。') },
+      { speaker: 'railFan', text: T('頭班車我凌晨五點排隊，車票、月台、車頭全部影晒！下一個目標：全綫車卡編號。', 'I queued from five a.m. for the first train - ticket, platform, cab, all photographed! Next target: every car number on the line.', '始発のために朝5時から並んだ。切符もホームも先頭車も全部撮った！次の目標は全車両の番号だ。') },
       { speaker: 'secretary', text: T('下一站黃大仙。嗰邊要解決嘅問題，唔係旅客，而係市民。', 'Next stop Wong Tai Sin. The problem there is not tourists, it is residents.', '次は黄大仙。あちらで解決すべきは観光客ではなく、市民の問題です。') },
     ]),
     outroForum: {
@@ -591,6 +620,7 @@
     intro: Object.freeze([
       { speaker: 'transport', text: T('屯門公路現時車流量較高，但整體交通情況仍然……', 'Traffic on Tuen Mun Road is currently heavy, but overall conditions remain...', '屯門公路の交通量は現在やや多めですが、全体としては依然……') },
       { speaker: 'resident', text: T('塞車塞到痴線呀！', 'This traffic is driving me mad!', '渋滞で頭がおかしくなりそうだ！') },
+      { speaker: 'uncleBus', text: T('你有壓力，我有壓力！塞咗成個鐘，未解決！', 'You\'ve got pressure, I\'ve got pressure! An hour in this jam - still unresolved!', 'お前もストレス、俺もストレス！1時間も渋滞、まだ解決してない！') },
       { speaker: 'engineer', text: T('巴士唔夠，輕鐵都要建；仲要識得過馬路。', 'Not enough buses, so we build the light rail too - and it has to know how to cross a road.', 'バスが足りないならライトレールも作る。しかも道路を渡れるようにね。') },
       { card: T('任務開始：屯門《塞車塞到痴線》', 'Mission start: Tuen Mun - "Jammed Up"', '任務開始：屯門「渋滞で発狂寸前」'),
         hint: T('開辦五條有乘客嘅巴士線（三條跨區）、令輕鐵載客，降低擠塞同罪案。跨區：一條線開去區外站（起線時㩒地圖邊出區嘅路，揀元朗、天水圍等），或者車站喺兩個地區牌範圍內。', 'Run five bus routes with riders (three across districts), get the light rail carrying people, and bring down congestion and crime. Across districts: a route to an off-map stop (click a road leaving the map edge while picking stops, and choose Yuen Long, Tin Shui Wai...), or with stops in two district signs\' areas.', '乗客のいるバス路線を5本（うち3本は区をまたぐ）、ライトレールで乗客を運び、渋滞と犯罪を減らそう。区をまたぐ路線：区外の停留所へ向かう路線（停留所選択中にマップの端から出る道路をクリックし、元朗・天水囲などを選ぶ）、または2つの地区標識の範囲に停留所がある路線。') },
@@ -646,6 +676,7 @@
         when: (s) => num(s.transit?.lightRail) > 0,
         lines: Object.freeze([
           { speaker: 'engineer', text: T('第一個路面輕鐵平交口啟用喇。', 'The first street-level light rail crossing is open.', '最初の路面ライトレールの平面交差が開通しました。') },
+          { speaker: 'busFan', text: T('輕鐵、巴士同私家車喺同一個路口！三款車同框，我要影一百張！', 'Light rail, buses and cars at one crossing! All three in one frame - I need a hundred shots!', 'ライトレールとバスと乗用車が同じ交差点に！3種そろい踏み、100枚は撮らないと！') },
           { speaker: 'transport', text: T('列車同汽車要輪流過，交通燈點排，要諗清楚。', 'Trains and cars take turns now - the signals need thinking through.', '列車と車が交互に通る。信号の組み方をよく考えないと。') },
           { card: T('輕鐵過路，汽車等一等', 'The Light Rail Crosses; Cars, Please Wait', 'ライトレール通過、車はしばし待て'),
             hint: T('留意平交口附近嘅車流：路面擠塞會拖慢巴士同輕鐵。', 'Watch the traffic round the crossings: jammed streets slow the buses and the light rail.', '平面交差付近の交通に注意。路面の渋滞はバスもライトレールも遅らせる。') },
@@ -662,12 +693,15 @@
         when: (s) => num(s.crimeRate) >= 0.35,
         lines: Object.freeze([
           { speaker: 'resident', text: T('夜晚放工行返屋企，條路黑麻麻，唔係幾安全。', 'Walking home from work at night, the street is dark. It does not feel safe.', '夜、仕事帰りに歩くと道が真っ暗で、あまり安全じゃない。') },
+          { speaker: 'police', text: T('放心，我哋會加強巡邏。不過街燈都要起返，我哋唔係貓頭鷹。', 'Rest assured, we will step up patrols. But put the street lights back - we are not owls.', 'ご安心を、巡回を強化します。ですが街灯も戻してください。我々はフクロウではない。') },
           { speaker: 'secretary', text: T('市民嘅人身安全唔係講笑。要加警力、照明同社區支援。', 'People\'s safety is no joke. We need more police, better lighting and community support.', '市民の身の安全は冗談ではありません。警察力、照明、地域の支援を強化しましょう。') },
           { card: T('夜歸安全', 'Getting Home Safely at Night', '夜道の安全'),
             hint: T('加建警署、改善治安，令罪案指數降到 30% 以下。', 'Build police stations and improve safety to bring crime under 30%.', '警察署を増やして治安を改善し、犯罪指数を30%未満に下げよう。') },
         ]),
       },
     ]),
+    // the star's scene (Norton's Event boards): the light rail through the new town
+    outroScene: 'UI/campaign/events/lightRail.webp',
     outro: Object.freeze([
       { speaker: 'transport', text: T('屯門道路與鐵路系統初步達到可運作水平。', 'Tuen Mun\'s roads and railways have reached a preliminary operable level.', '屯門の道路と鉄道は、初歩的な運用水準に達しました。') },
       { speaker: 'resident', text: T('得喇，總之我今日趕到返工。', 'Fine - anyway, I made it to work on time today.', 'まあいいさ、とにかく今日は間に合った。') },
@@ -698,6 +732,7 @@
     intro: Object.freeze([
       { speaker: 'tram', text: T('叮叮行得慢，但好多街坊日日靠佢出入。', 'The ding ding is slow, but a lot of people rely on it every day.', 'ディンディンは遅いけれど、毎日頼りにしている住民が大勢いる。') },
       { speaker: 'resident', text: T('慢唔緊要，唔好拆咗佢呀。', 'Slow is fine. Just do not tear it out.', '遅くてもいい。撤去だけはしないでくれ。') },
+      { speaker: 'singh', text: T('我間雜貨舖喺電車路開咗三十年：叮叮一停，啲客就落嚟買汽水。冇咗叮叮，我就冇咗生意。', 'Thirty years my shop has stood on the tram line: a tram stops, people hop off for a soda. No trams, no business.', '電車通りで雑貨店を30年。電車が止まれば客が降りてきてソーダを買う。電車がなくなれば商売もなくなる。') },
       { speaker: 'engineer', text: T('注意：呢個係雙層電車，唔係屯門嗰種輕鐵。', 'Note: this is a double-decker tram, not the Tuen Mun light rail.', '注意：これは2階建ての路面電車で、屯門のライトレールとは別物です。') },
       { card: T('任務開始：東區《叮叮遊港島》', 'Mission start: Eastern - "Ding Ding Round the Island"', '任務開始：東区「ディンディンで港島めぐり」'),
         hint: T('鋪電車軌、設電車站同開線載客；港島綫同巴士都要有人搭；控制街道擠塞同罪案。', 'Lay tram track, build stops and run a line with riders; the Island line and the buses need riders too; keep the streets moving and safe.', '路面電車の軌道と停留所をつくって運行しよう。港島線とバスにも乗客を。街の渋滞と犯罪を抑えよう。') },
@@ -760,7 +795,25 @@
           comment: T('叮叮係情懷，趕返工係現實。', 'The trams are nostalgia; getting to work is reality.', 'ディンディンは郷愁、通勤は現実。'),
         },
       },
+      // 生日電車: fans buy a whole tram's sides for their singer's birthday (the star's 全車身廣告)
+      {
+        id: 'birthdayTram',
+        when: (s) => num(s.transit?.tram) >= 5000,
+        scene: 'UI/campaign/events/singerBirthday.webp',
+        lines: Object.freeze([
+          { speaker: 'anchor', text: T('一班歌迷夾錢，幫偶像賣咗架電車做全車身生日廣告，紫色叮叮今日出巡！', 'Fans have chipped in to wrap a whole tram for their idol\'s birthday - the purple ding ding is out today!', 'ファンがお金を出し合い、アイドルの誕生日広告で電車を丸ごとラッピング。紫のディンディンが今日デビュー！') },
+          { speaker: 'resident', text: T('我等咗三架車，終於影到佢喺叮叮上面！', 'I let three trams go by - and finally got a photo of her on the side of one!', '3台見送って、やっと彼女が描かれた電車を撮れた！') },
+          { speaker: 'tram', text: T('全車身廣告賣一個月，夠我哋換幾套新座椅。', 'A month of full-body ads pays for a few new sets of seats.', 'ラッピング広告ひと月分で、新しい座席が何組か買える。') },
+        ]),
+        forum: {
+          headline: T('紫色生日電車出巡，歌迷沿線追車', 'A purple birthday tram takes to the streets, fans chase it down the line', '紫の誕生日電車が運行、ファンが沿線で追いかける'),
+          body: T('歌迷集資嘅全車身生日廣告今日起行走港島東，電車公司話廣告收入可以用嚟翻新車廂。', 'The fan-funded birthday wrap runs along the eastern Island from today; the tram company says the takings will refurbish the cars.', 'ファンの資金によるラッピング広告が今日から港島東部を走る。電車会社は広告収入を車両の改装に充てるという。'),
+          comment: T('叮叮慢得嚟啱，追到車。', 'The trams are just slow enough to catch.', 'ディンディンはちょうど追いつける遅さ。'),
+        },
+      },
     ]),
+    // the star's scene (Norton's Event boards): the trams down the street
+    outroScene: 'UI/campaign/events/tramway.webp',
     outro: Object.freeze([
       { speaker: 'tram', text: T('叮叮一響，整條街就有晒港島味。', 'One ding ding, and the whole street tastes of the Island.', 'ディンディンと鳴れば、通り一面が港島の味になる。') },
       { speaker: 'transport', text: T('下一站觀塘——嗰邊有架高架地鐵，仲有好多工廠要變身。', 'Next stop Kwun Tong - an elevated metro, and a lot of factories waiting to change.', '次は観塘。高架の地下鉄があり、生まれ変わるべき工場がたくさんある。') },
@@ -846,6 +899,7 @@
     fresh: { cityName: T('黃大仙', 'Wong Tai Sin', '黄大仙'), budget: 120000, transportExpansion: true },
     intro: Object.freeze([
       { speaker: 'resident', text: T('黃大仙有求必應，咁可唔可以求到條巴士線？', 'Wong Tai Sin answers every prayer - so can I pray for a bus route?', '黄大仙は願いを何でも叶えてくれる。じゃあバス路線もお願いできる？') },
+      { speaker: 'playboy', text: T('有求必應？我求姻緣求咗三年，Kelly、Fion、阿欣全部覆我「你係好人」。', 'Every wish answered? Three years I\'ve prayed for love - Kelly, Fion and Yan all replied "you\'re a nice guy".', '有求必応？三年も縁結びを祈ったのに、ケリーもフィオンもヤンも返事は「いい人ね」。') },
       { speaker: 'secretary', text: T('宗教活動有助提升城市文化及旅遊魅力。', 'Religious life adds to the city\'s culture and its appeal to visitors.', '宗教行事は都市の文化と観光の魅力を高めます。') },
       { speaker: 'treasurer', text: T('但公屋維修同消防都要錢。', 'But public-housing repairs and fire cover both cost money.', 'でも公営住宅の修繕も消防も金がかかる。') },
       { card: T('任務開始：黃大仙《有求必應》', 'Mission start: Wong Tai Sin - "Every Wish Answered"', '任務開始：黄大仙「有求必応」'),
@@ -913,6 +967,7 @@
         lines: Object.freeze([
           { speaker: 'anchor', text: T('黃大仙祠落成後首次求籤，解籤師傅話市長抽到嘅係「財政籤」。', 'At the new Wong Tai Sin Temple\'s first fortune-telling, the interpreter says the mayor drew the "budget stick".', '黄大仙祠の完成後初のおみくじ。解説師によると、市長が引いたのは「財政みくじ」。') },
           { speaker: 'resident', text: T('我抽到上上籤，點解仲塞車？', 'I drew the best stick of all - so why am I still stuck in traffic?', '大吉を引いたのに、なんでまだ渋滞してるの？') },
+          { speaker: 'playboy', text: T('我都抽到上上籤：「姻緣在近」。近幾近？我連巴士都等唔到。', 'Mine\'s the best stick too: "love is near". How near? I can\'t even get a bus.', '僕も大吉、「良縁は近くに」。どれくらい近く？バスすら来ないのに。') },
           { speaker: 'treasurer', text: T('籤文唔會計入預算。要盈餘，就要靠政策。', 'Fortune sticks do not go into the budget. A surplus comes from policy.', 'おみくじは予算に計上しません。黒字は政策で出すものです。') },
         ]),
         forum: {
@@ -952,7 +1007,9 @@
     deadlineMonths: 24,
     fresh: { cityName: T('沙田', 'Sha Tin', '沙田'), budget: 120000, transportExpansion: true },
     intro: Object.freeze([
-      { speaker: 'parent', text: T('我哋唔係要豪宅，只係想有學校、有公園、有車出市區。', 'We are not after mansions - just schools, parks and a train into town.', '豪邸なんて要らない。学校と公園と、都心へ出る電車があればいい。') },
+      { speaker: 'jaydenMum', text: T('我哋唔要豪宅，只要 Band 1 名校、三個興趣班、兩間補習社——同埋有車去面試。', 'We don\'t need a mansion - just a Band 1 school, three hobby classes, two tutoring centres, and a train to the interviews.', '豪邸は要らないの。Band 1の名門校、習い事3つ、塾2つ――それと面接に行ける電車があればいい。') },
+      { speaker: 'jayden', text: T('Mami，我可唔可以有一日唔使補習……', 'Mami, can I have one day without tutoring...', 'ママ、一日だけ塾を休んじゃだめ……？') },
+      { speaker: 'jaydenMum', text: T('Jayden！Mami told you 呀！', 'Jayden! Mami told you!', 'ジェイデン！ママ言ったでしょ！') },
       { speaker: 'engineer', text: T('東鐵地面路段可以救交通，但唔係起個站就算。', 'A ground-level East Rail can save the traffic - but a station alone will not.', '東鉄の地上区間なら交通を救える。でも駅をひとつ建てて終わりじゃない。') },
       { speaker: 'secretary', text: T('政府高度重視望子成龍嘅殷切期望。', 'The government takes the people\'s hopes for their children extremely seriously.', '政府は子どもに託す市民の切なる願いを極めて重視しております。') },
       { card: T('任務開始：沙田《望子成龍》', 'Mission start: Sha Tin - "High Hopes for the Children"', '任務開始：沙田「望子成竜」'),
@@ -1020,6 +1077,8 @@
     ]),
     outro: Object.freeze([
       { speaker: 'education', text: T('沙田嘅下一代終於可以安心返學。', 'Sha Tin\'s next generation can finally go to school in peace.', '沙田の次の世代は、ようやく安心して学校に通えます。') },
+      { speaker: 'jayden', text: T('我派到 Band 1 喇！……咁今晚可唔可以唔使補習？', 'I got into a Band 1 school! ...So can I skip tutoring tonight?', 'Band 1の学校に入れた！……じゃあ今夜は塾、休んでいい？') },
+      { speaker: 'jaydenMum', text: T('Jayden！Mami told you 呀！', 'Jayden! Mami told you!', 'ジェイデン！ママ言ったでしょ！') },
       { speaker: 'transport', text: T('但屯門嗰邊……塞車塞到痴線。', 'But over in Tuen Mun... the traffic is driving people mad.', 'ですが屯門のほうは……渋滞で皆おかしくなりそうです。') },
     ]),
     outroForum: {
@@ -1031,7 +1090,7 @@
       ]),
     },
     failure: Object.freeze([
-      { speaker: 'parent', text: T('市長，期限過咗，我個仔仲未有學校讀……', 'Mayor, time is up, and my son still has no school place...', '市長、期限が過ぎました。うちの子はまだ通う学校がありません……') },
+      { speaker: 'jaydenMum', text: T('市長，期限過咗，我個 Jayden 仲未有學位……我點同嫲嫲交代？', 'Mayor, time is up and my Jayden still has no school place... how do I explain this to Grandma?', '市長、期限切れです。うちのジェイデンはまだ学校が決まらない……おばあちゃんに何て言えば？') },
     ]),
   });
 
@@ -1141,6 +1200,7 @@
       { speaker: 'commerce', text: T('荃灣係百業興旺嘅好地方！', 'Tsuen Wan is a fine place for every trade to thrive!', '荃湾はあらゆる商売が栄える良い土地です！') },
       { speaker: 'factory', text: T('你開咗三間商場，咁我間廠仲有冇工人？', 'You opened three malls - so who is left to work in my factory?', 'モールを3つも開いたら、うちの工場の働き手はどうなる？') },
       { speaker: 'resident', text: T('成條街都係商場，返工都要出九龍。', 'The whole street is malls, and I still have to go to Kowloon for work.', '通りじゅうモールなのに、仕事は九龍まで行かないとない。') },
+      { speaker: 'scientist', text: T('荃灣啲工廠想轉做科研？我實驗室隨時歡迎——記得帶埋安全守則，我成日唔記得。', 'Tsuen Wan\'s factories want to go into research? My lab\'s door is open - bring the safety rules, I keep forgetting them.', '荃湾の工場が研究に転身？うちの研究室はいつでも歓迎――安全規則は持ってきてね、私はよく忘れるから。') },
       { card: T('任務開始：荃灣《百業興旺》', 'Mission start: Tsuen Wan - "All Trades Thriving"', '任務開始：荃湾「百業繁栄」'),
         hint: T('住宅、商業、工業各佔一成半至六成；人口達 50,000；荃灣綫同巴士有乘客；復辦荃灣—中環渡輪（先起碼頭，再用渡輪航線工具撳碼頭同南邊地圖邊嘅海面），每月 500 人次；收支正數，公共服務齊備。', 'Homes, shops and industry each 15% to 60% of the buildings; 50,000 people; the Tsuen Wan line and the buses with riders; bring back the Tsuen Wan - Central ferry (a pier, then the ferry route tool on the pier and the sea at the south map edge), 500 riders a month; a surplus and the public services.', '住宅・商業・工業がそれぞれ15〜60%、人口50,000人。荃湾線とバスに乗客。荃湾〜中環フェリーを復活（埠頭を建て、航路ツールで埠頭と南のマップ端の海をクリック）、月500人。黒字で公共サービスも。') },
     ]),
@@ -1192,6 +1252,7 @@
         when: (s) => built(s, 'science_park'),
         lines: Object.freeze([
           { speaker: 'anchor', text: T('本台消息：科學園一間實驗室發生意外，一名姓曾嘅導師疑因唔記得安全步驟引發事故，幸無人受傷。', 'News just in: an accident at a Science Park lab, apparently because a tutor named Tsang forgot a safety step. No one was hurt.', '速報です。サイエンスパークの実験室で事故。曾という講師が安全手順を忘れたためとみられ、けが人はいませんでした。') },
+          { speaker: 'scientist', text: T('我……我唔記得咗。', 'I... I forgot.', 'わ、忘れてしまった……') },
           { speaker: 'engineer', text: T('實驗室安全唔係講笑：要停工整改、加強安全教育。', 'Lab safety is no joke: stop work, put it right, train everyone properly.', '実験室の安全は冗談じゃない。作業を止めて是正し、安全教育を強化すべきだ。') },
           { speaker: 'treasurer', text: T('停工整改短期少啲產值；只做最低限度復修就慳錢，但風險仲喺度。', 'A stop to fix it costs output now; patching the minimum saves money, but the risk stays.', '是正のための操業停止は目先の生産を減らす。最低限の修理なら安上がりだが、リスクは残る。') },
           { card: T('曾Sir又唔記得咗', 'Mr Tsang Forgot Again', '曾先生、また忘れた'),
@@ -1231,6 +1292,7 @@
       { speaker: 'factory', text: T('以前廠房做貨，依家一半租咗做辦公室，另一半仲等緊人租。', 'The factory floors used to make goods; now half are offices and the other half wait for tenants.', '昔は工場で物を作っていた。今は半分がオフィス、残り半分は借り手待ちだ。') },
       { speaker: 'transport', text: T('九龍東交通問題屬於區域性、結構性、常態性……', 'Kowloon East\'s traffic problem is regional, structural and ongoing...', '九龍東の交通問題は地域的・構造的・恒常的なもので……') },
       { speaker: 'resident', text: T('即係幾時有得郁呀？', 'Meaning when does anything move?', 'で、いつになったら動くんだ？') },
+      { speaker: 'railFan', text: T('我淨係想知：觀塘綫幾時有新車？我部相機準備好喇。', 'All I want to know: when does the Kwun Tong line get new trains? My camera is ready.', '知りたいのはひとつ。観塘線にいつ新車両が来る？カメラの準備はできてる。') },
       { speaker: 'secretary', text: T('本區發展計劃名稱已經批核：《觀塘老母》。', 'The district plan\'s name has been approved: "Kwun Tong, Seriously".', '本地区の開発計画名は承認済みです：「観塘老母」。') },
       { speaker: 'treasurer', text: T('個名夠響，但我想睇稅收升幾多。', 'Catchy name - but I want to see how far the taxes rise.', '名前は威勢がいいが、税収がどれだけ上がるか見せてほしい。') },
       { card: T('任務開始：觀塘《觀塘老母》', 'Mission start: Kwun Tong - "Kwun Tong, Seriously"', '任務開始：観塘「観塘老母」'),
@@ -1298,6 +1360,7 @@
     ]),
     outro: Object.freeze([
       { speaker: 'secretary', text: T('九龍東有新工、有新樓、有鐵路！', 'Kowloon East has new jobs, new buildings and a railway!', '九龍東に新しい仕事、新しいビル、そして鉄道が！') },
+      { speaker: 'railFan', text: T('高架觀塘綫望落去，成個九龍東喺腳下——呢個角度我已經影咗三百張。', 'From the elevated Kwun Tong line, all of Kowloon East lies below - I have shot three hundred photos from this angle.', '高架の観塘線から九龍東が一望できる――この角度だけで300枚は撮った。') },
       { speaker: 'engineer', text: T('隔籬九龍城更難：要整返一座消失咗嘅城，仲要令遊客入得去、電影拍得到。', 'Kowloon City next door is harder: rebuild a vanished walled city that tourists can enter and films can shoot.', '隣の九龍城はもっと難しい。消えた城を再建し、観光客が入れて映画も撮れるようにしないと。') },
     ]),
     outroForum: {
@@ -1327,6 +1390,7 @@
       { speaker: 'secretary', text: T('國際中心嘅中心。', 'The centre of international centres.', '国際センターのセンターです。') },
       { speaker: 'treasurer', text: T('你哋搞中心之前，先話我知總預算幾多。', 'Before you build any centres, tell me the total budget.', 'センターを作る前に、総予算がいくらか教えてくれ。') },
       { speaker: 'resident', text: T('我只係想過條馬路咋。', 'I just want to cross the road.', '俺はただ道を渡りたいだけなんだ。') },
+      { speaker: 'chanHoNam', text: T('以前銅鑼灣我話事；而家話事嘅，係盛事時間表。', 'Causeway Bay used to answer to me. Now it answers to the events calendar.', '昔は銅鑼湾は俺が仕切ってた。今仕切ってるのはイベントの日程表だ。') },
       { card: T('任務開始：灣仔《國際XX中心》', 'Mission start: Wan Chai - "International XX Centre"', '任務開始：湾仔「国際XXセンター」'),
         hint: T('會展中心營運；開章後喺議會通過並成功舉辦 3 場盛事（包括《幻彩fing香城》都算）；取得 2 個要有實際成效嘅「國際XX中心」稱號；政府投資（買入股票）有持倉；地鐵、巴士、電車、渡輪都有乘客；旅遊吸引力 80，連續 3 個月盈餘。', 'Run the exhibition centre; since the chapter began, pass and hold 3 major events in the council (Fantasy fing counts); earn 2 "International XX Centre" titles by results; hold government investments (shares); metro, buses, trams and ferries with riders; tourism 80 and three months of surplus.', 'コンベンションセンターを運営。章の開始後に議会で大型イベントを3回可決・成功（幻彩fingも含む）。実績のある「国際XXセンター」称号を2つ。政府投資（株式）を保有。地下鉄・バス・路面電車・フェリーに乗客。観光80、3か月連続黒字。') },
     ]),
@@ -1376,6 +1440,7 @@
           { speaker: 'tourism', text: T('又一盛事！遊客數據非常鼓舞！', 'Another mega event! The visitor figures are most encouraging!', 'またもや大型イベント！観光客の数字は大変心強い！') },
           { speaker: 'transport', text: T('全線延誤，過海車隊排到後面。', 'Delays on every route; the cross-harbour fleet is queued back for miles.', '全線遅延、海底トンネル行きのバスは延々と列をなしています。') },
           { speaker: 'resident', text: T('盛事係啲乜？我返工都返唔到！', 'What mega event? I cannot even get to work!', '大型イベントって何だ？会社にも行けないぞ！') },
+          { speaker: 'playboy', text: T('盛事最好，人多機會多……點知一封路，想識嘅人全部行咗去對面海。', 'Big events are great - more people, more chances... then they shut the roads and everyone I wanted to meet ended up across the harbour.', 'イベントは最高、人が多けりゃチャンスも多い……と思ったら通行止めで、知り合いたい人はみんな対岸に行っちまった。') },
           { speaker: 'secretary', text: T('市民嘅笑容，係政府施政嘅責任。', 'The people\'s smiles are the government\'s responsibility.', '市民の笑顔こそ政府の責任です。') },
           { speaker: 'resident', text: T('我呢個係苦笑。', 'This is a bitter smile.', 'これは苦笑いだ。') },
         ]),
@@ -1386,6 +1451,8 @@
         },
       },
     ]),
+    // the star's scene (Norton's Event boards): the harbour fireworks of a big event
+    outroScene: 'UI/campaign/events/firework02.webp',
     outro: Object.freeze([
       { speaker: 'tourism', text: T('盛事經濟，成功！', 'The mega-event economy - a success!', 'イベント経済、大成功！') },
       { speaker: 'treasurer', text: T('報表仲未出，唔好咁早講。', 'The accounts are not out yet. Do not speak too soon.', '決算はまだ出ていない。早まるな。') },
@@ -1416,6 +1483,7 @@
       { speaker: 'resident', text: T('你邊個堂口㗎？', 'And which gang are you from?', 'あんた、どこの組の者だ？') },
       { speaker: 'treasurer', text: T('佢係財政司堂口，專收稅。', 'The Treasury gang. Taxes are his business.', '財政司組だ。税金の取り立て専門。') },
       { speaker: 'tourism', text: T('油尖旺要日日都係旅遊旺季！', 'Every day in Yau Tsim Mong must be peak tourist season!', '油尖旺は毎日が観光シーズンでなくては！') },
+      { speaker: 'mkGirl', text: T('旺角係我哋嘅！朝早瞓覺，夜晚先開工㗎嘛～', 'Mong Kok is ours! We sleep in the morning and start at night~', '旺角はあたしたちのもの！朝は寝て、夜から本番でしょ～') },
       { speaker: 'resident', text: T('即係我幾時先可以瞓覺？', 'So when do I get to sleep?', 'で、俺はいつ寝られるんだ？') },
       { card: T('任務開始：油尖旺《我係 油尖旺 揸fit人》', 'Mission start: Yau Tsim Mong - "I Run Yau Tsim Mong"', '任務開始：油尖旺「油尖旺の仕切り役」'),
         hint: T('人口達 90,000，真正有人住、有工返；商業稅收每月 $8,000；行香城夜繽週政策，罪案低於 20%；有文化中心、太空館同大學；天星小輪、地鐵、巴士有乘客；旅遊吸引力 80，連續 3 個月盈餘。', 'Reach 90,000 people with real homes and jobs; commercial tax of $8,000 a month; the Night Bazaar policy with crime under 20%; a cultural centre, the Space Museum and a university; the Star Ferry, metro and buses with riders; tourism 80 and three months of surplus.', '人口90,000人（本当の住民と雇用）。商業税収月$8,000。香城夜市政策で犯罪20%未満。文化センター・宇宙館・大学。スターフェリー・地下鉄・バスに乗客。観光80、3か月連続黒字。') },
@@ -1486,7 +1554,10 @@
         },
       },
     ]),
+    // the star's scene (Norton's Event boards): the harbour fireworks: the last chapter opens
+    outroScene: 'UI/campaign/events/firework1.webp',
     outro: Object.freeze([
+      { speaker: 'goddess', text: T('尖沙咀海旁嘅日落，終於唔使同成萬人一齊逼住睇。', 'The sunset on the Tsim Sha Tsui waterfront - no longer watched squeezed in with ten thousand others.', '尖沙咀の海辺の夕日を、やっと一万人と押し合わずに見られる。') },
       { speaker: 'secretary', text: T('十七區完成，市長。你而家望到嘅，係最後一關。', 'Seventeen districts done, Mayor. What you see across the water is the last.', '17区完了です、市長。今見えているのが最後の章です。') },
       { speaker: 'treasurer', text: T('全城最貴嘅樓、最忙嘅交通、最多人睇住嘅政府。', 'The dearest property, the busiest traffic, and the most watched government in the city.', '街一番高い不動産、一番忙しい交通、一番注目される政府。') },
       { card: T('最終章解鎖：中西區《東方之珠：維多利亞港中心》', 'Final chapter unlocked: Central and Western - "Pearl of the Orient"', '最終章解放：中西区「東洋の真珠」') },
@@ -1514,6 +1585,7 @@
     fresh: { cityName: T('中西區', 'Central and Western', '中西区'), budget: 250000, transportExpansion: true },
     intro: Object.freeze([
       { speaker: 'finance', text: T('市長，香城要做世界級國際金融中心，就要有交易所、跨國企業同頂級甲級商廈。', 'Mayor, a world-class financial centre needs an exchange, multinationals and top grade-A towers.', '市長、世界的な国際金融センターには取引所、多国籍企業、最高級のAクラスオフィスが必要です。') },
+      { speaker: 'bankGirl', text: T('今年 iBank 有冇 bonus，就睇市長識唔識做。', 'Whether iBank pays a bonus this year depends on the mayor.', '今年iBankのボーナスが出るかどうかは、市長の腕次第ね。') },
       { speaker: 'transport', text: T('西區海底隧道同港鐵都要頂住跨海通勤。', 'The Western Harbour Tunnel and the MTR both have to carry the cross-harbour commute.', '西区海底トンネルとMTRの両方で、海を渡る通勤を支えなければ。') },
       { speaker: 'education', text: T('香港大學可以培養人才，但教育唔只係為金融公司供應員工。', 'The university can train talent - but education is not just a supply of staff for banks.', '香港大学は人材を育てられる。でも教育は金融会社に人を供給するためだけのものじゃない。') },
       { speaker: 'resident', text: T('樓就愈起愈高，市民講嘢有冇人聽？', 'The towers keep rising - but is anyone listening to the people?', 'ビルはどんどん高くなるが、市民の声を聞く人はいるのか？') },
@@ -1574,7 +1646,9 @@
         when: (s) => built(s, 'stock_exchange') && num(s.governmentHoldings) > 0,
         lines: Object.freeze([
           { speaker: 'finance', text: T('恒指創歷史新高，國際投資者信心爆棚！', 'The index hits a record high - international investor confidence is bursting!', '指数は史上最高値、国際投資家の信頼は絶大です！') },
+          { speaker: 'tycoon', text: T('新高？好，再起多幾幢甲級商廈。', 'A record high? Good - let us put up a few more grade-A towers.', '史上最高値？よし、Aクラスのオフィスビルをもう何棟か建てよう。') },
           { speaker: 'worker', text: T('我份糧呢？佢有冇跟住歷史新高？', 'And my pay? Did it hit a record high too?', '俺の給料は？それも史上最高になったのか？') },
+          { speaker: 'barber', text: T('我間髮廊喺中環：恒指升幾多都好，租金一定升得仲快——我剪十個頭都追唔上。', 'My barber shop is in Central: whatever the index does, the rent climbs faster - ten haircuts can\'t keep up.', '僕の床屋は中環にある。ハンセン指数がどれだけ上がろうと、家賃はもっと速く上がる――十人切っても追いつかない。') },
           { speaker: 'treasurer', text: T('股票價格、企業盈利、政府稅收同家庭收入，係四張唔同嘅報表。', 'Share prices, company profits, government revenue and household income are four different reports.', '株価、企業収益、政府の税収、家計の収入は、四つの別々の報告書です。') },
         ]),
         forum: {
@@ -1594,6 +1668,8 @@
         ]),
       },
     ]),
+    // the star's scene (Norton's Event boards): the queen's desk, the medals and the map: all eighteen done
+    outroScene: 'UI/campaign/events/18DistrictCompleted.webp',
     outro: Object.freeze([
       { speaker: 'queen', text: T('市長：香城十八區都有你嘅足跡。繁榮、自由、文化、交通同民生，原來可以共存。最後密令，完成。', 'Mayor: your footsteps are in all eighteen districts of Heung Shing. Prosperity, freedom, culture, transport and livelihoods can live together after all. The final order is fulfilled.', '市長へ。香城十八区すべてにあなたの足跡がある。繁栄も自由も文化も交通も暮らしも、共に在りうるのだ。最後の密令、完了。') },
       { speaker: 'secretary', text: T('市長，十八區一星全部完成！仲可以返去攞二星、三星。', 'Mayor, the first star in all eighteen districts! You can still go back for the second and third.', '市長、18区すべてで一つ目の星を達成！まだ二つ目、三つ目の星を取りに戻れます。') },
@@ -1847,6 +1923,33 @@
     return playable ? [next, playable] : [next];
   }
 
+  // A chapter's opening scene: Norton's board for it (UI/storyBoardGraphics/18District, exported by
+  // scripts/prepare-campaign-story-images.js), behind its intro.
+  // (each path written out whole: the web build swaps literal UI/ paths for its hashed copies)
+  const CAMPAIGN_CHAPTER_SCENES = Object.freeze({
+    ch01: 'UI/campaign/chapters/ch01.webp',
+    ch02: 'UI/campaign/chapters/ch02.webp',
+    ch03: 'UI/campaign/chapters/ch03.webp',
+    ch04: 'UI/campaign/chapters/ch04.webp',
+    ch05: 'UI/campaign/chapters/ch05.webp',
+    ch06: 'UI/campaign/chapters/ch06.webp',
+    ch07: 'UI/campaign/chapters/ch07.webp',
+    ch08: 'UI/campaign/chapters/ch08.webp',
+    ch09: 'UI/campaign/chapters/ch09.webp',
+    ch10: 'UI/campaign/chapters/ch10.webp',
+    ch11: 'UI/campaign/chapters/ch11.webp',
+    ch12: 'UI/campaign/chapters/ch12.webp',
+    ch13: 'UI/campaign/chapters/ch13.webp',
+    ch14: 'UI/campaign/chapters/ch14.webp',
+    ch15: 'UI/campaign/chapters/ch15.webp',
+    ch16: 'UI/campaign/chapters/ch16.webp',
+    ch17: 'UI/campaign/chapters/ch17.webp',
+    ch18: 'UI/campaign/chapters/ch18.webp',
+  });
+  function getCampaignChapterScene(chapterId) {
+    return CAMPAIGN_CHAPTER_SCENES[chapterId] || '';
+  }
+
   function getCampaignText(text, language) {
     if (!text) return '';
     if (typeof text === 'string') return text;
@@ -1860,7 +1963,7 @@
     getCampaignDeadlineMonths, getCampaignChaptersUnlockedBy,
     advanceCampaignRun, getCampaignMonthsLeft, createEmptyCampaignProfile, normalizeCampaignProfile,
     getCampaignTutorialStep, advanceCampaignTutorial, acknowledgeCampaignTutorialStep, skipCampaignTutorial,
-    recordCampaignStars, isCampaignChapterUnlocked, getCampaignText,
+    recordCampaignStars, isCampaignChapterUnlocked, getCampaignText, getCampaignChapterScene,
   };
   Object.assign(root, api);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

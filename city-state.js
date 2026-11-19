@@ -125,6 +125,9 @@ const city = {
   // 區外連線: each side's neighbouring district id (null = a neutral 鄰區) and last month's flows
   regionNeighbours: null,
   regionFlows: null,
+  // 貨櫃貨運 (port-freight.js): this month's rates (derived) and the months' record (saved)
+  portFreight: null,
+  portFreightHistory: [],
   // 區外交通: each side's districts a line can run off the map to, nearest first ({ id, km })
   regionDestinations: null,
   // 海底隧道 (undersea-tunnel.js): its two portals (tiles, direction, approach roads) and the sea tiles it runs under
@@ -470,6 +473,8 @@ function resetGameState() {
   city.districtProfileId = '';
   city.regionNeighbours = null;
   city.regionFlows = null;
+  city.portFreight = null;
+  city.portFreightHistory = [];
   city.regionDestinations = null;
   city.underseaTunnels = [];
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
@@ -1045,6 +1050,8 @@ function computeLandmarkFinancials() {
     upkeep += count * (effects.upkeep || 0);
   });
   if (typeof getPublicMarketMonthlyRevenue === 'function') revenue += getPublicMarketMonthlyRevenue();
+  // the container ports' dues on what they carried, on top of their flat lease (port-freight.js)
+  if (typeof getPortFreightMonthlyDues === 'function') revenue += getPortFreightMonthlyDues();
   return { revenue, upkeep };
 }
 

@@ -2542,7 +2542,20 @@ function maybeRequestTrafficModelForSpawn(scene, time, random = Math.random) {
   }
 }
 
-function chooseTrafficModelForSpawn(scene, random = Math.random) {
+function pickTrafficModelWithTruckBoost(random, models, boost) {
+  const weightOf = (model) => (Number(model?.weight) > 0 ? model.weight * (model.category === 'truck' ? boost : 1) : 0);
+  const candidates = models.filter((model) => weightOf(model) > 0);
+  const total = candidates.reduce((sum, model) => sum + weightOf(model), 0);
+  if (total <= 0) return null;
+  let pick = random() * total;
+  for (const model of candidates) {
+    pick -= weightOf(model);
+    if (pick <= 0) return model;
+  }
+  return candidates.at(-1) ?? null;
+}
+
+function chooseTrafficModelForSpawn(scene, random = Math.random, road = null) {
   const state = getTrafficState(scene);
   let readyModels = getReadyTrafficModels(scene);
   if (typeof isTransportExpansionActive === 'function' && isTransportExpansionActive()) {
@@ -2553,7 +2566,12 @@ function chooseTrafficModelForSpawn(scene, random = Math.random) {
     readyModels = readyModels.filter((model) => !TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES.includes(model.category));
   }
   if (readyModels.length === 0) return null;
-  const selected = pickWeightedTrafficModel(random, readyModels);
+  // 貨櫃車 (port-freight.js): more trucks on the roads the port's cargo takes
+  // (the same model objects, only weighed differently: a vehicle keeps its registry model)
+  const truckBoost = road && typeof getPortFreightTruckBoostAt === 'function' ? getPortFreightTruckBoostAt(road.row, road.col) : 1;
+  const selected = truckBoost > 1
+    ? pickTrafficModelWithTruckBoost(random, readyModels, truckBoost)
+    : pickWeightedTrafficModel(random, readyModels);
   if (selected) touchTrafficModel(state, selected.id);
   return selected;
 }
@@ -2583,7 +2601,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
     if (!road) return false;
     const next = road.neighbours[Math.floor(random() * road.neighbours.length)];
     if (!next || hasTrafficSpawnConflict(state, road, next, scene)) continue;
-    const model = chooseTrafficModelForSpawn(scene, random);
+    const model = chooseTrafficModelForSpawn(scene, random, road);
     if (!model) return false;
 
     const previous = {

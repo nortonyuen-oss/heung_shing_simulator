@@ -322,6 +322,9 @@
       monthlyNet: (Number(city.monthlyIncome) || 0) - (Number(city.monthlyExpenses) || 0),
       loanBalance: loans.reduce((sum, loan) => sum + Math.max(0, Number(loan?.balance) || 0), 0),
       trafficIndex: Number(city.trafficIndex) || 0,
+      // 貨櫃貨運 (port-freight.js, P4 第 11 章): TEU a month and the share of truck driving past homes
+      portThroughput: Number(city.portFreight?.teu) || 0,
+      portTruckResidentialShare: Number(city.portFreight?.residentialShare) || 0,
       demandR: Number(city.demandR) || 0,
       roadTiles: typeof roadTileCount !== 'undefined' ? Number(roadTileCount) || 0 : 0,
       powerLines: typeof powerLineSet !== 'undefined' && powerLineSet ? powerLineSet.size : 0,

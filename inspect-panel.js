@@ -165,6 +165,28 @@ function buildPublicMarketInspectHtml(row, col) {
   </div>`;
 }
 
+// 貨櫃貨運 (port-freight.js): this port's cargo, where it comes from, and the trucks past homes
+function buildContainerPortInspectHtml(portId) {
+  if (typeof getPortFreightState !== 'function') return '';
+  const state = getPortFreightState();
+  const port = state.ports.find((entry) => entry.id === portId);
+  if (!port) return '';
+  const n = (value) => Math.round(value).toLocaleString();
+  const share = Math.round(state.residentialShare * 100);
+  if (!port.roadConnected) {
+    return `<div class="insp-section"><div class="insp-row insp-warn">${t('port.noRoad')}</div></div>`;
+  }
+  return `<div class="insp-section">
+    <div class="insp-row ${port.teu > 0 ? 'insp-ok' : 'insp-warn'}">${t('port.throughput', { teu: n(port.teu), capacity: n(port.capacity) })}</div>
+    <div class="insp-row">${t('port.sources', { local: n(port.local), transit: n(port.transit) })}</div>
+    ${port.source > port.capacity ? `<div class="insp-row insp-warn">${t('port.full', { source: n(port.source) })}</div>` : ''}
+    ${port.transit === 0 ? `<div class="insp-row insp-muted">${t('port.noTransit')}</div>` : ''}
+    <div class="insp-row ${share >= 30 ? 'insp-warn' : 'insp-muted'}">${t('port.trucks', { trucks: n(state.trucks), share })}</div>
+    <div class="insp-row insp-muted">${t('port.dues', { dues: n(state.dues), jobs: n(state.jobs) })}</div>
+    <button class="insp-action-btn" type="button" onclick="flashPortFreightRoutes()">${t('port.showRoutes')}</button>
+  </div>`;
+}
+
 function buildPublicMarketResidentialInspectHtml(row, col, record, districtTier = 'commoner') {
   if (typeof getPublicMarketResidentialEffect !== 'function') return '';
   const effect = getPublicMarketResidentialEffect(row, col,
@@ -362,6 +384,10 @@ function showInspectPanel(scene, row, col, pointer = null) {
         ${bData.type === 'legislative_council' ? `<button class="insp-action-btn" type="button" onclick="openLegislativeWindow()">${t('building.legislativeCouncil')}</button>` : ''}
         ${bData.type === 'stock_exchange' ? `<button class="insp-action-btn" type="button" onclick="openStockExchangeWindow()">${t('building.stockExchange')}</button>` : ''}
       </div>`;
+    // 貨櫃碼頭 (port-freight.js)
+    if (bData.type === 'container_port') {
+      html += buildContainerPortInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
+    }
   }
 
   // Infrastructure building

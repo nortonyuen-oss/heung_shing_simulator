@@ -607,6 +607,9 @@ function updateDemand() {
     ? getTyphoonShelterFisheryJobs() : { traditional: 0, commercial: 0 };
   regularIndJobCap += fisheryJobs.traditional;
   comJobCap += fisheryJobs.commercial;
+  // 貨櫃貨運 (port-freight.js): dockers, drivers and yard hands, by what the ports carried
+  const portFreight = typeof updatePortFreight === 'function' ? updatePortFreight() : null;
+  regularIndJobCap += portFreight?.jobs || 0;
   const totalJobCap       = comJobCap + sciParkJobCap + regularIndJobCap;
 
   // High-edu workers compete for commercial AND science-park slots
@@ -905,6 +908,10 @@ function computeHappiness(scene) {
   const transportHappinessBonus = typeof getTransportHappinessBonus === 'function'
     ? getTransportHappinessBonus()
     : 0;
+  // 貨櫃車 past the windows (port-freight.js)
+  const portTruckPenalty = typeof getPortFreightCityHappinessPenalty === 'function'
+    ? getPortFreightCityHappinessPenalty()
+    : 0;
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
@@ -913,7 +920,7 @@ function computeHappiness(scene) {
       + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
       + ridiculeMemeBonus
       - taxPenalty - pollPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty
-      - ridiculeReputationPenalty,
+      - ridiculeReputationPenalty - portTruckPenalty,
     0, 1
   );
 }

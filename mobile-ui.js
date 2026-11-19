@@ -164,7 +164,8 @@ function mobileRenderDraft(draft) {
   document.getElementById('mobile-build-controls').hidden = !building;
   if (!draft) { clearTouchPlacementPreview(typeof activeScene === 'undefined' ? null : activeScene); return; }
   const plan = draft.plan;
-  document.getElementById('mobile-build-name').textContent = mobileToolLabel(draft.tool);
+  document.getElementById('mobile-build-name').textContent = draft.tool === 'zone-res' && ['public', 'hos'].includes(draft.options.housingType)
+    ? t(`zone.housing.${draft.options.housingType}`) : mobileToolLabel(draft.tool);
   const status = document.getElementById('mobile-build-status');
   status.textContent = plan?.reason || (plan?.summary ? mobileText('summary', plan.summary)
     : plan ? mobileText('valid', { count: plan.tiles.length, skipped: plan.skipped || 0 }) : mobileText('tap'));
@@ -237,9 +238,20 @@ function mobileRenderDraft(draft) {
   document.getElementById('mobile-density').hidden = !isZone;
   document.getElementById('mobile-bulldoze-options').hidden = draft.tool !== 'bulldoze';
   document.getElementById('mobile-demolition-warning').hidden = draft.tool !== 'bulldoze';
+  // 私人／公屋／居屋 for residential zoning (housing-types.js): one compact list beside the densities
+  const housingType = draft.tool === 'zone-res' ? (draft.options.housingType || 'private') : 'private';
+  const housingSelect = document.getElementById('mobile-housing-select');
+  housingSelect.hidden = draft.tool !== 'zone-res';
+  if (draft.tool === 'zone-res') {
+    housingSelect.innerHTML = ['private', 'public', 'hos'].map((type) => `<option value="${type}" ${type === housingType ? 'selected' : ''}>${mobileEscape(t(`zone.housing.${type}`))}</option>`).join('');
+  }
+  const maxDensity = getDistrictMaxZoneDensity();
+  const minDensity = housingType === 'private' || maxDensity < DENSITY_MED ? DENSITY_LOW : DENSITY_MED;
+  const density = isZone && typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(draft.options.density, housingType) : draft.options.density;
   document.querySelectorAll('[data-mobile-density]').forEach((button) => {
-    button.setAttribute('aria-pressed', String(Number(button.dataset.mobileDensity) === draft.options.density));
-    button.disabled = Number(button.dataset.mobileDensity) > getDistrictMaxZoneDensity();
+    const value = Number(button.dataset.mobileDensity);
+    button.setAttribute('aria-pressed', String(value === density));
+    button.disabled = value > maxDensity || value < minDensity;
   });
   document.querySelectorAll('[data-mobile-range]').forEach((button) => {
     button.setAttribute('aria-pressed', String((button.dataset.mobileRange === 'true') === draft.options.range));
@@ -559,6 +571,7 @@ function setupMobileUi() {
         </span>
         <select id="mobile-terrain-select" hidden data-mobile-aria="chooseStyle"></select>
         <span id="mobile-restaurant-options" hidden><button type="button" id="mobile-restaurant-rotate" data-mobile-text="rotateRestaurant"></button></span>
+        <select id="mobile-housing-select" hidden data-mobile-aria="housingType"></select>
         <span id="mobile-density" hidden>${[[DENSITY_LOW,'low'],[DENSITY_MED,'medium'],[DENSITY_HIGH,'high']].map(([value,key]) => `<button type="button" data-mobile-density="${value}" aria-pressed="false" data-mobile-text="${key}"></button>`).join('')}</span>
         <span id="mobile-bulldoze-options" hidden><button type="button" data-mobile-range="false" data-mobile-text="single"></button><button type="button" data-mobile-range="true" data-mobile-text="range"></button></span>
         <span id="mobile-demolition-warning" hidden data-mobile-text="irreversible" style="font-size:12px;color:#8d1f1e"></span>
@@ -662,6 +675,14 @@ function setupMobileUi() {
   mobileUi.addEventListener('change', (event) => {
     if (event.target.id === 'mobile-recreation-select') mobileBuildSession.setOptions({ variant: event.target.value });
     if (event.target.id === 'mobile-terrain-select') mobileBuildSession.setOptions({ terrainType: event.target.value });
+    if (event.target.id === 'mobile-housing-select') {
+      // 公屋／居屋 start at medium density at least; the desktop menu remembers the same choice
+      const housingType = event.target.value;
+      const draft = mobileBuildSession.getState();
+      selectedHousingType = housingType;
+      if (typeof updateZoneDensityBadges === 'function') updateZoneDensityBadges();
+      mobileBuildSession.setOptions({ housingType, density: getHousingZoneDensity(draft?.options?.density ?? DENSITY_LOW, housingType) });
+    }
     if (event.target.id === 'mobile-speed') setSimSpeed(Number(event.target.value));
     if (event.target.matches('[data-mobile-profile]')) setUiProfilePreference(event.target.value);
     if (event.target.matches('[data-mobile-language]')) setLanguage(event.target.value);

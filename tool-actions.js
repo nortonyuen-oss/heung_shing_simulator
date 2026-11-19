@@ -43,6 +43,12 @@ function getTouchToolOptions(tool) {
   const type = TOUCH_BUILDING_TYPES[tool];
   const model = type === HARBOR_BUILDING_TYPE ? HARBOR_MODELS[Object.keys(HARBOR_MODELS)[0]]
     : type ? selectInfraPlacementModel(type) : null;
+  // 公屋／居屋 (housing-types.js): the residential tool starts on the type last picked, at the density it allows
+  if (tool === 'zone-res') {
+    const housingType = typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+    const density = typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(DENSITY_LOW, housingType) : DENSITY_LOW;
+    return { density, housingType, range: true, model: null };
+  }
   return { density: DENSITY_LOW, range: tool !== 'bulldoze', model: model ? { ...model } : null };
 }
 

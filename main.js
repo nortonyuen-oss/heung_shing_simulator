@@ -346,6 +346,8 @@ function updateGameFrame(time, delta) {
   // 避風塘 boats: their positions follow the environment clock (typhoon-shelter-fleet.js)
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
   if (typeof updateFerries === 'function') updateFerries(this);
+  // 郵輪碼頭: the terminals turned to the sea, and the cruise ships on their timetable (cruise-terminal.js)
+  if (typeof updateCruiseShips === 'function') updateCruiseShips(this);
   // 地鐵 lines, stations and trains drawn over the map in Transport Mode (metro.js)
   if (typeof updateMetroOverlay === 'function') updateMetroOverlay(this);
   // and the trains on the surface track (metro-surface-lines.js)
@@ -674,6 +676,7 @@ function getBuildingTypeLabel(type) {
     stock_exchange: 'building.stockExchange',
     public_market: 'building.publicMarket',
     community_centre: 'building.communityCentre',
+    cruise_terminal: 'building.cruiseTerminal',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',

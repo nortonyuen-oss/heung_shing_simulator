@@ -1226,6 +1226,22 @@ SPECIAL_BUILDING_MODELS.fish_loading_bay = {
   footprintCols: 2,
   footprintRows: 2,
 };
+// 郵輪碼頭 (cruise-terminal.js, P4 第 14 章): Norton's render (2026-11-19) squared to 2:1 on a 6x6 lot
+// on the shore, its berth along the sea side and a faint pad on the land side
+// (scripts/source-art/cruiseTerminal/fit.py). Turned to the sea by CRUISE_TERMINAL_FACING_MODELS.
+SPECIAL_BUILDING_MODELS.cruise_terminal = {
+  spriteKey: 'cruise_terminal_6x6',
+  path: 'Models/specialSites/6x6/cruiseTerminal6-01.png',
+  footprintCols: 6,
+  footprintRows: 6,
+};
+// The terminal's other facings, by where the sea lies on screen (refreshCruiseTerminalSprites): the
+// render's mirror, and - until the land-side view is drawn - the same art with its back to the sea.
+const CRUISE_TERMINAL_FACING_MODELS = Object.freeze([
+  ['cruise_terminal_6x6_m', 'Models/specialSites/6x6/cruiseTerminal6-01_m.png'],
+  ['cruise_terminal_6x6_back', 'Models/specialSites/6x6/cruiseTerminal6-01_back.png'],
+  ['cruise_terminal_6x6_back_m', 'Models/specialSites/6x6/cruiseTerminal6-01_back_m.png'],
+].map(([spriteKey, path]) => Object.freeze({ spriteKey, path, footprintCols: 6, footprintRows: 6 })));
 
 const SPECIAL_BUILDING_MODEL_VARIANTS = {
   fish_market: [
@@ -1297,6 +1313,7 @@ function getAllSpecialBuildingModels(buildingType) {
   ];
   if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
   if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
+  if (buildingType === 'cruise_terminal') return [...models, ...CRUISE_TERMINAL_FACING_MODELS];
   return models;
 }
 
@@ -1532,6 +1549,7 @@ const SPECIAL_BUILDING_UNLOCKS = {
   murray_house:       { unlockAttractiveness: 60, maxCount: 1 },
   ocean_park:         { requiresResolution: 'oceanParkDevelopmentProject', hideUntilApproved: true, maxCount: 1 },
   community_centre:   { unlockPopulation: 3000 },
+  cruise_terminal:    { unlockPopulation: 40000, maxCount: 2 },
   football_stadium:   { unlockPopulation: 40000, maxCount: 1 },
   airport:            { requiresResolution: 'roseGardenAirportProject', hideUntilApproved: true, maxCount: 1 },
   container_port:     { unlockPopulation: 15000 },
@@ -1548,6 +1566,8 @@ const SPECIAL_BUILDING_UNLOCKS = {
 const SPECIAL_BUILDING_EFFECTS = {
   // reaches the people in need within WELFARE_TUNING.communityCentreRadius (welfare.js)
   community_centre:   { happinessBonus: 0.004, communitySupportBonus: 0.01, upkeep: 160 },
+  // its takings are the passengers' (cruise-terminal.js: tourism and dues); this is the berth's lease
+  cruise_terminal:    { attractivenessBonus: 4, landValueBonus: 0.04, landValueRadius: 8, revenue: 300, upkeep: 1500 },
   public_market:      { landValueBonus: 0.02, landValueRadius: 6, upkeep: 80 },
   exhibition_center: { attractivenessBonus: 6,  landValueBonus: 0.10, landValueRadius: 10, revenue: 260, upkeep: 900 },
   cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
@@ -1583,6 +1603,7 @@ const SPECIAL_BUILDING_EFFECTS = {
 
 const SPECIAL_BUILDING_COSTS = {
   community_centre:   1800,
+  cruise_terminal:    40000,
   public_market:      3200,
   exhibition_center: 15000,
   cultural_center:    9000,
@@ -1688,6 +1709,7 @@ const BUILDING_POWER_DEMAND = {
   fish_market: 6,
   public_market: 8,
   community_centre: 6,
+  cruise_terminal: 24,
   seafood_restaurant: 4,
   fish_loading_bay: 1,
   yacht_club: 5,

@@ -39,6 +39,7 @@ const INFRA_COSTS = {
 const LANDMARK_TOOL_BUILDING_TYPES = {
   'public-market':     'public_market',
   'community-centre':  'community_centre',
+  'cruise-terminal':   'cruise_terminal',
   'exhibition-center': 'exhibition_center',
   'cultural-center':   'cultural_center',
   'space-museum':      'space_museum',
@@ -454,6 +455,8 @@ function getInfraPlacementQuote(row, col, buildingType, buildingModel) {
     if (!canPlaceHarborFootprint(row, col)) reason = t('toast.harborNeedsCoastline');
   } else if (marine) {
     reason = whyNotTyphoonShelterBuilding(row, col, footprintCols, footprintRows) || '';
+  } else if (buildingType === 'cruise_terminal' && typeof whyNotCruiseTerminal === 'function') {
+    reason = whyNotCruiseTerminal(row, col) || '';
   } else if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) reason = t('mobile.blocked');
   if (!reason && buildingType === 'gold_coast_hotel') reason = whyNotGoldCoastHotel(row, col, footprintCols, footprintRows) || '';
   return { ok: !reason, reason, cost: INFRA_COSTS[buildingType], footprintCols, footprintRows };

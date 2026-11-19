@@ -273,7 +273,9 @@ function ferryBerthPoint(pier) {
  * map's. Returns [[r, c], ...] from one of A's berth ends to one of B's, or null.
  */
 function findFerryPath(from, to, passable, height, width, berthOffset = null) {
-  const starts = ferryBerthEnds(from, berthOffset).filter(({ tile: [r, c] }) => passable(r, c));
+  // (from.startTiles: a cruise ship's run-in off its terminal, cruise-terminal.js, leaving by from.leaveDir)
+  const starts = (Array.isArray(from?.startTiles) ? from.startTiles.map((tile) => ({ tile })) : ferryBerthEnds(from, berthOffset))
+    .filter(({ tile: [r, c] }) => passable(r, c));
   // (to.goalTiles: the water at the map edge a route off the map leaves by)
   const goalTiles = Array.isArray(to?.goalTiles) ? to.goalTiles : ferryBerthEnds(to, berthOffset).map(({ tile }) => tile);
   const goals = new Set(goalTiles.filter(([r, c]) => passable(r, c)).map(([r, c]) => r * width + c));
@@ -301,7 +303,7 @@ function findFerryPath(from, to, passable, height, width, berthOffset = null) {
     return top;
   };
   // straight out to sea from the berth it leaves
-  const leave = dirs.indexOf(FERRY_OPPOSITE[from.land]);
+  const leave = dirs.indexOf(from?.leaveDir || FERRY_OPPOSITE[from.land]);
   starts.forEach(({ tile: [r, c] }) => { const s = (r * width + c) * 4 + leave; dist[s] = 0; push(0, s); });
   let found = -1;
   while (heap.length) {

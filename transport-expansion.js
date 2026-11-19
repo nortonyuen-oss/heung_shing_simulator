@@ -196,6 +196,7 @@ const TRANSPORT_DESTINATION_UNITS = Object.freeze({
   football_stadium: 220,
   airport: 260,
   container_port: 180,
+  cruise_terminal: 220,
 });
 
 const GAME_EXPANSION_REGISTRY = Object.freeze({

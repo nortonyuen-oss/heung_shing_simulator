@@ -39,12 +39,13 @@ function preview(c, tool, start, end = start, options = {}) {
   return c.previewTouchToolAction(c.scene, { tool, start, end, options });
 }
 
-test('Phase B covers exactly the approved 33 buildings and six other tools; legacy house stays desktop-only', () => {
+test('Phase B covers exactly the approved 34 buildings and six other tools; legacy house stays desktop-only', () => {
   const c = setup();
-  // 33 with the 社區中心 (welfare.js, P4)
-  assert.equal(vm.runInContext('Object.keys(TOUCH_BUILDING_TYPES).length', c), 33);
+  // 34 with the 社區中心 (welfare.js, P4) and the 郵輪碼頭 (cruise-terminal.js, P4)
+  assert.equal(vm.runInContext('Object.keys(TOUCH_BUILDING_TYPES).length', c), 34);
   assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['community-centre']", c), 'community_centre');
-  assert.equal(vm.runInContext('TOUCH_PHASE_B_TOOLS.length', c), 39);
+  assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['cruise-terminal']", c), 'cruise_terminal');
+  assert.equal(vm.runInContext('TOUCH_PHASE_B_TOOLS.length', c), 40);
   assert.equal(vm.runInContext("TOUCH_PHASE_B_TOOLS.includes('house')", c), false);
 });
 

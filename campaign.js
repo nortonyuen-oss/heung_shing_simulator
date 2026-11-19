@@ -330,6 +330,23 @@
     return facts;
   }
 
+  // 郵輪碼頭 (cruise-terminal.js, P4 第 14 章): last month's calls, passengers and the share of them who
+  // left by public transport (the script's 上月), this month's calls, and the call-day peak on the roads
+  function collectCruiseFacts() {
+    const facts = { cruiseCalls: 0, cruisePassengers: 0, cruiseTransitShare: 0, cruiseCallsThisMonth: 0, cruisePeakTraffic: 0 };
+    try {
+      if (typeof getCruiseLastMonth === 'function') {
+        const last = getCruiseLastMonth();
+        facts.cruiseCalls = last.calls;
+        facts.cruisePassengers = last.passengers;
+        facts.cruiseTransitShare = last.transitShare;
+      }
+      if (typeof getCruiseState === 'function') facts.cruiseCallsThisMonth = getCruiseState().calls;
+      if (typeof getCruisePeakTraffic === 'function') facts.cruisePeakTraffic = getCruisePeakTraffic();
+    } catch { /* no terminal */ }
+    return facts;
+  }
+
   // 福利同舊樓 (welfare.js, P4 第 15 章): the welfare coverage and the bills that reach anyone; the
   // 危樓, the residents' average condition and the repairs made; 治安指數 = 100 - the crime rate (%)
   function collectWelfareFacts() {
@@ -385,6 +402,7 @@
       ...collectP3Facts(),
       ...collectHousingFacts(),
       ...collectWelfareFacts(),
+      ...collectCruiseFacts(),
       crimeRate: Number(city.crimeRateIndex) || 0,
       tourismAppeal: Number(city.tourismAppeal) || 0,
       pollution: Number(city.pollution) || 0,

@@ -128,6 +128,8 @@ const city = {
   // 貨櫃貨運 (port-freight.js): this month's rates (derived) and the months' record (saved)
   portFreight: null,
   portFreightHistory: [],
+  cruiseTerminal: null,
+  cruiseHistory: [],
   // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
   housingZones: {},
   // 舊樓 (welfare.js): homes repaired and blocks redeveloped, all time
@@ -490,6 +492,8 @@ function resetGameState() {
   city.regionFlows = null;
   city.portFreight = null;
   city.portFreightHistory = [];
+  city.cruiseTerminal = null;
+  city.cruiseHistory = [];
   city.housingZones = {};
   city.buildingRepairs = 0;
   city.buildingRebuilds = 0;
@@ -1072,6 +1076,8 @@ function computeLandmarkFinancials() {
   if (typeof getPublicMarketMonthlyRevenue === 'function') revenue += getPublicMarketMonthlyRevenue();
   // the container ports' dues on what they carried, on top of their flat lease (port-freight.js)
   if (typeof getPortFreightMonthlyDues === 'function') revenue += getPortFreightMonthlyDues();
+  // and the cruise terminals' passenger dues (cruise-terminal.js)
+  if (typeof getCruiseMonthlyDues === 'function') revenue += getCruiseMonthlyDues();
   return { revenue, upkeep };
 }
 

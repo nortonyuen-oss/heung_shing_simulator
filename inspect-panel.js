@@ -424,6 +424,10 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData.type === 'container_port') {
       html += buildContainerPortInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
     }
+    // 郵輪碼頭 (cruise-terminal.js): the month's calls, the passengers and how they get into town
+    if (bData.type === 'cruise_terminal' && typeof buildCruiseTerminalInspectHtml === 'function') {
+      html += buildCruiseTerminalInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
+    }
   }
 
   // Infrastructure building

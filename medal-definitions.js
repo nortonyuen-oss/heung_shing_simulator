@@ -100,7 +100,7 @@
       name: T('超級聯繫人', 'Super-Connector', 'スーパーコネクター'),
       desc: T('區外連線、貨櫃碼頭、機場（可跨存檔累積）', 'A region connection, a container port and an airport (may accumulate across saves)', '区外連絡道路・コンテナ港・空港（セーブ間で累積可）'),
       parts: [
-        { id: 'region', name: T('區外連線', 'Region connection', '区外連絡道路'), check: (s) => num(s.regionConnections) > 0 },
+        { id: 'region', name: T('區外連線', 'Region connection', '区外連絡道路'), check: (s) => num(s.regionConnections) > 0 || num(s.offMapLines) > 0 },
         { id: 'port', name: T('貨櫃碼頭', 'Container port', 'コンテナ港'), check: (s) => built(s, 'container_port') },
         { id: 'airport', name: T('機場', 'Airport', '空港'), check: (s) => built(s, 'airport') },
       ],

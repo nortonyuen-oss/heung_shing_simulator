@@ -539,14 +539,14 @@
       { speaker: 'resident', text: T('塞車塞到痴線呀！', 'This traffic is driving me mad!', '渋滞で頭がおかしくなりそうだ！') },
       { speaker: 'engineer', text: T('巴士唔夠，輕鐵都要建；仲要識得過馬路。', 'Not enough buses, so we build the light rail too - and it has to know how to cross a road.', 'バスが足りないならライトレールも作る。しかも道路を渡れるようにね。') },
       { card: T('任務開始：屯門《塞車塞到痴線》', 'Mission start: Tuen Mun - "Jammed Up"', '任務開始：屯門「渋滞で発狂寸前」'),
-        hint: T('開辦五條有乘客嘅巴士線（三條跨區）、令輕鐵載客，降低擠塞同罪案。地區牌劃分地區：一條線嘅車站喺兩個地區牌範圍內就算跨區。', 'Run five bus routes with riders (three across districts), get the light rail carrying people, and bring down congestion and crime. District signs mark districts: a route with stops in two signs\' areas crosses districts.', '乗客のいるバス路線を5本（うち3本は区をまたぐ）、ライトレールで乗客を運び、渋滞と犯罪を減らそう。地区標識が地区を区切る。2つの標識の範囲に停留所がある路線が「区をまたぐ」。') },
+        hint: T('開辦五條有乘客嘅巴士線（三條跨區）、令輕鐵載客，降低擠塞同罪案。跨區：一條線開去區外站（起線時㩒地圖邊出區嘅路，揀元朗、天水圍等），或者車站喺兩個地區牌範圍內。', 'Run five bus routes with riders (three across districts), get the light rail carrying people, and bring down congestion and crime. Across districts: a route to an off-map stop (click a road leaving the map edge while picking stops, and choose Yuen Long, Tin Shui Wai...), or with stops in two district signs\' areas.', '乗客のいるバス路線を5本（うち3本は区をまたぐ）、ライトレールで乗客を運び、渋滞と犯罪を減らそう。区をまたぐ路線：区外の停留所へ向かう路線（停留所選択中にマップの端から出る道路をクリックし、元朗・天水囲などを選ぶ）、または2つの地区標識の範囲に停留所がある路線。') },
     ]),
     stars: Object.freeze([
       {
         title: T('屯門通車', 'Tuen Mun Gets Moving', '屯門、開通'),
         objectives: Object.freeze([
           busRoutesObjective(5),
-          { id: 'crossDistrict', label: T('當中 3 條跨區（車站喺兩個或以上地區牌範圍）', 'Three of them cross districts (stops in two or more district signs\' areas)', 'うち3本が区をまたぐ（2つ以上の地区標識の範囲に停留所）'),
+          { id: 'crossDistrict', label: T('當中 3 條跨區（開去區外站，或者車站喺兩個地區牌範圍）', 'Three of them cross districts (to an off-map stop, or stops in two district signs\' areas)', 'うち3本が区をまたぐ（区外の停留所へ、または2つの地区標識の範囲に停留所）'),
             check: (s) => num(s.crossDistrictRoutes) >= 3, progress: (s) => `${fmt(s.crossDistrictRoutes)} / 3` },
           ridersObjective('lightRail', 'lightRail', 1, T('輕鐵有乘客', 'The light rail carries passengers', 'ライトレールに乗客')),
           { id: 'traffic', label: T('交通擠塞指數不高於 50%', 'Traffic congestion at 50% or less', '交通渋滞指数50%以下'),
@@ -569,9 +569,11 @@
       {
         title: T('新市鎮唔再困住', 'The New Town Breaks Free', 'ニュータウン、もう閉じ込められない'),
         objectives: Object.freeze([
-          { id: 'share', label: T('公共交通每月載客達人口 30%', 'Public transport carries 30% of the population a month', '公共交通の月間乗客が人口の30%'),
-            check: (s) => num(s.population) > 0 && num(s.transitRiders) >= num(s.population) * 0.3,
-            progress: (s) => `${fmt(s.transitRiders)} / ${fmt(num(s.population) * 0.3)}` },
+          // 跨區公共交通分擔率 (docs/region-transit-design.md §6): the cross-district commuters the
+          // lines off the map carried, of all of them
+          { id: 'share', label: T('跨區公共交通分擔率達 30%', 'Public transport carries 30% of cross-district commuters', '地区をまたぐ通勤の公共交通分担率30%'),
+            check: (s) => num(s.offMapShare) >= 0.3,
+            progress: (s) => `${pct(s.offMapShare)} / 30%` },
           { id: 'safety', label: T('罪案指數低於 20%', 'Crime under 20%', '犯罪指数20%未満'),
             check: (s) => num(s.crimeRate) < 0.2, progress: (s) => pct(s.crimeRate) },
           { id: 'landmarks', label: T('有黃金海岸酒店同遊艇會', 'The Gold Coast Hotel and a yacht club', 'ゴールドコーストホテルとヨットクラブ'),

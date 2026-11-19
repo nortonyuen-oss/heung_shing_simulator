@@ -192,6 +192,7 @@ test('P2 runtime: the snapshot reads bus routes, districts, shelters, the promen
   const stops = [
     { id: 1, row: 10, col: 10 }, { id: 2, row: 12, col: 60 }, // two districts
     { id: 3, row: 11, col: 11 }, { id: 4, row: 13, col: 12 }, // one district
+    { id: 5, row: 0, col: 11, offMap: { side: 'n', destination: 'yuen-long' } }, // 區外站
   ];
   context.isTransportExpansionActive = () => true;
   context.getTransportExpansionState = () => ({
@@ -201,6 +202,8 @@ test('P2 runtime: the snapshot reads bus routes, districts, shelters, the promen
       { id: 'b', status: 'active', stopIds: [3, 4], history: [{ passengers: 90, net: -40 }] },
       { id: 'c', status: 'suspended', stopIds: [1, 2], history: [{ passengers: 500, net: 300 }] },
       { id: 'd', status: 'active', stopIds: [1, 2], history: [{ passengers: 0, net: -15 }] },
+      // within one district, but out to 元朗 off the map: crosses districts too
+      { id: 'e', status: 'active', stopIds: [3, 5], history: [{ passengers: 200, net: 10 }] },
     ],
   });
   context.getDistrictKeyForTile = (row, col) => (col < 40 ? 'west' : 'east');
@@ -213,9 +216,9 @@ test('P2 runtime: the snapshot reads bus routes, districts, shelters, the promen
     { id: 'dragonBoat', year: 1902, outcome: 'noVenue' }, { id: 'christmas', year: 1902, outcome: 'skipped' },
   ] });
   const snapshot = context.buildCampaignSnapshot();
-  assert.equal(snapshot.busRoutes, 2, 'running routes with riders last month');
-  assert.equal(snapshot.busRoutesNet, 80);
-  assert.equal(snapshot.crossDistrictRoutes, 1);
+  assert.equal(snapshot.busRoutes, 3, 'running routes with riders last month');
+  assert.equal(snapshot.busRoutesNet, 90);
+  assert.equal(snapshot.crossDistrictRoutes, 2, 'by district signs, or to a 區外站');
   assert.equal(snapshot.typhoonShelters, 1);
   assert.equal(snapshot.yachts, 3);
   assert.equal(snapshot.promenadeLongest, 5);
@@ -232,4 +235,11 @@ test('P2 runtime: without the transport expansion or any shelters, the new facts
     assert.equal(snapshot[key], 0, key);
   });
   assert.equal(Object.keys(snapshot.festivalHeldYear).length, 0);
+});
+
+test('07 star 3: 跨區公共交通分擔率 is the share of cross-district commuters the lines off the map carry', () => {
+  const share = specs.ch07.stars[2].objectives.find((objective) => objective.id === 'share');
+  assert.equal(share.check({ offMapShare: 0.3 }), true);
+  assert.equal(share.check({ offMapShare: 0.29, transitRiders: 1e9, population: 1 }), false, 'not all riders: the cross-district ones');
+  assert.equal(share.progress({ offMapShare: 0.125 }), '13% / 30%');
 });

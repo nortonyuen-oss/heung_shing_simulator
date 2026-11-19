@@ -217,6 +217,8 @@ function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, 
     approachingStop: false,
     lastSeenRevenueSerial: backing?.tripRevenueSerial || 0,
     renderedProgress: 0,
+    offMapAlpha: backing && typeof getTransportVehicleOffMapAlpha === 'function'
+      ? getTransportVehicleOffMapAlpha(backing, route, runtime) : 1,
   };
   if (typeof createTrafficVehicleLights === 'function') {
     createTrafficVehicleLights(scene, vehicle);
@@ -248,11 +250,14 @@ function setManagedTransportVehicleVisual(vehicle, position, forceDepth = false)
     : getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
   vehicle.sprite.setDepth(depth);
   vehicle.badge.setDepth(getWorldDepth('effect', position.depthY + TILE_HEIGHT / 2));
-  // under the sea in a 海底隧道, out of sight with its badge and lamps (traffic-visuals.js)
-  const underSea = typeof isTrafficVehicleUnderSea === 'function' && isTrafficVehicleUnderSea(vehicle);
+  // under the sea in a 海底隧道, out of sight with its badge and lamps (traffic-visuals.js); or
+  // off the map at a 區外站, fading out over the last tiles before the edge and back in after
+  const offMapAlpha = Number.isFinite(vehicle.offMapAlpha) ? vehicle.offMapAlpha : 1;
+  const underSea = (typeof isTrafficVehicleUnderSea === 'function' && isTrafficVehicleUnderSea(vehicle)) || offMapAlpha <= 0.02;
   if (vehicle.sprite.visible === underSea) vehicle.sprite.setVisible(!underSea);
-  if (underSea) vehicle.badge.setVisible(false);
-  if (underSea) {
+  if (vehicle.sprite.alpha !== offMapAlpha) vehicle.sprite.setAlpha(offMapAlpha);
+  if (underSea || offMapAlpha < 0.6) vehicle.badge.setVisible(false);
+  if (underSea || offMapAlpha < 0.6) {
     if (vehicle.lightsVisible !== false && typeof forEachTrafficVehicleLamp === 'function') {
       forEachTrafficVehicleLamp(vehicle, (lamp) => { lamp.setVisible(false).setAlpha(0); });
       forEachTrafficVehicleTube(vehicle, (bar) => { bar.setVisible(false).setAlpha(0); });
@@ -360,6 +365,8 @@ function syncManagedTransportVehiclePosition(scene, vehicle, backing, leaderBuck
     ? getTransportVehiclePathPosition(backing, vehicle.route, vehicle.runtime)
     : null;
   if (!target) return;
+  vehicle.offMapAlpha = typeof getTransportVehicleOffMapAlpha === 'function'
+    ? getTransportVehicleOffMapAlpha(backing, vehicle.route, vehicle.runtime) : 1;
   vehicle.cycle = target.path;
   const legChanged = vehicle.currentIndex !== target.currentIndex;
   if (legChanged) {
@@ -587,7 +594,7 @@ function updateTransportVisuals(time, delta) {
   const showRouteMarkers = typeof isTransportRouteOverlayRequested === 'function'
     && isTransportRouteOverlayRequested();
   // not under the sea in a 海底隧道, where the bus itself is out of sight (setManagedTransportVehicleVisual)
-  state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers && vehicle.sprite?.visible !== false));
+  state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers && vehicle.sprite?.visible !== false && (vehicle.offMapAlpha ?? 1) >= 0.6));
   if (state.vehicles.length === 0) return;
   const leaderBuckets = buildTrafficLegBuckets([
     ...state.vehicles,

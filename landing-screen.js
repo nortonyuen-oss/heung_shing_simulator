@@ -885,6 +885,10 @@ async function startNewGame(cityName, options = {}) {
   city.regionNeighbours = typeof computeRegionNeighbours === 'function'
     ? computeRegionNeighbours({ districtId: city.districtProfileId, features: terrain?.features })
     : null;
+  // 區外交通: where lines may run off the map (a 香港實景 window's sides only make sense now)
+  city.regionDestinations = typeof computeRegionDestinations === 'function'
+    ? computeRegionDestinations({ districtId: city.districtProfileId, features: terrain?.features })
+    : null;
   if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns();
   if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
   if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();

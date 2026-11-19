@@ -124,6 +124,11 @@
       if (route.status === 'suspended' || !last || !(Number(last.passengers) > 0)) return;
       facts.busRoutes += 1;
       facts.busRoutesNet += Number(last.net) || 0;
+      // a route to a 區外站 crosses districts by going to another (docs/region-transit-design.md)
+      if ((route.stopIds || []).some((id) => stops.get(id)?.offMap)) {
+        facts.crossDistrictRoutes += 1;
+        return;
+      }
       if (typeof getDistrictKeyForTile !== 'function') return;
       const districts = new Set();
       (route.stopIds || []).forEach((id) => {

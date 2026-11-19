@@ -125,6 +125,8 @@ const city = {
   // 區外連線: each side's neighbouring district id (null = a neutral 鄰區) and last month's flows
   regionNeighbours: null,
   regionFlows: null,
+  // 區外交通: each side's districts a line can run off the map to, nearest first ({ id, km })
+  regionDestinations: null,
   // 海底隧道 (undersea-tunnel.js): its two portals (tiles, direction, approach roads) and the sea tiles it runs under
   underseaTunnels: [],
   budget: STARTING_BUDGET,
@@ -468,6 +470,7 @@ function resetGameState() {
   city.districtProfileId = '';
   city.regionNeighbours = null;
   city.regionFlows = null;
+  city.regionDestinations = null;
   city.underseaTunnels = [];
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
   city.promenade = { version: 1, tiles: {} };

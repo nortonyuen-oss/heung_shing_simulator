@@ -481,7 +481,7 @@ function renderTransportEditor() {
   const stopRows = stops.length > 0 ? stops.map((stop, index) => `
     <div class="transport-stop-row">
       <strong>${index + 1}</strong>
-      <span>${transportEscapeHtml(getTransportStopDisplayName(stop, index))} <small>(${stop.row}, ${stop.col})</small></span>
+      <span>${transportEscapeHtml(getTransportStopDisplayName(stop, index))} <small>(${stop.row}, ${stop.col})</small>${stop.offMap ? renderTransportOffMapStopPicker(stop, index) : ''}</span>
       <button class="transport-icon-btn" type="button" data-transport-action="stop-up" data-index="${index}" title="${transportEscapeHtml(t('transport.moveUp'))}" ${index === 0 ? 'disabled' : ''}>↑</button>
       <button class="transport-icon-btn" type="button" data-transport-action="stop-down" data-index="${index}" title="${transportEscapeHtml(t('transport.moveDown'))}" ${index === stops.length - 1 ? 'disabled' : ''}>↓</button>
       <button class="transport-icon-btn" type="button" data-transport-action="stop-remove" data-index="${index}" title="${transportEscapeHtml(t('transport.removeStop'))}">×</button>
@@ -524,6 +524,9 @@ function renderTransportRouteCard(route, index) {
     [t('transport.metric.passengers'), Math.round(stats.monthlyPassengers || 0).toLocaleString()],
     [t('transport.metric.load'), transportFormatPercent(stats.loadFactor || 0)],
     [t('transport.metric.reliability'), transportFormatPercent(stats.reliability || 0)],
+    ...(stops.some((stop) => stop.offMap)
+      ? [[t('transport.metric.offMap'), Math.round(route.history.at(-1)?.offMapPassengers || 0).toLocaleString()]]
+      : []),
     [t('transport.metric.fareDistance'), t('transport.metric.fareDistanceValue', {
       tiles: Number(stats.averageFareDistanceTiles || 0).toFixed(1),
     })],
@@ -1792,6 +1795,7 @@ function beginTransportRouteEditor(route = null) {
 
 function cancelTransportRouteEditor() {
   transportUiState.editor = null;
+  if (typeof pruneTransportOffMapStops === 'function') pruneTransportOffMapStops();
   transportUiState.pickingStops = false;
   setTransportUiMessage('');
   refreshTransportUi();
@@ -1858,6 +1862,16 @@ function handleTransportUiInput(event) {
 }
 
 function handleTransportUiChange(event) {
+  const offMapSelect = event.target.closest('[data-transport-offmap-index]');
+  if (offMapSelect && transportUiState.editor) {
+    const index = Number(offMapSelect.dataset.transportOffmapIndex);
+    const current = getTransportStopById(transportUiState.editor.stopIds[index]);
+    if (current?.offMap) {
+      const next = getOrCreateTransportOffMapStop({ row: current.row, col: current.col, side: current.offMap.side, destination: offMapSelect.value });
+      if (next) transportUiState.editor.stopIds[index] = next.id;
+    }
+    return refreshTransportUi();
+  }
   const fleetSort = event.target.closest('[data-transport-fleet-sort]');
   if (fleetSort) {
     transportUiState.fleetSort = fleetSort.value;
@@ -2046,6 +2060,7 @@ function handleTransportRouteMapClick(row, col) {
   if (!isTransportRoutePicking()) return false;
   const stop = getTransportStopAt(row, col, { presentOnly: true });
   if (!stop) {
+    if (handleTransportOffMapStopClick(row, col)) return true;
     setTransportUiMessage(t('transport.error.missingStop'), 'error');
     refreshTransportUi();
     return true;
@@ -2056,12 +2071,54 @@ function handleTransportRouteMapClick(row, col) {
     stopIds.splice(existingIndex, 1);
     setTransportUiMessage(t('transport.toast.stopRemoved'), 'info');
   } else {
-    stopIds.push(stop.id);
+    // a 區外站 at the end stays the end
+    const last = getTransportStopById(stopIds[stopIds.length - 1]);
+    if (last?.offMap && stopIds.length > 0) stopIds.splice(stopIds.length - 1, 0, stop.id);
+    else stopIds.push(stop.id);
     setTransportUiMessage(t('transport.toast.stopAdded'), 'success');
   }
   refreshTransportUi();
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
   return true;
+}
+
+// 區外站 (docs/region-transit-design.md): a click on (or near) a road leaving the map edge adds the
+// route's stop off the map, to the nearest district that way; the stop list picks another. Again
+// on the same exit takes it off.
+function handleTransportOffMapStopClick(row, col) {
+  const exit = typeof getRegionTransitExitNear === 'function' ? getRegionTransitExitNear(row, col) : null;
+  if (!exit) return false;
+  const stopIds = transportUiState.editor.stopIds;
+  const currentIndex = stopIds.findIndex((id) => getTransportStopById(id)?.offMap);
+  if (currentIndex >= 0) {
+    const current = getTransportStopById(stopIds[currentIndex]);
+    if (current.offMap.side === exit.side && exit.tiles.some((tile) => tile.row === current.row && tile.col === current.col)) {
+      stopIds.splice(currentIndex, 1);
+      setTransportUiMessage(t('transport.toast.stopRemoved'), 'info');
+    } else {
+      setTransportUiMessage(t('transport.error.offMapOne'), 'error');
+    }
+    refreshTransportUi();
+    return true;
+  }
+  const destination = getRegionDestinations()[exit.side][0];
+  const stop = getOrCreateTransportOffMapStop({ row: exit.row, col: exit.col, side: exit.side, destination: destination.id });
+  if (!stop) return false;
+  stopIds.push(stop.id);
+  setTransportUiMessage(t('transport.toast.offMapAdded', { place: getRegionDestinationName(destination.id) }), 'success');
+  refreshTransportUi();
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+  return true;
+}
+
+function renderTransportOffMapStopPicker(stop, index) {
+  const options = getRegionDestinations()[stop.offMap.side].map((destination) => `
+    <option value="${transportEscapeHtml(destination.id)}" ${destination.id === stop.offMap.destination ? 'selected' : ''}>${transportEscapeHtml(getRegionDestinationName(destination.id))}${destination.km > 0 ? ` · ${destination.km} km` : ''}</option>`).join('');
+  return `
+      <label class="transport-offmap-picker">${transportEscapeHtml(t('transport.offMap.destination'))}
+        <select data-transport-offmap-index="${index}">${options}</select>
+      </label>
+      <small>${transportEscapeHtml(t('transport.offMap.leg', { tiles: getTransportOffMapLegTiles(stop) }))}</small>`;
 }
 
 function isTransportRouteOverlayRequested() {

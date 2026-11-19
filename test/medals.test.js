@@ -96,6 +96,12 @@ test('A15-A19 as set on the real saves (docs/medals-design.md §5)', () => {
   assert.equal(earns({ surplusStreak: 12 }, 'A19'), true);
 });
 
+test('超級聯繫人: a line off the map is a connection to the neighbours too (區外交通)', () => {
+  const profile = medals.createEmptyMedalProfile();
+  medals.evaluateMedals({ buildings: {}, regionConnections: 0, offMapLines: 1 }, profile, stamp('荃灣'));
+  assert.ok(profile.parts.A03.region);
+});
+
 test('parts build up across cities (C.7 跨存檔): 超級聯繫人 from two saves', () => {
   const profile = medals.createEmptyMedalProfile();
   let result = medals.evaluateMedals({ buildings: {}, regionConnections: 2 }, profile, stamp('北區'));

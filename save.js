@@ -1546,6 +1546,9 @@ function applySaveData(scene, save) {
   // 區外連線: older saves have neutral neighbours on every side
   city.regionNeighbours = savedCityState.regionNeighbours && typeof savedCityState.regionNeighbours === 'object'
     ? savedCityState.regionNeighbours : null;
+  // 區外交通: older saves work theirs out from the district map when first asked (region-connections.js)
+  city.regionDestinations = savedCityState.regionDestinations && typeof savedCityState.regionDestinations === 'object'
+    ? savedCityState.regionDestinations : null;
   city.underseaTunnels = Array.isArray(savedCityState.underseaTunnels) ? savedCityState.underseaTunnels : [];
   if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
   if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();

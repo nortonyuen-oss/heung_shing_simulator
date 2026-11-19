@@ -207,6 +207,19 @@
       const connections = typeof detectRegionConnections === 'function' ? detectRegionConnections() : [];
       regionConnections = Array.isArray(connections) ? connections.length : 0;
     } catch { /* a map without edges */ }
+    // 區外交通 (docs/region-transit-design.md): lines off the map, last month's riders at their
+    // 區外站 by mode and destination, and the cross-district commuters they carried
+    let offMapLines = 0;
+    const offMap = {};
+    try {
+      const summary = typeof getRegionTransitSummary === 'function' ? getRegionTransitSummary() : null;
+      offMapLines = summary?.lines || 0;
+      Object.entries(summary?.byModeDestination || {}).forEach(([key, riders]) => {
+        const [mode, destination] = key.split(':');
+        (offMap[mode] ||= {})[destination] = riders;
+      });
+    } catch { /* no lines off the map */ }
+    const offMapShare = Math.max(0, Math.min(1, Number(city.regionFlows?.transitShare) || 0));
 
     // What older saves already did before medals existed: approved one-offs are held events, and
     // the council's history still has the outcomes of the last fifty.
@@ -247,6 +260,9 @@
       transitRiders,
       ferryPiers,
       regionConnections,
+      offMapLines,
+      offMap,
+      offMapShare,
       commercialTax: Number(city.lastBudgetSnapshot?.income?.commercialTax) || 0,
       commercialCount: Number(city.commercialCount) || 0,
       industrialCount: Number(city.industrialCount) || 0,

@@ -922,6 +922,8 @@ function computeHappiness(scene) {
   // 福利法案 and 危樓 (welfare.js)
   const welfareBonus = typeof getWelfareHappinessBonus === 'function' ? getWelfareHappinessBonus() : 0;
   const oldBuildingPenalty = typeof getOldBuildingHappinessPenalty === 'function' ? getOldBuildingHappinessPenalty() : 0;
+  // the night flights over the homes under the airport's noise (airport-routes.js)
+  const airportNightPenalty = typeof getAirportNightHappinessPenalty === 'function' ? getAirportNightHappinessPenalty() : 0;
   const portTruckPenalty = typeof getPortFreightCityHappinessPenalty === 'function'
     ? getPortFreightCityHappinessPenalty()
     : 0;
@@ -933,7 +935,7 @@ function computeHappiness(scene) {
       + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
       + ridiculeMemeBonus
       - taxPenalty - pollPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty
-      - ridiculeReputationPenalty - portTruckPenalty - oldBuildingPenalty,
+      - ridiculeReputationPenalty - portTruckPenalty - oldBuildingPenalty - airportNightPenalty,
     0, 1
   );
 }

@@ -330,6 +330,23 @@
     return facts;
   }
 
+  // 航班 (airport-routes.js, P4 第 10 章): the routes carrying anyone, the passengers a month, the daily
+  // flights, the curfew and the residents under the noise
+  function collectAirportFacts() {
+    const facts = { airportRoutes: 0, airportPassengers: 0, airportDailyFlights: 0, airportCurfew: false, airportNoiseResidents: 0 };
+    try {
+      if (typeof getAirportState === 'function') {
+        const state = getAirportState();
+        facts.airportRoutes = state.routesFlying;
+        facts.airportPassengers = state.passengers;
+        facts.airportDailyFlights = state.dailyFlights;
+        facts.airportCurfew = !!state.curfew;
+        facts.airportNoiseResidents = state.noiseResidents;
+      }
+    } catch { /* no airport */ }
+    return facts;
+  }
+
   // 郵輪碼頭 (cruise-terminal.js, P4 第 14 章): last month's calls, passengers and the share of them who
   // left by public transport (the script's 上月), this month's calls, and the call-day peak on the roads
   function collectCruiseFacts() {
@@ -403,6 +420,7 @@
       ...collectHousingFacts(),
       ...collectWelfareFacts(),
       ...collectCruiseFacts(),
+      ...collectAirportFacts(),
       crimeRate: Number(city.crimeRateIndex) || 0,
       tourismAppeal: Number(city.tourismAppeal) || 0,
       pollution: Number(city.pollution) || 0,

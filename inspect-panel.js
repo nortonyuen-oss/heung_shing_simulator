@@ -424,6 +424,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData.type === 'container_port') {
       html += buildContainerPortInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
     }
+    // 航班 (airport-routes.js): the routes, their daily flights and the night curfew
+    if (bData.type === 'airport' && typeof buildAirportInspectHtml === 'function') html += buildAirportInspectHtml();
     // 郵輪碼頭 (cruise-terminal.js): the month's calls, the passengers and how they get into town
     if (bData.type === 'cruise_terminal' && typeof buildCruiseTerminalInspectHtml === 'function') {
       html += buildCruiseTerminalInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);

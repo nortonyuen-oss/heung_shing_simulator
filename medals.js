@@ -272,6 +272,8 @@
       highDensityResidents: Math.round(highDensityResidents * districtDensity),
       // 公屋／居屋 (housing-types.js)
       publicHousingResidents: Number(city.housingResidents?.public) || 0,
+      // 航班 (airport-routes.js): the routes carrying passengers
+      airportRoutes: typeof getAirportState === 'function' ? getAirportState().routesFlying : 0,
       hosResidents: Number(city.housingResidents?.hos) || 0,
       privateResidents: Number(city.housingResidents?.private) || 0,
       scienceParkJobs,

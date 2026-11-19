@@ -138,6 +138,7 @@ const REGION_TRANSIT_PLACE_NAMES = Object.freeze({
   'yau-tsim-mong': { zhHant: '尖沙咀', en: 'Tsim Sha Tsui', ja: '尖沙咀' },
   aberdeen: { zhHant: '香港仔', en: 'Aberdeen', ja: '香港仔' },
   lantau: { zhHant: '東涌', en: 'Tung Chung', ja: '東涌' },
+  'chek-lap-kok': { zhHant: '機場', en: 'Airport', ja: '空港' },
 });
 
 // Each side's districts a line can run to: those whose centre lies that way (within 50 degrees,

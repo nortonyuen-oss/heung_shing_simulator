@@ -52,6 +52,7 @@
   const MEDAL_SURPLUS_STREAK_MONTHS = 12;
   // 公屋／居屋 residents (housing-types.js)
   const MEDAL_PUBLIC_HOUSING_RESIDENTS = 50000;
+  const MEDAL_AIRPORT_ROUTES = 5;
   const MEDAL_HOS_RESIDENTS = 20000;
   // A12 (Norton 2026-11-17: 製作一個合理的投資獲利): the script's $2,000,000 was a coin flip after ten
   // game years of buying crashes with $10M; $1,000,000 is the game's own bar for a notable trading
@@ -261,9 +262,11 @@
       live: (s) => fact(s, 'transit:tram') || carried(s, 'tram'),
     },
     {
-      id: 'B07', series: 'B', tier: null, status: 'blocked',
+      id: 'B07', series: 'B', tier: null, status: 'active',
       name: T('衝上雲霄', 'Triumph in the Skies', '衝上雲霄'),
       desc: T('建成機場並開通至少 5 條國際航線', 'An airport with at least 5 international routes', '空港を建設し、国際線を5路線以上開設する'),
+      // routes with passengers on them (airport-routes.js)
+      live: (s) => built(s, 'airport') && num(s.airportRoutes) >= MEDAL_AIRPORT_ROUTES,
     },
     {
       id: 'B08', series: 'B', tier: null, status: 'active',

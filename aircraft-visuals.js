@@ -826,6 +826,10 @@ function updateAircraftAirports(scene, state, scaledDelta, eligibleAirports, all
     const usedGateKeys = new Set(airportState.events.map((event) => event.route.gateKey));
     const freeGateKeys = AIRCRAFT_GATE_KEYS.filter((key) => !usedGateKeys.has(key));
     if (!freeGateKeys.length) continue;
+    // 航班 (airport-routes.js): as many gates in use as the timetable's daily flights call for, and
+    // nothing new in under a night curfew
+    if (typeof getAirportGateCap === 'function' && airportState.events.length >= getAirportGateCap()) continue;
+    if (typeof isAirportCurfewNow === 'function' && isAirportCurfewNow()) continue;
     requestAircraftBundle(scene);
     const gateKey = freeGateKeys[
       Math.min(freeGateKeys.length - 1, Math.floor(aircraftClamp(random(), 0, 0.999999) * freeGateKeys.length))

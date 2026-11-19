@@ -153,6 +153,14 @@ const HK_DISTRICT_INFO = {
       ja: '東涌湾のニュータウンの背後に鳳凰山一帯の高い山々がそびえ、山上には昂坪がある。',
     },
   },
+  'chek-lap-kok': {
+    names: { zhHant: '赤鱲角', en: 'Chek Lap Kok', ja: '赤鱲角' },
+    intro: {
+      zhHant: '大嶼山北岸外的機場島，全是填海平地；隔住東涌灣就是東涌新市鎮和背後的山。',
+      en: 'The airport island off north Lantau, all flat reclaimed land; across Tung Chung Bay, Tung Chung new town and the hills behind it.',
+      ja: 'ランタオ島北岸沖の空港島。すべて埋め立ての平地で、東涌湾の向こうに東涌ニュータウンと背後の山がある。',
+    },
+  },
   lamma: {
     names: { zhHant: '南丫島', en: 'Lamma Island', ja: 'ラマ島' },
     intro: {

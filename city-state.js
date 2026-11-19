@@ -130,6 +130,8 @@ const city = {
   portFreightHistory: [],
   cruiseTerminal: null,
   cruiseHistory: [],
+  airportRoutes: null,
+  airportHistory: [],
   // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
   housingZones: {},
   // 舊樓 (welfare.js): homes repaired and blocks redeveloped, all time
@@ -494,6 +496,8 @@ function resetGameState() {
   city.portFreightHistory = [];
   city.cruiseTerminal = null;
   city.cruiseHistory = [];
+  city.airportRoutes = null;
+  city.airportHistory = [];
   city.housingZones = {};
   city.buildingRepairs = 0;
   city.buildingRebuilds = 0;
@@ -1078,6 +1082,12 @@ function computeLandmarkFinancials() {
   if (typeof getPortFreightMonthlyDues === 'function') revenue += getPortFreightMonthlyDues();
   // and the cruise terminals' passenger dues (cruise-terminal.js)
   if (typeof getCruiseMonthlyDues === 'function') revenue += getCruiseMonthlyDues();
+  // the airport's charges on its passengers, and what its daily flights cost (airport-routes.js)
+  if (typeof getAirportRouteFinancials === 'function') {
+    const flights = getAirportRouteFinancials();
+    revenue += flights.revenue;
+    upkeep += flights.upkeep;
+  }
   return { revenue, upkeep };
 }
 

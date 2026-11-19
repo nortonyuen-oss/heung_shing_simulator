@@ -152,10 +152,15 @@ function updateCityAttractivenessMetrics() {
     * (1 + (typeof getRegionTourismCapacityBonus === 'function' ? getRegionTourismCapacityBonus() : 0))
     * (1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('tourismCapacity') : 0));
   const visitors = Math.max(0, Math.round(capacity * (0.2 + city.tourismAppeal / 100)));
-  // and the cruise passengers, who spend by whether they get into town (cruise-terminal.js)
-  city.monthlyVisitors = visitors + (typeof getCruiseMonthlyVisitors === 'function' ? getCruiseMonthlyVisitors() : 0);
+  // (the city's own: what the flights' demand reads, so they never feed on their own visitors)
+  city.baseVisitors = visitors;
+  // and the cruise passengers, who spend by whether they get into town (cruise-terminal.js), and
+  // the visitors who fly in (airport-routes.js)
+  city.monthlyVisitors = visitors + (typeof getCruiseMonthlyVisitors === 'function' ? getCruiseMonthlyVisitors() : 0)
+    + (typeof getAirportMonthlyVisitors === 'function' ? getAirportMonthlyVisitors() : 0);
   city.tourismRevenue = Math.max(0, Math.round(visitors * (0.45 + city.tourismAppeal / 220)))
-    + (typeof getCruiseTourismRevenue === 'function' ? getCruiseTourismRevenue() : 0);
+    + (typeof getCruiseTourismRevenue === 'function' ? getCruiseTourismRevenue() : 0)
+    + (typeof getAirportTourismRevenue === 'function' ? getAirportTourismRevenue() : 0);
 }
 
 // A bill costs a floor plus N months of the city's monthly income, so the

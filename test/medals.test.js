@@ -18,7 +18,7 @@ const judge = (snapshot, profile = medals.createEmptyMedalProfile()) => {
 };
 const earns = (snapshot, id) => judge(snapshot).newlyEarned.includes(id);
 
-test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 33 judged now', () => {
+test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 34 judged now', () => {
   assert.equal(medals.MEDAL_DEFS.length, 36);
   assert.equal(new Set(medals.MEDAL_DEFS.map((def) => def.id)).size, 36);
   const bySeries = (series) => medals.MEDAL_DEFS.filter((def) => def.series === series).map((def) => def.id);
@@ -27,8 +27,8 @@ test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 33 ju
   assert.deepEqual(bySeries('S'), ['C01', 'D01', 'E01']);
   const byStatus = (status) => medals.MEDAL_DEFS.filter((def) => def.status === status).map((def) => def.id);
   assert.deepEqual(byStatus('locked'), [], 'A15-A19 set 2026-11-17');
-  assert.deepEqual(byStatus('blocked'), ['B07', 'D01', 'E01'], 'routes, Claire, the campaign (公屋/居屋 live since P4)');
-  assert.equal(byStatus('active').length, 33);
+  assert.deepEqual(byStatus('blocked'), ['D01', 'E01'], 'Claire, the campaign (公屋/居屋 and the routes live since P4)');
+  assert.equal(byStatus('active').length, 34);
   medals.MEDAL_DEFS.forEach((def) => {
     ['zhHant', 'en', 'ja'].forEach((language) => {
       assert.ok(def.name[language], `${def.id} name in ${language}`);

@@ -91,7 +91,8 @@
     { id: 'ch07', number: 7, mapId: 'tuen-mun', district: T('屯門', 'Tuen Mun', '屯門'), title: T('塞車塞到痴線', 'Gridlock Madness', '渋滞で頭がおかしくなる') },
     { id: 'ch08', number: 8, mapId: 'yuen-long', district: T('元朗', 'Yuen Long', '元朗'), title: T('魚米之鄉', 'Land of Fish and Rice', '魚米の郷') },
     { id: 'ch09', number: 9, mapId: 'tsuen-wan', district: T('荃灣', 'Tsuen Wan', '荃湾'), title: T('百業興旺', 'All Trades Thriving', '百業繁栄') },
-    { id: 'ch10', number: 10, mapId: 'lantau', district: T('離島', 'Islands', '離島'), title: T('飛越香城', 'Flying Over Heung Shing', '香城を飛び越えて') },
+    // (the 赤鱲角 map, docs/campaign-p4-design.md §4.4: the airport island and 東涌)
+    { id: 'ch10', number: 10, mapId: 'chek-lap-kok', district: T('離島', 'Islands', '離島'), title: T('飛越香城', 'Flying Over Heung Shing', '香城を飛び越えて') },
     { id: 'ch11', number: 11, mapId: 'tsing-yi', district: T('葵青', 'Kwai Tsing', '葵青'), title: T('貨櫃碼頭24小時', 'The 24-Hour Container Port', '24時間コンテナ埠頭') },
     { id: 'ch12', number: 12, mapId: 'eastern', district: T('東區', 'Eastern', '東区'), title: T('叮叮遊港島', 'Ding Ding Around the Island', 'チンチンで港島めぐり') },
     { id: 'ch13', number: 13, mapId: 'kwun-tong', district: T('觀塘', 'Kwun Tong', '観塘'), title: T('觀塘老母', 'Kwun Tong, Seriously', '観塘老母') },

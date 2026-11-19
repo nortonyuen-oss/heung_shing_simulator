@@ -114,17 +114,21 @@ test('P2: star one fits in 24 months at most - 24 for the Dragon Boat race or a 
   });
 });
 
-test('P2: unlocking steps over chapters still to come; a starred chapter stays open', () => {
+test('unlocking steps over chapters still to come; a starred chapter stays open', () => {
   const profile = (stars) => campaign.normalizeCampaignProfile({ chapters: Object.fromEntries(Object.entries(stars).map(([id, n]) => [id, { stars: n }])) });
   assert.equal(campaign.isCampaignChapterUnlocked(profile({}), 'ch02'), false);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1 }), 'ch02'), true);
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1 }), 'ch07'), false, 'not before 04');
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch07'), true, '04 opens 07 past 05 and 06');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1 }), 'ch06'), false, 'not before 04');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch06'), true, '04 opens 06 past 05');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch05'), true, '05 shows as coming soon');
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch07: 1 }), 'ch12'), true, '07 opens 12 past 08-11');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch06: 1 }), 'ch07'), true);
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch09: 1 }), 'ch12'), true, '09 opens 12 past 10 and 11');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch13: 1 }), 'ch16'), true, '13 opens 16 past 14 and 15');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch17: 1 }), 'ch18'), true);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch07: 2 }), 'ch07'), true, 'a starred chapter stays open');
-  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch04').map((chapter) => chapter.id), ['ch05', 'ch07']);
+  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch04').map((chapter) => chapter.id), ['ch05', 'ch06']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch01').map((chapter) => chapter.id), ['ch02']);
+  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch09').map((chapter) => chapter.id), ['ch10', 'ch12']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch12').map((chapter) => chapter.id), ['ch13']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch18').map((chapter) => chapter.id), []);
 });
@@ -242,4 +246,54 @@ test('07 star 3: 跨區公共交通分擔率 is the share of cross-district comm
   assert.equal(share.check({ offMapShare: 0.3 }), true);
   assert.equal(share.check({ offMapShare: 0.29, transitRiders: 1e9, population: 1 }), false, 'not all riders: the cross-district ones');
   assert.equal(share.progress({ offMapShare: 0.125 }), '13% / 30%');
+});
+
+test('龍舟場地教學: 西貢 and 南區 teach the venue step by step in the panel, once for the player', () => {
+  [specs.ch03, specs.ch04].forEach((spec) => {
+    assert.equal(spec.tutorialId, 'dragonBoat');
+    assert.deepEqual(spec.tutorial.map((step) => step.id), ['promenade', 'water', 'clear', 'festival', 'ready']);
+    spec.tutorial.forEach((step) => {
+      ['zhHant', 'en', 'ja'].forEach((lang) => assert.ok(step.text[lang], `${step.id} in ${lang}`));
+      assert.ok(campaign.CAMPAIGN_SPEAKERS[step.speaker], `${step.id} speaker ${step.speaker}`);
+    });
+  });
+  const steps = Object.fromEntries(specs.ch03.tutorial.map((step) => [step.id, step]));
+  assert.equal(steps.promenade.done({ dragonBoatRun: 5 }), false, 'five tiles are not enough');
+  assert.equal(steps.promenade.done({ dragonBoatRun: 6 }), true);
+  assert.equal(steps.water.done({ dragonBoatWater: true }), true);
+  assert.equal(steps.clear.done({ dragonBoatWater: true, dragonBoatCourse: false }), false, 'a ferry route on the course');
+  assert.equal(steps.festival.done({ dragonBoatOn: true }), true);
+  assert.equal(steps.ready.ack, true, 'the last waits for 明白');
+  assert.deepEqual(specs.ch03.tutorial.map((step) => step.look || null), [null, 'run', 'run', 'festival', 'course']);
+  assert.match(steps.promenade.highlight.join(' '), /data-tool="promenade"/);
+  // a run starts with it; the profile remembers it once through, and a later chapter skips it
+  const run = campaign.createCampaignRun('ch03', 10, { roadTiles: 3 });
+  assert.equal(run.tutorial.step, 0);
+  const profile = campaign.normalizeCampaignProfile({ tutorials: { dragonBoat: true, 'bad id!': true } });
+  assert.deepEqual(profile.tutorials, { dragonBoat: true });
+  assert.deepEqual(campaign.createEmptyCampaignProfile().tutorials, {});
+  const js = source('campaign.js');
+  assert.match(js, /if \(spec\.tutorialId && runtime\.profile\.tutorials\?\.\[spec\.tutorialId\]\) city\.campaign\.tutorial = null;/);
+  assert.ok(js.indexOf('await loadCampaignProfile();\n    city.campaign = createCampaignRun') > 0, 'the profile is read before the run starts');
+  assert.match(js, /skipCampaignTutorial\(run\); rememberCampaignTutorial\(run\);/);
+});
+
+test('龍舟場地教學 runtime: the snapshot reads the venue by the race\'s own course search', () => {
+  const context = loadRuntime();
+  const tiles = ['10:1', '10:2', '10:3', '10:4', '10:5', '10:6', '10:7'];
+  context.getPromenadeTileKeys = () => tiles;
+  context.orderFestivalPromenadeRuns = (list) => [list.slice(0, 7)];
+  let blockedChecked = 0;
+  context.getDragonBoatContext = () => ({ isBlocked: () => true });
+  context.selectDragonBoatCourse = (ctx) => { blockedChecked += 1; return ctx.isBlocked ? null : { distanceM: 270 }; };
+  context.isFestivalEnabled = () => true;
+  context.getFestivalTier = () => 'standard';
+  const snapshot = context.buildCampaignSnapshot();
+  assert.equal(snapshot.dragonBoatRun, 7);
+  assert.equal(snapshot.dragonBoatWater, true, 'a course fits the sea');
+  assert.equal(snapshot.dragonBoatCourse, false, 'but not with the water as it is');
+  assert.equal(snapshot.dragonBoatOn, true);
+  assert.equal(blockedChecked, 2);
+  context.buildCampaignSnapshot();
+  assert.equal(blockedChecked, 2, 'searched again only after a while or a change');
 });

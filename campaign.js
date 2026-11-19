@@ -187,6 +187,108 @@
     return { festivalHeldYear, festivalNoVenueYear };
   }
 
+  // 龍舟場地 (the Dragon Boat tutorial, campaign-chapters.js): the longest promenade in one piece edge
+  // to edge, as the race walks it; whether its course fits the sea off it at all, and with the water
+  // clear; and the race switched on. The course search at most every few seconds, or when the
+  // promenade or the ferry routes change.
+  const DRAGON_BOAT_FACTS_MS = 2500;
+  let dragonBoatFacts = { at: -Infinity, key: '', facts: null, run: null, course: null };
+  function collectDragonBoatFacts(force = false) {
+    const tiles = typeof getPromenadeTileKeys === 'function' ? getPromenadeTileKeys() : [];
+    const ferries = typeof getFerryState === 'function' ? getFerryState().routes.length : 0;
+    const key = `${tiles.length}|${tiles.slice(0, 3).join(',')}|${tiles.slice(-3).join(',')}|${ferries}`;
+    const now = Date.now();
+    if (!force && dragonBoatFacts.facts && dragonBoatFacts.key === key && now - dragonBoatFacts.at < DRAGON_BOAT_FACTS_MS) return dragonBoatFacts;
+    const runs = typeof orderFestivalPromenadeRuns === 'function' ? orderFestivalPromenadeRuns(tiles.map((k) => k.split(':').map(Number))) : [];
+    const run = runs.reduce((best, r) => (r.length > (best?.length || 0) ? r : best), null);
+    let water = false; let course = null;
+    if ((run?.length || 0) >= 6 && typeof getDragonBoatContext === 'function' && typeof selectDragonBoatCourse === 'function') {
+      try {
+        const ctx = getDragonBoatContext(typeof activeScene !== 'undefined' ? activeScene : null);
+        const preferred = typeof getCityFestivalState === 'function' ? getCityFestivalState()?.venues?.dragonBoat || '' : '';
+        course = selectDragonBoatCourse(ctx, preferred);
+        water = !!course || !!selectDragonBoatCourse({ ...ctx, isBlocked: null }, preferred);
+      } catch (error) { console.warn('[campaign] dragon boat venue', error?.message); }
+    }
+    const tier = typeof getFestivalTier === 'function' ? getFestivalTier('dragonBoat') : 'standard';
+    const facts = {
+      dragonBoatRun: run?.length || 0,
+      dragonBoatWater: water,
+      dragonBoatCourse: !!course,
+      dragonBoatOn: (typeof isFestivalEnabled === 'function' ? isFestivalEnabled('dragonBoat') : true) && tier !== 'skip',
+    };
+    dragonBoatFacts = { at: now, key, facts, run, course };
+    return dragonBoatFacts;
+  }
+
+  // P3's facts (docs/campaign-levels-design.md §4C): homes by wealth, village houses, the metro's
+  // surface and elevated riders, light rail - metro interchanges, business taxes, the government's
+  // shares, the council's major events held, and the undersea tunnels with buses through them.
+  const CAMPAIGN_MAJOR_EVENT_IDS = Object.freeze(['tourEverywhere', 'menaConcert', 'muiKinKwokMatch', 'leagueMatchday', 'fantasyFingHeungShing']);
+  const lastRiders = (line) => Math.max(0, Number((line?.history || []).at(-1)?.passengers) || 0);
+  function collectP3Facts() {
+    const facts = {
+      residentialByWealth: { L: 0, M: 0, H: 0, UH: 0 }, villageHouses: 0,
+      metroSurfaceRiders: 0, metroElevatedRiders: 0, lightRailMetroInterchanges: 0,
+      taxCI: 0, governmentHoldings: 0, hsi: 0, majorEvents: [], underseaTunnels: 0, tunnelBusRoutes: 0,
+      educationBasic: Number(city.educationBasicIndex) || 0, educationHigher: Number(city.educationHigherIndex) || 0,
+      monthIndex: monthIndexNow(),
+    };
+    const lowDensity = typeof DENSITY_LOW !== 'undefined' ? DENSITY_LOW : 1;
+    Object.entries(typeof buildingData !== 'undefined' && buildingData ? buildingData : {}).forEach(([id, record]) => {
+      if (record?.type !== 'residential') return;
+      const tier = ['L', 'M', 'H', 'UH'].includes(record.wealthTier) ? record.wealthTier : 'L';
+      facts.residentialByWealth[tier] += 1;
+      // a village house: a one-tile home on low-density land
+      const [r, c] = id.split(':').map(Number);
+      if ((record.footprintRows || 1) === 1 && (record.footprintCols || 1) === 1
+        && typeof zoneDensityMap !== 'undefined' && zoneDensityMap?.[r]?.[c] === lowDensity) facts.villageHouses += 1;
+    });
+    try {
+      const metro = typeof getMetroState === 'function' && typeof getTransportExpansionState === 'function' && getTransportExpansionState() ? getMetroState() : null;
+      const metroStops = [];
+      (metro?.lines || []).forEach((line) => {
+        if (line.status !== 'active') return;
+        const riders = lastRiders(line);
+        const stations = typeof getMetroLineStations === 'function' ? getMetroLineStations(line, metro) : [];
+        if (line.surface) facts.metroSurfaceRiders += riders;
+        if (stations.some((st) => st.elevated)) facts.metroElevatedRiders += riders;
+        if (riders > 0) stations.forEach((st) => metroStops.push(st));
+      });
+      const lightRail = typeof getLightRailState === 'function' && typeof getTransportExpansionState === 'function' && getTransportExpansionState() ? getLightRailState() : null;
+      const lrServed = new Set();
+      (lightRail?.lines || []).forEach((line) => { if (line.status === 'active' && lastRiders(line) > 0) line.stationIds.forEach((id) => lrServed.add(id)); });
+      (lightRail?.stations || []).forEach((st) => {
+        if (!lrServed.has(st.id)) return;
+        if (metroStops.some((m) => Math.max(Math.abs(m.row - st.row), Math.abs(m.col - st.col)) <= 3)) facts.lightRailMetroInterchanges += 1;
+      });
+    } catch { /* no railways */ }
+    const income = city.lastBudgetSnapshot?.income || {};
+    facts.taxCI = (Number(income.commercialTax) || 0) + (Number(income.industrialTax) || 0);
+    try {
+      const portfolio = typeof getGovernmentPortfolio === 'function' && city.stockMarket ? getGovernmentPortfolio(city.stockMarket) : null;
+      facts.governmentHoldings = Object.values(portfolio?.positions || {}).filter((p) => Number(p?.shares) > 0).length;
+    } catch { /* no market */ }
+    facts.hsi = Number(city.stockMarket?.hsi) || 0;
+    (city.council?.resolutionHistory || []).forEach((entry) => {
+      if (!CAMPAIGN_MAJOR_EVENT_IDS.includes(entry?.resolutionId)) return;
+      const outcome = entry.outcome || entry.summary?.outcome;
+      if (outcome !== 'success') return;
+      facts.majorEvents.push({ id: entry.resolutionId, monthIndex: Number(entry.approvedMonthIndex ?? entry.completedMonthIndex) || 0 });
+    });
+    try {
+      facts.underseaTunnels = typeof getUnderseaTunnels === 'function' ? getUnderseaTunnels().length : 0;
+      if (facts.underseaTunnels && typeof isUnderseaTunnelTile === 'function' && typeof getTransportExpansionState === 'function' && getTransportExpansionState()) {
+        getTransportExpansionState().routes.forEach((route) => {
+          if (route.status === 'suspended' || !(Number(route.history?.at(-1)?.passengers) > 0)) return;
+          const runtime = typeof getTransportRouteRuntime === 'function' ? getTransportRouteRuntime(route.id) : null;
+          if ((runtime?.roundTripPath || []).some((tile) => isUnderseaTunnelTile(tile.row, tile.col))) facts.tunnelBusRoutes += 1;
+        });
+      }
+    } catch { /* no tunnels */ }
+    return facts;
+  }
+
   function buildCampaignSnapshot() {
     const base = typeof collectMedalSnapshot === 'function' ? collectMedalSnapshot() : { buildings: {}, transit: {} };
     const buildings = base.buildings || {};
@@ -208,6 +310,8 @@
       ...collectBusRouteFacts(),
       ...collectWaterfrontFacts(),
       ...collectFestivalFacts(),
+      ...collectDragonBoatFacts().facts,
+      ...collectP3Facts(),
       crimeRate: Number(city.crimeRateIndex) || 0,
       tourismAppeal: Number(city.tourismAppeal) || 0,
       pollution: Number(city.pollution) || 0,
@@ -306,10 +410,12 @@
       if (typeof showToast === 'function') showToast(say(L('開唔到呢一章。', 'This chapter could not start.', 'この章を開始できませんでした。')), 'danger');
       return false;
     }
+    await loadCampaignProfile();
     city.campaign = createCampaignRun(chapterId, monthIndexNow(), buildCampaignSnapshot());
+    // a shared tutorial already played in an earlier chapter (the 龍舟 venue in 西貢) is not again
+    if (spec.tutorialId && runtime.profile.tutorials?.[spec.tutorialId]) city.campaign.tutorial = null;
     if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
     renderCampaignPanel();
-    await loadCampaignProfile();
     if (chapter.number === 1 && !runtime.profile.prologueSeen) {
       await playCampaignPrologue();
       runtime.profile.prologueSeen = true;
@@ -447,13 +553,60 @@
     const run = getRun();
     const spec = run ? CAMPAIGN_CHAPTER_SPECS[run.chapterId] : null;
     if (action === 'collapse') runtime.collapsed = !runtime.collapsed;
-    else if (action === 'skip-tutorial' && run) { skipCampaignTutorial(run); setTutorialHighlight([]); }
+    else if (action === 'skip-tutorial' && run) { skipCampaignTutorial(run); rememberCampaignTutorial(run); setTutorialHighlight([]); }
+    else if (action === 'tutorial-look') { lookFromCampaignTutorial(event.target.closest('[data-look]')?.dataset.look); return; }
     else if (action === 'ack' && run && spec) {
       acknowledgeCampaignTutorialStep(run, spec);
       if (run.tutorial?.done) announceTutorialDone();
     } else if (action === 'chapters') openCampaignSelect();
     else return;
     renderCampaignPanel();
+  }
+
+  // A tutorial step's 睇長廊 / 睇賽道 / 節慶日曆 button.
+  function lookFromCampaignTutorial(look) {
+    const scene = typeof activeScene !== 'undefined' ? activeScene : null;
+    if (look === 'festival') { if (typeof openFestivalCalendar === 'function') openFestivalCalendar(); return; }
+    const { run, course } = collectDragonBoatFacts(true);
+    if (look === 'run' && run?.length && scene && typeof centerCameraOnTile === 'function') {
+      const [r, c] = run[Math.floor(run.length / 2)];
+      centerCameraOnTile(scene, r, c);
+    } else if (look === 'course' && course && scene) {
+      flashDragonBoatCourse(scene, course);
+    } else if (look === 'course' && typeof showToast === 'function') {
+      showToast(say(L('仲未搵到合適嘅賽道。', 'No course fits yet.', 'まだコースが見つかりません。')), 'warning');
+    }
+  }
+
+  // 睇賽道: the camera to the course, outlined on the water for a few seconds.
+  function flashDragonBoatCourse(scene, course) {
+    if (typeof dbPoint !== 'function') return;
+    const len = course.distanceM / 20;
+    const middle = dbPoint(course, len / 2, 1.5);
+    if (typeof centerCameraOnTile === 'function') centerCameraOnTile(scene, Math.round(middle.row), Math.round(middle.col));
+    if (!scene?.add || typeof isoToScreen !== 'function') return;
+    scene.dragonBoatCourseFlash?.destroy();
+    const g = scene.add.graphics();
+    if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, g, 'effectLayer');
+    g.setDepth(typeof getPreviewOverlayDepth === 'function' ? getPreviewOverlayDepth(0) : 1e6);
+    const surface = (typeof BUILDING_SURFACE_Y_OFFSET === 'number' ? BUILDING_SURFACE_Y_OFFSET : 15) + (typeof TILE_HEIGHT === 'number' ? TILE_HEIGHT / 2 : 16);
+    const points = [[-1, -0.5], [len + 1, -0.5], [len + 1, 3.5], [-1, 3.5]].map(([along, across]) => {
+      const p = dbPoint(course, along, across);
+      const at = isoToScreen(p.col, p.row);
+      return { x: at.x + (scene.offsetX || 0), y: at.y + (scene.offsetY || 0) - surface };
+    });
+    g.fillStyle(0xffd54a, 0.25);
+    g.lineStyle(3, 0xc2410c, 0.95);
+    g.beginPath();
+    points.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+    scene.dragonBoatCourseFlash = g;
+    scene.time?.delayedCall?.(6000, () => {
+      if (scene.dragonBoatCourseFlash === g) scene.dragonBoatCourseFlash = null;
+      g.destroy();
+    });
   }
 
   function setTutorialHighlight(selectors) {
@@ -467,7 +620,17 @@
     });
   }
 
+  // A shared tutorial (a chapter's tutorialId) the player is through - finished or skipped - is not
+  // played again in a later chapter.
+  function rememberCampaignTutorial(run) {
+    const id = run ? CAMPAIGN_CHAPTER_SPECS[run.chapterId]?.tutorialId : null;
+    if (!id || runtime.profile.tutorials?.[id]) return;
+    runtime.profile.tutorials = { ...(runtime.profile.tutorials || {}), [id]: true };
+    scheduleCampaignProfileSave();
+  }
+
   function announceTutorialDone() {
+    rememberCampaignTutorial(getRun());
     setTutorialHighlight([]);
     if (typeof showToast === 'function') showToast(say(L('🎓 教學完成！而家朝住一星目標進發。', '🎓 Tutorial complete! Now go for the first star.', '🎓 チュートリアル完了！一つ目の星を目指そう。')), 'info');
   }
@@ -522,6 +685,11 @@
           <div class="cp-section">🎓 ${escapeHtml(say(L('教學', 'Tutorial', 'チュートリアル')))} ${run.tutorial.step + 1} / ${spec.tutorial.length}</div>
           <div class="cp-tutor">${face}<div><div class="cp-tutor-name">${escapeHtml(name)}</div><div>${escapeHtml(say(step.text))}</div></div></div>
           <div class="cp-tutorial-actions">
+            ${step.look ? `<button type="button" class="cp-look" data-campaign-action="tutorial-look" data-look="${escapeHtml(step.look)}">${escapeHtml(say({
+              run: L('睇長廊', 'Show the promenade', '遊歩道を見る'),
+              course: L('睇賽道', 'Show the course', 'コースを見る'),
+              festival: L('節慶日曆', 'Festival calendar', '祭りカレンダー'),
+            }[step.look] || L('睇', 'Show', '見る')))}</button>` : ''}
             ${step.ack ? `<button type="button" class="cp-ack" data-campaign-action="ack">${escapeHtml(say(L('明白', 'Got it', 'わかった')))}</button>` : ''}
             <button type="button" class="cp-skip" data-campaign-action="skip-tutorial">${escapeHtml(say(L('跳過教學', 'Skip tutorial', 'チュートリアルを飛ばす')))}</button>
           </div>
@@ -800,6 +968,7 @@
       #campaign-panel .cp-tutorial-actions { display: flex; gap: 6px; justify-content: flex-end; padding: 6px 8px 0; }
       #campaign-panel .cp-tutorial-actions button { font: inherit; padding: 2px 8px; border-radius: 3px; border: 1px solid #8794a3; background: #f4f7fa; cursor: pointer; }
       #campaign-panel .cp-tutorial-actions .cp-ack { background: #1e5cb3; color: #fff; border-color: #1e5cb3; }
+      #campaign-panel .cp-tutorial-actions .cp-look { background: #fff; color: #8a2f12; border-color: #c2410c; }
       #campaign-panel .cp-objectives { list-style: none; margin: 0 8px; padding: 0; }
       #campaign-panel .cp-objectives li { display: grid; grid-template-columns: 16px 1fr; column-gap: 4px; padding: 3px 2px; border-bottom: 1px solid #cdd5de; }
       #campaign-panel .cp-objectives li.is-done { color: #3c7a3c; }

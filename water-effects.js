@@ -266,7 +266,9 @@ function trackVesselWake(scene, owner, col, row, lengthTiles, visible = true, ax
 }
 
 function placeVesselWake(scene, wake) {
-  const show = wake.visible && wake.alpha > 0.02 && (wake.du || wake.dv);
+  // (alphaScale: a vessel fading out at the map edge on a route off the map - ferry.js)
+  const scaleAlpha = Number.isFinite(wake.alphaScale) ? wake.alphaScale : 1;
+  const show = wake.visible && wake.alpha * scaleAlpha > 0.02 && (wake.du || wake.dv);
   if (!show) {
     if (wake.sprite?.visible) wake.sprite.setVisible(false);
     return;
@@ -297,7 +299,7 @@ function placeVesselWake(scene, wake) {
   // about the origin - Phaser's flipX/flipY mirror the frame within its own box instead, which put
   // every wake but the bottom-right one's off its boat
   sprite.setScale(scale * sx, scale * sy);
-  sprite.setAlpha(Math.min(1, wake.alpha));
+  sprite.setAlpha(Math.min(1, wake.alpha) * scaleAlpha);
   sprite.setVisible(true);
 }
 

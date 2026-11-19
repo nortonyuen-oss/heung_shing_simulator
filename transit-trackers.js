@@ -70,7 +70,9 @@ function resolveFerryTrackerTarget(scene, id) {
   const pierName = (i) => (typeof getFerryPierById === 'function' ? getFerryPierById(route?.pierIds?.[i], state)?.name : '') || '';
   const where = !point ? '—' : point.state === 'alongside'
     ? transitTrackerT('ferry.vessel.alongside', '泊喺「{pier}」', { pier: pierName(point.pier) })
-    : transitTrackerT('ferry.vessel.sailing', '航行中');
+    // off the map on a 區外航線
+    : point.state === 'offMap' && typeof getFerryRouteEndName === 'function' ? getFerryRouteEndName(route, 1, state)
+      : transitTrackerT('ferry.vessel.sailing', '航行中');
   // its picture where it is drawn (drawn only from a zoom up); else the water it is on
   const rec = scene?.ferrySprites?.get(`ferry|${v.id}`);
   const drawn = rec?.sprite && rec.sprite.active !== false && rec.sprite.visible && Number.isFinite(rec.sprite.x);

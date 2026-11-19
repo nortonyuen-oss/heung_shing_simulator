@@ -19,7 +19,32 @@ function getFerryPierById(id, state = getFerryState()) {
 }
 
 function getFerryRouteName(route, state = getFerryState()) {
+  // a route off the map: its pier ⇄ 往中環（區外）
+  if (route.offMap && typeof getFerryRouteEndName === 'function') {
+    return `${getFerryPierById(route.pierIds[0], state)?.name || route.pierIds[0]} ⇄ ${getFerryRouteEndName(route, 1, state)}`;
+  }
   return route.pierIds.map((id) => getFerryPierById(id, state)?.name || id).join(' ⇄ ');
+}
+
+// 區外航線: the district it sails to, from those off that side of the map, and the leg out there.
+function renderFerryOffMapPicker(route) {
+  if (!route.offMap || typeof getRegionDestinations !== 'function') return '';
+  const options = getRegionDestinations()[route.offMap.side].map((destination) => `
+    <option value="${ferryUiEscape(destination.id)}" ${destination.id === route.offMap.destination ? 'selected' : ''}>${ferryUiEscape(getRegionDestinationName(destination.id))}${destination.km > 0 ? ` · ${destination.km} km` : ''}</option>`).join('');
+  const tiles = typeof getFerryOffMapLegTiles === 'function' ? getFerryOffMapLegTiles(route.offMap) : 0;
+  return `
+      <div class="transport-offmap-picker">
+        <label>${ferryUiEscape(ferryT('transport.offMap.destination', '目的地'))} <select data-ferry-offmap-route="${ferryUiEscape(route.id)}">${options}</select></label>
+        <small>${ferryUiEscape(ferryT('transport.offMap.leg', '區外一程：每程 {tiles} 格', { tiles }))}</small>
+      </div>`;
+}
+
+// The routes window's change events for ferries (the list of a route's district off the map).
+function handleFerryUiChange(event) {
+  const select = event.target?.closest?.('[data-ferry-offmap-route]');
+  if (!select) return false;
+  setFerryRouteOffMapDestination(select.dataset.ferryOffmapRoute, select.value);
+  return true;
 }
 
 // A route at a glance: its fleet by what it is doing, how often a ferry calls (a round trip's
@@ -93,6 +118,7 @@ function renderFerryRouteCard(route, state) {
         ${typeof renderTransportSparkline === 'function' ? renderTransportSparkline(route.history, route.color) : ''}
         <span class="transport-status" data-status="${statusKey}">${ferryUiEscape(typeof t === 'function' ? t(`transport.status.${statusKey}`) : statusKey)}</span>
       </div>
+      ${renderFerryOffMapPicker(route)}
       ${rows}
       ${typeof renderTransportIssue !== 'function' ? '' : suspended
         ? renderTransportIssue(ferryT('ferry.issue.suspended', '航線暫停中，船唔會開出。'), `<button class="transport-btn" type="button" data-transport-action="ferry-toggle" data-route-id="${id}">${ferryUiEscape(t('transport.resume'))}</button>`)
@@ -202,7 +228,7 @@ function handleFerryUiAction(action, button) {
     if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileSelectTool === 'function') mobileSelectTool('ferry-route');
     else if (typeof selectTransportModeTool === 'function') selectTransportModeTool('ferry-route');
     else document.querySelector('[data-tool="ferry-route"]')?.click();
-    ferryUiToast(ferryT('ferry.toast.newRouteHow', '撳一個渡輪碼頭，再撳另一個，就開到航線。'), 'info');
+    ferryUiToast(ferryT('ferry.toast.newRouteHow', '撳一個渡輪碼頭，再撳另一個（或者地圖邊嘅海面，開去區外），就開到航線。'), 'info');
     return true;
   }
   if (action === 'ferry-toggle-fleet') {
@@ -302,7 +328,8 @@ function refreshFerryInspectorBody(root, kind, id) {
       : v.status === 'laid_up' ? ferryVesselPointAt(legs, v.downStartedAt, v.phase) : null;
   const where = !point ? '—' : point.state === 'alongside'
     ? ferryT('ferry.vessel.alongside', '泊喺「{pier}」', { pier: getFerryPierById(route.pierIds[point.pier], state)?.name || '' })
-    : ferryT('ferry.vessel.sailing', '航行中');
+    : point.state === 'offMap' ? getFerryRouteEndName(route, 1, state)
+      : ferryT('ferry.vessel.sailing', '航行中');
   body.innerHTML = ferryInspectorRows([
     [ferryT('ferry.vessel.route', '航線'), route ? getFerryRouteName(route, state) : '—'],
     [ferryT('ferry.vessel.status', '狀態'), ferryVesselStatusText(v)],
@@ -383,5 +410,5 @@ function updateFerryRouteOverlay(scene) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { getFerryRouteSummary, getFerryRouteName, ferryVesselStatusText };
+  module.exports = { getFerryRouteSummary, getFerryRouteName, ferryVesselStatusText, handleFerryUiChange };
 }

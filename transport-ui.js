@@ -1862,6 +1862,8 @@ function handleTransportUiInput(event) {
 }
 
 function handleTransportUiChange(event) {
+  // a ferry route's district off the map (ferry-ui.js)
+  if (typeof handleFerryUiChange === 'function' && handleFerryUiChange(event)) return refreshTransportUi();
   const offMapSelect = event.target.closest('[data-transport-offmap-index]');
   if (offMapSelect && transportUiState.editor) {
     const index = Number(offMapSelect.dataset.transportOffmapIndex);

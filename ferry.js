@@ -75,7 +75,9 @@ function normalizeFerryState(raw) {
   const legacyFleet = new Map();   // a save from before the fleet: route id -> [ferries' passengers aboard]
   const routes = (Array.isArray(src.routes) ? src.routes : []).map((r, i) => {
     const ids = (Array.isArray(r?.pierIds) ? r.pierIds : []).map(String).filter((id) => pierIds.has(id));
-    if (!r?.id || ids.length < 2) return null;
+    // 區外航線 (docs/region-transit-design.md): one pier, and the far end off the map
+    const offMap = normalizeFerryOffMap(r?.offMap);
+    if (!r?.id || ids.length < (offMap ? 1 : 2)) return null;
     const id = String(r.id).slice(0, 40);
     if (!Array.isArray(src.vessels)) {
       const n = Math.max(0, Math.min(FERRY.maxVesselsPerRoute, Math.floor(Number(r.vessels ?? 1))));
@@ -83,7 +85,8 @@ function normalizeFerryState(raw) {
     }
     return {
       id,
-      pierIds: ids.slice(0, 2),
+      pierIds: ids.slice(0, offMap ? 1 : 2),
+      ...(offMap ? { offMap } : {}),
       color: typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : FERRY_ROUTE_COLORS[i % FERRY_ROUTE_COLORS.length],
       status: r.status === 'suspended' ? 'suspended' : 'active',
       // the month's takings so far (settleFerryMonth), and the months before
@@ -115,6 +118,20 @@ function normalizeFerryState(raw) {
     piers, routes, vessels, nextId: Math.max(1, Math.floor(Number(src.nextId) || 1)), nextVesselId,
     // the hour a storm's held-back riders last reached the piers (accrueFerryPiersForHour)
     stormSurgeHour: src.stormSurgeHour !== null && Number.isInteger(surge) && surge >= 0 && surge < 24 ? surge : null,
+  };
+}
+
+// A route's far end off the map: the district it sails to, the map edge it leaves by and the edge
+// tile picked there, and the riders waiting at the far end (as a pier's queue).
+function normalizeFerryOffMap(raw) {
+  if (!raw || typeof raw !== 'object' || !FERRY_DIRS[raw.side]) return null;
+  const destination = String(raw.destination || '').slice(0, 40);
+  const row = Math.floor(Number(raw.row)); const col = Math.floor(Number(raw.col));
+  if (!destination || !Number.isFinite(row) || !Number.isFinite(col)) return null;
+  return {
+    side: raw.side, destination, row, col,
+    waiting: Math.max(0, Math.min(9999, Number(raw.waiting) || 0)),
+    stormBacklog: Math.max(0, Math.min(9999, Number(raw.stormBacklog) || 0)),
   };
 }
 
@@ -257,7 +274,9 @@ function ferryBerthPoint(pier) {
  */
 function findFerryPath(from, to, passable, height, width, berthOffset = null) {
   const starts = ferryBerthEnds(from, berthOffset).filter(({ tile: [r, c] }) => passable(r, c));
-  const goals = new Set(ferryBerthEnds(to, berthOffset).filter(({ tile: [r, c] }) => passable(r, c)).map(({ tile: [r, c] }) => r * width + c));
+  // (to.goalTiles: the water at the map edge a route off the map leaves by)
+  const goalTiles = Array.isArray(to?.goalTiles) ? to.goalTiles : ferryBerthEnds(to, berthOffset).map(({ tile }) => tile);
+  const goals = new Set(goalTiles.filter(([r, c]) => passable(r, c)).map(([r, c]) => r * width + c));
   if (!starts.length || !goals.size) return null;
   const dirs = ['n', 'e', 's', 'w'];
   const N = height * width * 4;
@@ -355,7 +374,8 @@ function ferryPointAlong(leg, d) {
  */
 // A round trip in clock minutes: alongside A, across, alongside B, back.
 function ferryCycleMinutes(legs) {
-  return 2 * FERRY.dwellMinutes + (legs.out.total + legs.back.total) / FERRY.speedTilesPerMinute;
+  // (a route off the map spends its leg out there and back at the far end, out of sight)
+  return 2 * FERRY.dwellMinutes + (legs.out.total + legs.back.total) / FERRY.speedTilesPerMinute + (legs.offMapMinutes || 0);
 }
 
 // Where a ferry `phase` of a round trip ahead of the clock is at clock minute t.
@@ -369,8 +389,9 @@ function ferryVesselPointAt(legs, t, phase = 0) {
   p -= dwell;
   if (p < outT) return { ...ferryPointAlong(legs.out, p * speed), state: 'sailing', pier: null };
   p -= outT;
-  if (p < dwell) return { ...legs.out.to, state: 'alongside', pier: 1 };
-  p -= dwell;
+  const offMap = legs.offMapMinutes || 0;
+  if (p < dwell + offMap) return { ...legs.out.to, state: offMap ? 'offMap' : 'alongside', pier: 1 };
+  p -= dwell + offMap;
   return { ...ferryPointAlong(legs.back, p * speed), state: 'sailing', pier: null };
 }
 
@@ -392,7 +413,8 @@ function ferryArrivalsAt(legs, t0, t1, phases) {
   if (!(t1 > t0) || !(cycle > 0)) return out;
   phases.forEach((phaseShare, v) => {
     const offset = cycle * phaseShare;
-    for (const [pier, phase] of [[0, 0], [1, dwell + outT]]) {
+    // (off the map it reaches the far end half way through its time out there)
+    for (const [pier, phase] of [[0, 0], [1, dwell + outT + (legs.offMapMinutes || 0) / 2]]) {
       // t + offset = k * cycle + phase
       for (let k = Math.floor((t0 + offset - phase) / cycle) + 1; ; k++) {
         const t = k * cycle + phase - offset;
@@ -574,11 +596,30 @@ let ferryRouteDraft = null;
 function handleFerryRouteClick(scene, row, col) {
   const say = (key, fallback, vars, kind = 'info') => { if (typeof showToast === 'function') showToast(ferryT(key, fallback, vars), kind); };
   const pier = getFerryPierAt(row, col);
-  if (!pier) { say('ferry.route.pickPier', '撳一個渡輪碼頭。', {}, 'warning'); return false; }
   const state = getFerryState();
+  // 區外航線: a pier picked, then the sea at the map edge
+  const draftPier = ferryRouteDraft && state.piers.find((p) => p.id === ferryRouteDraft);
+  const exit = !pier && draftPier ? getFerrySeaExitNear(row, col) : null;
+  if (exit) {
+    ferryRouteDraft = null;
+    const opened = openFerryOffMapRoute(draftPier, exit);
+    const place = typeof getRegionDestinationName === 'function' ? getRegionDestinationName(opened.destination || 'generic') : '';
+    if (!opened.ok) {
+      if (opened.code === 'exists') say('ferry.route.offMapExists', '「{a}」已經有航線去{place}。', { a: draftPier.name, place }, 'warning');
+      else if (opened.code === 'max') say('ferry.route.max', '航線數目已經到上限。', {}, 'warning');
+      else say('ferry.route.noWaterOut', '「{a}」冇水路出到嗰邊地圖邊。', { a: draftPier.name }, 'warning');
+      return false;
+    }
+    const bought = buyFerry(opened.route.id).ok;
+    say(bought ? 'ferry.route.offMapOpened' : 'ferry.route.openedNoFerry',
+      bought ? '「{a}」⇄「{b}」區外航線開咗，買咗一艘天星小輪（${price}）行走；目的地可以喺航線列表改。' : '「{a}」⇄「{b}」航線開咗，但公司資金唔夠買船（${price}），喺運輸公司航線列表加船。',
+      { a: draftPier.name, b: getFerryRouteEndName(opened.route, 1, state), price: FERRY.vesselPrice.toLocaleString() }, bought ? 'success' : 'warning');
+    return true;
+  }
+  if (!pier) { say('ferry.route.pickPier', '撳一個渡輪碼頭。', {}, 'warning'); return false; }
   if (!ferryRouteDraft || !state.piers.some((p) => p.id === ferryRouteDraft)) {
     ferryRouteDraft = pier.id;
-    say('ferry.route.pickSecond', '由「{name}」開出：再撳另一個碼頭。', { name: pier.name });
+    say('ferry.route.pickSecond', '由「{name}」開出：再撳另一個碼頭，或者地圖邊嘅海面（開去區外）。', { name: pier.name });
     return true;
   }
   if (ferryRouteDraft === pier.id) { ferryRouteDraft = null; say('ferry.route.cancelled', '取消咗。'); return true; }
@@ -607,6 +648,7 @@ let ferryNetworkRevision = 0;
 const ferryLegCache = new Map();
 
 function getFerryRouteLegs(route) {
+  if (route?.offMap) return getFerryOffMapRouteLegs(route);
   const state = getFerryState();
   const [a, b] = route.pierIds.map((id) => state.piers.find((p) => p.id === id));
   if (!a || !b) return null;
@@ -624,6 +666,180 @@ function getFerryRouteLegs(route) {
   if (ferryLegCache.size > 64) ferryLegCache.clear();
   ferryLegCache.set(key, legs);
   return legs;
+}
+
+// ── 區外航線 (docs/region-transit-design.md) ─────────────────────────────────
+// A route from a pier to a district off the map: out over the water to the map edge it leaves by,
+// on out of sight for the leg off the map (4 tiles a km, 12-60) and back, then in again.
+
+const FERRY_OFF_MAP_REACH = 6;       // edge tiles either side of the one picked that it may leave by
+const FERRY_OFF_MAP_FADE_TILES = 2;
+
+function ferryEdgeTiles(side, height, width) {
+  const last = side === 'n' || side === 's' ? width : height;
+  return Array.from({ length: last }, (_, i) => ({ n: [0, i], s: [height - 1, i], w: [i, 0], e: [i, width - 1] })[side]);
+}
+
+// The water tile on the map edge a click (within `reach`) means, and that edge's side; null when none.
+function getFerrySeaExitNear(row, col, reach = 3) {
+  if (!isFerryRuntime()) return null;
+  const H = mapData.length; const W = mapData[0].length;
+  const shelter = getFerryShelterTiles();
+  let best = null;
+  ['n', 'e', 's', 'w'].forEach((side) => {
+    ferryEdgeTiles(side, H, W).forEach(([r, c]) => {
+      if (Math.max(Math.abs(r - row), Math.abs(c - col)) > reach) return;
+      const distance = Math.hypot(r - row, c - col);
+      if (best && distance >= best.distance) return;
+      if (mapData[r][c] !== WATER || shelter.has(`${r}:${c}`)) return;
+      best = { side, row: r, col: c, distance };
+    });
+  });
+  return best;
+}
+
+// The leg off the map one way, in tiles, by the district's distance.
+function getFerryOffMapLegTiles(offMap) {
+  const destination = typeof getRegionDestination === 'function' ? getRegionDestination(offMap.side, offMap.destination) : null;
+  return typeof getRegionTransitLegTiles === 'function' ? getRegionTransitLegTiles(destination?.km ?? 0) : 12;
+}
+
+// A longer crossing costs more: the flat fare, plus a twentieth of it a tile off the map.
+function getFerryRouteFareFactor(route) {
+  return route?.offMap ? 1 + getFerryOffMapLegTiles(route.offMap) / 20 : 1;
+}
+
+function getFerryOffMapRouteLegs(route) {
+  const state = getFerryState();
+  const a = state.piers.find((p) => p.id === route.pierIds[0]);
+  if (!a) return null;
+  const { side, row, col, destination } = route.offMap;
+  const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
+  const key = `${ferryNetworkRevision}|${ferryBerthRevision}|${rotation}|${a.id}@${a.row},${a.col},${a.land}|off:${side}@${row},${col}>${destination}`;
+  if (ferryLegCache.has(key)) return ferryLegCache.get(key);
+  const shelter = getFerryShelterTiles();
+  const H = mapData.length; const W = mapData[0].length;
+  const passable = (r, c) => {
+    const water = mapData[r][c] === WATER || (typeof isBridgeTile === 'function' && isBridgeTile(r, c));
+    return water && !shelter.has(`${r}:${c}`) && !getFerryPierAt(r, c);
+  };
+  const goalTiles = ferryEdgeTiles(side, H, W).filter(([r, c]) => Math.abs(r - row) + Math.abs(c - col) <= FERRY_OFF_MAP_REACH);
+  const path = findFerryPath(a, { goalTiles }, passable, H, W, getFerryBerthOffset);
+  const legs = path ? ferryOffMapLegs(a, path, side, getFerryOffMapLegTiles(route.offMap), getFerryBerthOffset) : null;
+  if (ferryLegCache.size > 64) ferryLegCache.clear();
+  ferryLegCache.set(key, legs);
+  return legs;
+}
+
+// Out from pier A along `path` to the edge and a tile and a half past it (out of sight there), and
+// the same back. Pure. legs.offMapMinutes is the leg off the map, out and back.
+function ferryOffMapLegs(a, path, side, legTiles, berthOffset = null) {
+  const same = (t, p) => p && t[0] === p[0] && t[1] === p[1];
+  const ends = ferryBerthEnds(a, berthOffset);
+  const end = ends.find((e) => same(e.tile, path[0])) || ends[0];
+  const [dr, dc] = FERRY_DIRS[side];
+  const [lr, lc] = path[path.length - 1];
+  const beyond = [lr + dr * 1.5, lc + dc * 1.5];
+  const points = [[end.berth.r, end.berth.c], [end.point.r, end.point.c], ...path.slice(1).map(([r, c]) => [r, c]), beyond];
+  const measure = (pts) => {
+    const lengths = [0];
+    for (let i = 1; i < pts.length; i++) lengths.push(lengths[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    return lengths;
+  };
+  const outLengths = measure(points);
+  const backPoints = [...points].reverse();
+  const backLengths = measure(backPoints);
+  const far = { r: beyond[0], c: beyond[1] };
+  const berth = { r: end.berth.r, c: end.berth.c };
+  return {
+    out: { points, lengths: outLengths, total: outLengths[outLengths.length - 1], from: { ...berth, dir: FERRY_OPPOSITE[a.land] }, to: { ...far, dir: side } },
+    back: { points: backPoints, lengths: backLengths, total: backLengths[backLengths.length - 1], from: { ...far, dir: FERRY_OPPOSITE[side] }, to: { ...berth, dir: a.land } },
+    offMapMinutes: (2 * Math.max(0, Number(legTiles) || 0)) / FERRY.speedTilesPerMinute,
+    offMapSide: side,
+  };
+}
+
+// How much of a ferry shows near the map edge it leaves by: fading over the last two tiles (1 = all).
+function getFerryOffMapAlpha(point, side, height, width) {
+  const distance = { n: point.r + 0.5, s: height - 0.5 - point.r, w: point.c + 0.5, e: width - 0.5 - point.c }[side];
+  return Math.max(0, Math.min(1, distance / FERRY_OFF_MAP_FADE_TILES));
+}
+
+// Riders at the far end, in a bus stop's units (getTransportStopCatchmentUnits): in the morning
+// outsiders coming in to the jobs and sights by the pier; in the evening the pier's residents coming
+// home. A stand-in stop with its units fixed.
+function ferryOffMapRiderPoint(route) {
+  const state = getFerryState();
+  const a = state.piers.find((p) => p.id === route.pierIds[0]);
+  const units = a && typeof getTransportStopCatchmentUnits === 'function'
+    ? getTransportStopCatchmentUnits(ferryPierCatchmentPoint(a)) : { originUnits: 0, destinationUnits: 0 };
+  const shares = typeof getRegionTransitRiderShares === 'function' ? getRegionTransitRiderShares(route.offMap.destination) : { in: 0.15 };
+  const riderShare = typeof TRANSPORT_RIDER_SHARE === 'number' ? TRANSPORT_RIDER_SHARE : 0.18;
+  return {
+    id: `ferry-offmap-${route.id}`, row: route.offMap.row, col: route.offMap.col,
+    fixedUnits: {
+      originUnits: (units.destinationUnits || 0) * riderShare * Math.max(0, shares.in),
+      destinationUnits: 0,
+      returnUnits: units.originUnits || 0,
+      residents: 0,
+    },
+  };
+}
+
+// A route from `from` to the district that way off the map, through the edge water at (row, col):
+// one per pier and district. { ok, route } or { ok: false, code: 'exists'|'max'|'noWater' }.
+function openFerryOffMapRoute(from, exit) {
+  const state = getFerryState();
+  const destination = typeof getRegionDestinations === 'function' ? getRegionDestinations()[exit.side]?.[0]?.id : 'generic';
+  if (state.routes.some((r) => r.offMap && r.pierIds[0] === from.id && r.offMap.side === exit.side && r.offMap.destination === destination)) return { ok: false, code: 'exists', destination };
+  if (state.routes.length >= FERRY.maxRoutes) return { ok: false, code: 'max' };
+  const route = { id: `ferry-${state.nextId++}`, pierIds: [from.id], color: FERRY_ROUTE_COLORS[state.routes.length % FERRY_ROUTE_COLORS.length],
+    offMap: normalizeFerryOffMap({ side: exit.side, destination: destination || 'generic', row: exit.row, col: exit.col }),
+    status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, history: [] };
+  if (!getFerryRouteLegs(route)) return { ok: false, code: 'noWater', destination };
+  state.routes.push(route);
+  ferryNetworkRevision += 1;
+  return { ok: true, route };
+}
+
+// A route's end by name: its pier's, or "往中環（區外）" for the far end off the map.
+function getFerryRouteEndName(route, index, state = getFerryState()) {
+  if (index === 1 && route?.offMap) {
+    const place = typeof getRegionDestinationName === 'function' ? getRegionDestinationName(route.offMap.destination) : route.offMap.destination;
+    return ferryT('transport.offMap.stopName', '往{place}（區外）', { place });
+  }
+  return state.piers.find((p) => p.id === route?.pierIds?.[index])?.name || '';
+}
+
+// The district a route off the map sails to (the routes window's list).
+function setFerryRouteOffMapDestination(routeId, destination) {
+  const route = getFerryState().routes.find((r) => r.id === routeId);
+  if (!route?.offMap || !destination) return false;
+  route.offMap.destination = String(destination).slice(0, 40);
+  ferryNetworkRevision += 1;
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return true;
+}
+
+// The ferry routes off the map, for the region flows (region-connections.js): last month's riders
+// (all of them crossed the leg off the map) by destination, and what the ferries can carry a month.
+function getFerryOffMapSummary() {
+  const summary = { mode: 'ferry', lines: 0, riders: 0, capacity: 0, byDestination: {} };
+  if (!isFerryRuntime() || typeof getTransportExpansionState !== 'function') return summary;
+  const state = getFerryState();
+  state.routes.forEach((route) => {
+    if (!route.offMap || route.status !== 'active') return;
+    const legs = getFerryRouteLegs(route);
+    if (!legs) return;
+    const riders = Math.max(0, Number(route.history?.at(-1)?.passengers) || 0);
+    const fleet = state.vessels.filter((v) => v.routeId === route.id).length;
+    // round trips in the sixteen sailing hours of a month's sky-day, a load each way
+    summary.lines += 1;
+    summary.riders += riders;
+    summary.capacity += Math.round(fleet * FERRY.capacity * 2 * ((16 * 60) / ferryCycleMinutes(legs)));
+    summary.byDestination[route.offMap.destination] = (summary.byDestination[route.offMap.destination] || 0) + riders;
+  });
+  return summary;
 }
 
 // The land a pier serves: within FERRY.catchmentRadius of the middle of its shore half (a diamond,
@@ -775,15 +991,21 @@ function accrueFerryPiersForHour(state, envHour) {
   const served = new Set(state.routes.flatMap((r) => r.pierIds));
   const resetHour = typeof TRANSPORT_STOP_POOL_RESET_HOUR === 'number' ? TRANSPORT_STOP_POOL_RESET_HOUR : 4;
   const share = (typeof TRANSPORT_STOP_DAILY_BOARDING_SHARE === 'number' ? TRANSPORT_STOP_DAILY_BOARDING_SHARE : 0.75) * FERRY.boardingShare;
+  // (the far end of a route off the map has a queue too: riders coming in, residents coming home)
+  const farEnds = state.routes.filter((r) => r.offMap);
   if (severe) {
     // the ferries are tied up; the crossings people meant to make wait for the signal to drop
     state.piers.forEach((pier) => {
       if (!served.has(pier.id)) return;
       pier.stormBacklog = Math.min(9999, (Number(pier.stormBacklog) || 0) + getTransportStopRidersForHour(ferryPierCatchmentPoint(pier), hour, share));
     });
+    farEnds.forEach((r) => {
+      r.offMap.stormBacklog = Math.min(9999, (Number(r.offMap.stormBacklog) || 0) + getTransportStopRidersForHour(ferryOffMapRiderPoint(r), hour, share));
+    });
     return;
   }
-  const releasing = state.piers.some((pier) => (Number(pier.stormBacklog) || 0) > 0);
+  const releasing = state.piers.some((pier) => (Number(pier.stormBacklog) || 0) > 0)
+    || farEnds.some((r) => (Number(r.offMap.stormBacklog) || 0) > 0);
   const reset = hour === resetHour && !releasing
     && (typeof shouldClearTransportPoolAfterStorm !== 'function' || shouldClearTransportPoolAfterStorm(state, hour));
   state.piers.forEach((pier) => {
@@ -792,6 +1014,13 @@ function accrueFerryPiersForHour(state, envHour) {
     if (!served.has(pier.id)) { pier.waiting = 0; return; }
     const current = reset ? 0 : (Number(pier.waiting) || 0);
     pier.waiting = Math.min(9999, current + getTransportStopRidersForHour(ferryPierCatchmentPoint(pier), hour, share) + backlog * keep);
+  });
+  farEnds.forEach((r) => {
+    const end = r.offMap;
+    const backlog = Number(end.stormBacklog) || 0;
+    end.stormBacklog = 0;
+    const current = reset ? 0 : (Number(end.waiting) || 0);
+    end.waiting = Math.min(9999, current + getTransportStopRidersForHour(ferryOffMapRiderPoint(r), hour, share) + backlog * keep);
   });
   if (releasing) state.stormSurgeHour = hour;
 }
@@ -810,7 +1039,9 @@ function berthFerries(state, fromMinutes, toMinutes) {
     const legs = getFerryRouteLegs(route);
     if (!legs) return;
     const piers = route.pierIds.map((id) => state.piers.find((p) => p.id === id));
+    if (route.offMap) piers.push(route.offMap); // the far end's queue, off the map
     if (piers.some((p) => !p)) return;
+    const fareFactor = getFerryRouteFareFactor(route);
     route.monthToDatePassengers = Number(route.monthToDatePassengers) || 0;
     route.monthToDateRevenue = Number(route.monthToDateRevenue) || 0;
     piers.forEach((p) => { p.waiting = Number(p.waiting) || 0; });
@@ -828,6 +1059,7 @@ function berthFerries(state, fromMinutes, toMinutes) {
       const at = piers[pier];
       const leaving = v.sellAtNextPier || (pier === 0 && v.minutesSinceService >= serviceDue);
       const b = ferryBerthing(v.aboard, suspended || leaving ? 0 : at.waiting);
+      b.revenue *= fareFactor;
       v.aboard = b.boarding;
       at.waiting -= b.boarding;
       if (b.alighting > 0 && transport) {
@@ -1018,10 +1250,23 @@ function updateFerries(scene) {
         const id = `ferry|${vessel.id}`;
         live.add(id);
         const point = ferryVesselPointAt(legs, vessel.status === 'broken_down' || vessel.status === 'laid_up' ? vessel.downStartedAt : t, vessel.phase);
+        // off the map on a 區外航線: out of sight (its sprite kept for its return)
+        if (point.state === 'offMap') {
+          scene.ferrySprites.get(id)?.sprite?.setVisible(false);
+          return;
+        }
         const drawn = { ...point, dir: FERRY_DRAW_HEADING[point.dir] || point.dir };
         drawTyphoonShelterBoat(scene, id, FERRY.objectId, drawn, rotation, facings, scene.ferrySprites);
         const rec = scene.ferrySprites.get(id);
         if (rec) rec.ferryVesselId = vessel.id;
+        if (rec?.sprite && route.offMap) {
+          const alpha = getFerryOffMapAlpha(point, route.offMap.side, mapData.length, mapData[0].length);
+          rec.sprite.setVisible(alpha > 0.02);
+          rec.sprite.setAlpha(alpha);
+          // and its wake with it (water-effects.js)
+          const wake = scene.vesselWakes?.get(rec);
+          if (wake) wake.alphaScale = alpha;
+        }
         // by its pier while near it (no bridge stands within two tiles of a pier), else under any span
         if (!orderFerryByPier(scene, rec?.sprite, point, route, rotation)) tuckFerryUnderBridge(scene, rec?.sprite, point);
         // its takings rising over it as it berths, like a bus's - in Transport Mode only
@@ -1177,6 +1422,12 @@ const ferryApi = {
   getFerrySuspension,
   FERRY_NIGHT_REST,
   ferryBerthing,
+  normalizeFerryOffMap,
+  ferryOffMapLegs,
+  getFerryOffMapAlpha,
+  getFerryRouteFareFactor,
+  getFerryOffMapSummary,
+  getFerryRouteEndName,
   getFerryPierAt,
   isNearFerryPier,
   whyNotFerryPier,

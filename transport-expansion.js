@@ -2209,6 +2209,8 @@ function getTransportCatchmentIndex(now = Date.now()) {
 }
 
 function getTransportStopCatchmentUnits(stop) {
+  // a stand-in stop whose riders are worked out elsewhere (a ferry route's far end off the map)
+  if (stop?.fixedUnits) return stop.fixedUnits;
   if (!stop || typeof buildingData === 'undefined') {
     return { originUnits: 0, destinationUnits: 0, returnUnits: 0, residents: 0 };
   }

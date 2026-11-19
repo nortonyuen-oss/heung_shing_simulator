@@ -275,3 +275,162 @@ test('the route editor adds the 區外站 at an exit, keeps it last, and picks t
     assert.equal(i18n.split(`'${key}':`).length - 1, 3, `${key} in three languages`);
   });
 });
+
+// ── phase 2: ferry routes to a district off the map ──────────────────────────────────────────
+
+const ferry = require('../ferry.js');
+
+test('a ferry route off the map: out over the water to the edge, the leg off the map out of sight, back', () => {
+  const { FERRY, findFerryPath, ferryOffMapLegs, ferryVesselPointAt, ferryCycleMinutes, ferryArrivalsAt, getFerryOffMapAlpha } = ferry;
+  // a pier on the north shore (rows 0-1 land), open sea to the south edge (row 9)
+  const H = 10; const W = 10;
+  const water = (r, c) => r >= 2 && r < H && c >= 0 && c < W;
+  const pier = { row: 1, col: 4, land: 'n' };
+  const goalTiles = Array.from({ length: W }, (_, c) => [H - 1, c]).filter(([, c]) => Math.abs(c - 5) <= 6);
+  const path = findFerryPath(pier, { goalTiles }, water, H, W);
+  assert.ok(path, 'a way out to the edge');
+  assert.equal(path.at(-1)[0], H - 1, 'it ends on the edge');
+  const legs = ferryOffMapLegs(pier, path, 's', 34);
+  assert.deepEqual(legs.out.points.at(-1), [H - 1 + 1.5, path.at(-1)[1]], 'out past the edge, out of sight');
+  assert.deepEqual(legs.back.points[0], legs.out.points.at(-1));
+  assert.equal(legs.offMapMinutes, (2 * 34) / FERRY.speedTilesPerMinute, 'out and back off the map');
+  const dwell = FERRY.dwellMinutes;
+  const outT = legs.out.total / FERRY.speedTilesPerMinute;
+  assert.equal(ferryCycleMinutes(legs), 2 * dwell + (legs.out.total + legs.back.total) / FERRY.speedTilesPerMinute + legs.offMapMinutes);
+  assert.equal(ferryVesselPointAt(legs, 1, 0).state, 'alongside');
+  assert.equal(ferryVesselPointAt(legs, dwell + 1, 0).state, 'sailing');
+  const away = ferryVesselPointAt(legs, dwell + outT + 10, 0);
+  assert.equal(away.state, 'offMap', 'off the map for the leg out there');
+  assert.equal(away.pier, 1);
+  assert.equal(ferryVesselPointAt(legs, dwell + outT + dwell + legs.offMapMinutes + 1, 0).state, 'sailing', 'back again');
+  // it reaches the far end half way through its time off the map
+  const arrivals = ferryArrivalsAt(legs, 0, ferryCycleMinutes(legs) - 0.01, [0]);
+  assert.deepEqual(arrivals.map((a) => a.pier), [1]);
+  assert.ok(Math.abs(arrivals[0].t - (dwell + outT + legs.offMapMinutes / 2)) < 1e-9);
+  // fading over the last two tiles before the edge
+  assert.equal(getFerryOffMapAlpha({ r: 5, c: 5 }, 's', H, W), 1);
+  assert.equal(getFerryOffMapAlpha({ r: H - 1.5, c: 5 }, 's', H, W), 0.5);
+  assert.equal(getFerryOffMapAlpha({ r: H + 1, c: 5 }, 's', H, W), 0);
+});
+
+test('a save keeps a ferry route off the map with its one pier; a route of one pier without it goes', () => {
+  const state = ferry.normalizeFerryState({
+    piers: [{ id: 'p1', row: 1, col: 4, land: 'n' }],
+    routes: [
+      { id: 'r1', pierIds: ['p1'], offMap: { side: 's', destination: 'central-western', row: 9, col: 5, waiting: 12.5 } },
+      { id: 'r2', pierIds: ['p1'] },
+      { id: 'r3', pierIds: ['p1'], offMap: { side: 'x', destination: 'central-western', row: 9, col: 5 } },
+    ],
+    vessels: [],
+  });
+  assert.deepEqual(state.routes.map((r) => r.id), ['r1']);
+  assert.deepEqual({ ...state.routes[0].offMap }, { side: 's', destination: 'central-western', row: 9, col: 5, waiting: 12.5, stormBacklog: 0 });
+  assert.deepEqual([...state.routes[0].pierIds], ['p1']);
+});
+
+function loadFerryOffMapWorld() {
+  const context = vm.createContext({ console, severe: false });
+  vm.runInContext(read('ferry.js'), context, { filename: 'ferry.js' });
+  vm.runInContext(`
+    function isTransportSevereWeather() { return severe; }
+    var company = { cash: 0, cashFraction: 0 };
+    function getTransportExpansionState() { return { company }; }
+    function getRegionDestination(side, id) { return { id, km: 8.6 }; }
+    function getRegionTransitLegTiles(km) { return Math.max(12, Math.min(60, Math.round(km * 4))); }
+    var testLegs = ferryOffMapLegs({ row: 1, col: 4, land: 'n' }, [[3, 4], [9, 4]], 's', 34);
+    getFerryRouteLegs = () => testLegs;
+    var world = {
+      routes: [{ id: 'r1', status: 'active', pierIds: ['p0'], offMap: { side: 's', destination: 'central-western', row: 9, col: 4, waiting: 50, stormBacklog: 0 } }],
+      piers: [{ id: 'p0', waiting: 40 }],
+      vessels: [{ id: 'f1', routeId: 'r1', phase: 0, status: 'active', aboard: 0, condition: 1, minutesSinceService: 0, tilesThisMonth: 0, monthToDateRevenue: 0 }],
+    };
+  `, context);
+  return context;
+}
+
+test('a ferry off the map lands its riders at the far end, boards those waiting there, and charges for the longer crossing', () => {
+  const c = loadFerryOffMapWorld();
+  const ev = (code) => vm.runInContext(code, c);
+  assert.equal(ev('getFerryRouteFareFactor(world.routes[0])'), 1 + 34 / 20);
+  // sky 09:00 onwards (env 180): two round trips, so both ends land what they boarded
+  ev('berthFerries(world, 180, 180 + 2 * ferryCycleMinutes(testLegs))');
+  const route = ev('world.routes[0]');
+  assert.equal(route.offMap.waiting, 0, 'the far end\'s queue boarded');
+  assert.equal(route.monthToDatePassengers, 40 + 50, 'the pier\'s riders off at the far end, and the far end\'s back at the pier');
+  assert.ok(Math.abs(route.monthToDateRevenue - 90 * ev('FERRY.fare') * 2.7) < 1e-9, 'at the longer crossing\'s fare');
+});
+
+// the whole of it in the game's modules: a pier on a sea that runs off the south edge
+function createFerryOffMapVm() {
+  const H = 12; const W = 12;
+  const context = vm.createContext({
+    console, MAP_WIDTH: W, MAP_HEIGHT: H, roadTileCount: 0,
+    WATER: 5, GROUND: 1, BEACH: 4, DIRT: 3, ROAD: 2,
+    city: {
+      population: 3000, budget: 5000, year: 1900, month: 1, day: 1, tick: 0,
+      weather: { typhoonStage: 'none' },
+      regionDestinations: { n: [], e: [], s: [{ id: 'central-western', km: 8.6 }], w: [] },
+    },
+    buildingData: {
+      '3:4': { type: 'residential', population: 2000, footprintRows: 1, footprintCols: 1 },
+      '4:6': { type: 'commercial', level: 3, footprintRows: 1, footprintCols: 1 },
+    },
+    getBuildingJobCapacity: (record) => (record.type === 'commercial' ? 500 : 0),
+    isInsideMap: (row, col) => row >= 0 && row < H && col >= 0 && col < W,
+    isRoadTile: () => false,
+    getRoadEdgeExitSide: () => null,
+    t: (key, params = {}) => `${key}${JSON.stringify(params)}`,
+  });
+  vm.runInContext(`var mapData = Array.from({ length: ${H} }, (_, r) => Array.from({ length: ${W} }, () => (r >= 6 ? 5 : 1)));`, context);
+  vm.runInContext(read('traffic-demand.js'), context, { filename: 'traffic-demand.js' });
+  vm.runInContext(read('transport-expansion.js'), context, { filename: 'transport-expansion.js' });
+  vm.runInContext(read('region-connections.js'), context, { filename: 'region-connections.js' });
+  vm.runInContext(read('ferry.js'), context, { filename: 'ferry.js' });
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    var ferryState = getFerryState();
+    ferryState.piers.push({ id: 'pier-1', row: 5, col: 4, land: 'n', name: '荃灣碼頭', waiting: 0, stormBacklog: 0 });
+  `, context);
+  return context;
+}
+
+test('in the game: a pier, then the sea at the map edge, opens a route off the map - riders queue at both ends', () => {
+  const context = createFerryOffMapVm();
+  const ev = (code) => vm.runInContext(code, context);
+  assert.equal(ev('JSON.stringify(getFerrySeaExitNear(10, 5))'), JSON.stringify({ side: 's', row: 11, col: 5, distance: 1 }));
+  assert.equal(ev('getFerrySeaExitNear(5, 5)'), null, 'not near an edge');
+  const opened = ev('openFerryOffMapRoute(ferryState.piers[0], getFerrySeaExitNear(10, 5))');
+  assert.equal(opened.ok, true);
+  assert.deepEqual({ side: opened.route.offMap.side, destination: opened.route.offMap.destination }, { side: 's', destination: 'central-western' });
+  assert.equal(ev('openFerryOffMapRoute(ferryState.piers[0], getFerrySeaExitNear(10, 5)).code'), 'exists');
+  assert.equal(ev('getFerryRouteEndName(ferryState.routes[0], 1)'), 'transport.offMap.stopName{"place":"Central"}');
+  const legs = ev('getFerryRouteLegs(ferryState.routes[0])');
+  assert.ok(legs && legs.offMapMinutes === 2 * 34, 'a way out to the south edge, 34 tiles to 中環');
+  // an hour of the morning: riders at the pier, and outsiders at the far end
+  ev('accrueFerryPiersForHour(ferryState, 2)');
+  assert.ok(ev('ferryState.piers[0].waiting') > 0);
+  assert.ok(ev('ferryState.routes[0].offMap.waiting') > 0, 'outsiders coming in');
+  // the month: riders off the map for the region flows
+  ev(`ferryState.routes[0].history = [{ year: 1900, month: 1, passengers: 500 }]; ferryState.vessels.push(normalizeFerryVessel({ id: 'ferry-1', routeId: ferryState.routes[0].id }, new Set([ferryState.routes[0].id])));`);
+  const summary = ev('getFerryOffMapSummary()');
+  assert.equal(summary.lines, 1);
+  assert.equal(summary.riders, 500);
+  assert.deepEqual({ ...summary.byDestination }, { 'central-western': 500 });
+  assert.ok(summary.capacity > 0);
+  const transit = ev('getRegionTransitSummary()');
+  assert.equal(transit.byModeDestination['ferry:central-western'], 500);
+  assert.ok(ev('setFerryRouteOffMapDestination(ferryState.routes[0].id, "tsing-yi")'));
+  assert.equal(ev('ferryState.routes[0].offMap.destination'), 'tsing-yi');
+});
+
+test('the ferry windows name the far end and pick its district', () => {
+  const ui = read('ferry-ui.js');
+  assert.match(ui, /data-ferry-offmap-route="\$\{ferryUiEscape\(route\.id\)\}"/);
+  assert.match(ui, /point\.state === 'offMap' \? getFerryRouteEndName\(route, 1, state\)/);
+  assert.match(read('transport-ui.js'), /handleFerryUiChange\(event\)\) return refreshTransportUi\(\);/);
+  assert.match(read('transit-trackers.js'), /point\.state === 'offMap'/);
+  const i18n = read('i18n.js');
+  ['ferry.route.offMapOpened', 'ferry.route.offMapExists', 'ferry.route.noWaterOut', 'region.transit.mode.ferry'].forEach((key) => {
+    assert.equal(i18n.split(`'${key}':`).length - 1, 3, `${key} in three languages`);
+  });
+});

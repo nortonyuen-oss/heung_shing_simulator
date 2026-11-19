@@ -2657,6 +2657,8 @@
     }
 
     .popup-button:hover  { background: #f8f0d2; }
+    /* a density the district's height cap or a 公屋／居屋 zone rules out */
+    .popup-button:disabled { opacity: 0.45; cursor: not-allowed; background: #ece7d4; }
     .popup-button.is-active {
       background: #f1c65d;
       box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
@@ -2688,6 +2690,17 @@
     .zone-block.res { background: #2e9e3e; }
     .zone-block.com { background: #2255cc; }
     .zone-block.ind { background: #c8a800; }
+    /* 公屋區 / 居屋區 (housing-types.js), the colours of their zone overlays */
+    .zone-block.pub { background: #1d8c7f; }
+    .zone-block.hos { background: #7a4cae; }
+    .popup-section-label {
+      font-size: 11px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #4b473e;
+      padding: 2px 2px 0;
+      border-top: 1px solid #a7a08d;
+      margin-top: 2px;
+    }
 
     .popup-button .park-popup-icon {
       width: 22px;
@@ -8543,6 +8556,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="sim-news-events.js"></script>
   <script src="ai-news-service.js"></script>
   <script src="model-catalog.js"></script>
+  <script src="housing-types.js"></script>
   <script src="map-utils.js"></script>
   <script src="simulation.js"></script>
   <script src="traffic-demand.js"></script>

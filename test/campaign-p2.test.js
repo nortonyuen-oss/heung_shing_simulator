@@ -119,14 +119,17 @@ test('unlocking steps over chapters still to come; a starred chapter stays open'
   assert.equal(campaign.isCampaignChapterUnlocked(profile({}), 'ch02'), false);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1 }), 'ch02'), true);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1 }), 'ch06'), false, 'not before 04');
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch06'), true, '04 opens 06 past 05');
-  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch05'), true, '05 shows as coming soon');
+  // P4: 05 is playable now, so 04 opens it and 06 waits for it
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch05'), true, '04 opens 05');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch01: 1, ch02: 1, ch03: 1, ch04: 1 }), 'ch06'), false, '06 waits for 05');
+  assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch04: 1, ch05: 1 }), 'ch06'), true, '05 opens 06');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch06: 1 }), 'ch07'), true);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch09: 1 }), 'ch12'), true, '09 opens 12 past 10 and 11');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch13: 1 }), 'ch16'), true, '13 opens 16 past 14 and 15');
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch17: 1 }), 'ch18'), true);
   assert.equal(campaign.isCampaignChapterUnlocked(profile({ ch07: 2 }), 'ch07'), true, 'a starred chapter stays open');
-  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch04').map((chapter) => chapter.id), ['ch05', 'ch06']);
+  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch04').map((chapter) => chapter.id), ['ch05']);
+  assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch05').map((chapter) => chapter.id), ['ch06']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch01').map((chapter) => chapter.id), ['ch02']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch09').map((chapter) => chapter.id), ['ch10', 'ch12']);
   assert.deepEqual(campaign.getCampaignChaptersUnlockedBy('ch12').map((chapter) => chapter.id), ['ch13']);

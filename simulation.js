@@ -790,6 +790,9 @@ function updatePopulationAndPollution() {
   });
   // 住家艇: the families living aboard in the typhoon shelters (typhoon-shelter-fishery.js)
   city.population += Math.round(residents * districtDensity);
+  // 公屋／居屋／私人 residents, by the art each home stands on (housing-types.js)
+  city.housingResidents = typeof countHousingTypeResidents === 'function'
+    ? countHousingTypeResidents(buildingData, districtDensity) : null;
   if (typeof getTyphoonShelterResidents === 'function') city.population += getTyphoonShelterResidents();
   if (typeof getMatureTreeCount === 'function' && city.pollution > 0) {
     const treeReduction = Math.min(

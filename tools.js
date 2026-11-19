@@ -65,7 +65,7 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
 function handleNewTool(scene, tile) {
   const { row, col } = tile;
 
-  if (selectedTool === 'zone-res')      return placeZone(scene, row, col, ZONE_RES, selectedZoneDensity.res);
+  if (selectedTool === 'zone-res')      return placeZone(scene, row, col, ZONE_RES, selectedZoneDensity.res, typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private');
   if (selectedTool === 'zone-com')      return placeZone(scene, row, col, ZONE_COM, selectedZoneDensity.com);
   if (selectedTool === 'zone-ind')      return placeZone(scene, row, col, ZONE_IND, selectedZoneDensity.ind);
   if (selectedTool === 'dezone')        return dezoneAt(scene, row, col);
@@ -217,18 +217,34 @@ function spendBudget(amount) {
 
 let districtHeightCapNoticeAt = 0;
 
-function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW) {
-  density = Math.min(density, typeof getDistrictMaxZoneDensity === 'function' ? getDistrictMaxZoneDensity() : DENSITY_HIGH);
+// 公屋區／居屋區 (housing-types.js) are zoned at medium density at least, as estates are, unless the
+// district caps the height lower
+function getHousingZoneDensity(density, housingType = 'private') {
+  const maxDensity = typeof getDistrictMaxZoneDensity === 'function' ? getDistrictMaxZoneDensity() : DENSITY_HIGH;
+  const floor = housingType === 'public' || housingType === 'hos' ? DENSITY_MED : DENSITY_LOW;
+  return Math.min(Math.max(density, floor), maxDensity);
+}
+
+function isSameZoneAt(row, col, zoneType, density, housingType) {
+  return zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density
+    && (zoneType !== ZONE_RES || typeof getHousingZoneType !== 'function' || getHousingZoneType(row, col) === housingType);
+}
+
+function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW, housingType = 'private') {
+  housingType = zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
+  density = getHousingZoneDensity(density, housingType);
   if (!isInsideMap(row, col) || [WATER, BEACH, ROAD].includes(mapData[row][col]) || !canPlaceBuilding(row, col)) return { ok: false, cost: 0, density };
   if (zoneType === ZONE_RES && density !== DENSITY_LOW && lowDensityLockSet.has(getTileId(row, col))) return { ok: false, cost: 0, density, reason: 'lowDensity' };
-  const noop = zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density;
+  const noop = isSameZoneAt(row, col, zoneType, density, housingType);
   const base = zoneType === ZONE_RES ? COST_ZONE_RES : zoneType === ZONE_COM ? COST_ZONE_COM : COST_ZONE_IND;
   const fee = base * (DENSITY_COST_MUL[density] ?? 1);
   return { ok: true, noop, density, cost: noop ? 0 : typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(fee) : Math.round(fee) };
 }
 
-function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
+function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType = 'private') {
   if (!isInsideMap(row, col)) return false;
+  housingType = zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
+  if (housingType !== 'private') density = Math.max(density, DENSITY_MED);
 
   // 地區特色: a height-capped district (西貢, 南丫島…) zones at its cap instead; one notice per
   // few seconds, not one per painted tile
@@ -259,10 +275,10 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
     return false;
   }
 
-  // No-op if exactly the same zone+density already applied
-  if (zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density) return true;
+  // No-op if exactly the same zone+density (and housing type) already applied
+  if (isSameZoneAt(row, col, zoneType, density, housingType)) return true;
 
-  const { cost } = getZonePlacementQuote(row, col, zoneType, density);
+  const { cost } = getZonePlacementQuote(row, col, zoneType, density, housingType);
 
   if (!spendBudget(cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
@@ -276,6 +292,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   removeZoneOverlay(scene, row, col);
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
+  if (zoneType === ZONE_RES && typeof setHousingZoneType === 'function') setHousingZoneType(row, col, housingType);
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   // Roads/plants may already have a clean cached grid before this lot exists.
   // Refresh its connection and reserved demand on the next simulation pulse.
@@ -285,7 +302,8 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   }
 
   // Create overlay sprite
-  const zoneCode = zoneType === ZONE_RES ? 'res'
+  const zoneCode = typeof getZoneOverlayCode === 'function' ? getZoneOverlayCode(zoneType, row, col)
+                 : zoneType === ZONE_RES ? 'res'
                  : zoneType === ZONE_COM ? 'com'
                  : 'ind';
   const textureKey = `zone_overlay_${zoneCode}_${density}`;
@@ -316,6 +334,7 @@ function removeZoneOverlay(scene, row, col) {
     scene.zoneOverlays.delete(id);
   }
   zoneMap[row][col] = ZONE_NONE;
+  if (typeof setHousingZoneType === 'function') setHousingZoneType(row, col, 'private');
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   if (wasZoned && typeof markPowerGridDirty === 'function') markPowerGridDirty();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();

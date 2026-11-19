@@ -18,7 +18,7 @@ const judge = (snapshot, profile = medals.createEmptyMedalProfile()) => {
 };
 const earns = (snapshot, id) => judge(snapshot).newlyEarned.includes(id);
 
-test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 31 judged now', () => {
+test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 33 judged now', () => {
   assert.equal(medals.MEDAL_DEFS.length, 36);
   assert.equal(new Set(medals.MEDAL_DEFS.map((def) => def.id)).size, 36);
   const bySeries = (series) => medals.MEDAL_DEFS.filter((def) => def.series === series).map((def) => def.id);
@@ -27,8 +27,8 @@ test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 31 ju
   assert.deepEqual(bySeries('S'), ['C01', 'D01', 'E01']);
   const byStatus = (status) => medals.MEDAL_DEFS.filter((def) => def.status === status).map((def) => def.id);
   assert.deepEqual(byStatus('locked'), [], 'A15-A19 set 2026-11-17');
-  assert.deepEqual(byStatus('blocked'), ['B03', 'B04', 'B07', 'D01', 'E01'], '公屋/居屋, routes, Claire, the campaign');
-  assert.equal(byStatus('active').length, 31);
+  assert.deepEqual(byStatus('blocked'), ['B07', 'D01', 'E01'], 'routes, Claire, the campaign (公屋/居屋 live since P4)');
+  assert.equal(byStatus('active').length, 33);
   medals.MEDAL_DEFS.forEach((def) => {
     ['zhHant', 'en', 'ja'].forEach((language) => {
       assert.ok(def.name[language], `${def.id} name in ${language}`);
@@ -383,4 +383,12 @@ test('the player profile store round-trips through SQLite', () => {
   assert.throws(() => store.putPlayerProfile('../x', {}), /invalid/);
   store.close?.();
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('B03 公屋之父 and B04 居者有其屋 count the residents of each housing type', () => {
+  assert.equal(earns({ publicHousingResidents: 49999 }, 'B03'), false);
+  assert.equal(earns({ publicHousingResidents: 50000 }, 'B03'), true);
+  assert.equal(earns({ hosResidents: 19999 }, 'B04'), false);
+  assert.equal(earns({ hosResidents: 20000 }, 'B04'), true);
+  assert.equal(earns({ privateResidents: 90000 }, 'B03'), false, 'private homes are not public housing');
 });

@@ -289,21 +289,73 @@
     return facts;
   }
 
+  // 第 5 章 黃大仙: the public sector's share of residents (公屋 and 居屋, housing-types.js), and the
+  // grand temple's 交通接駁 and fire cover - a bus stop on a route with riders, or a station of a line
+  // with riders, within CAMPAIGN_TEMPLE_TRANSIT_TILES of its lot; a fire station's cover on its lot.
+  const CAMPAIGN_TEMPLE_TRANSIT_TILES = 6;
+  function collectHousingFacts() {
+    const counts = city.housingResidents || {};
+    const publicSector = (Number(counts.public) || 0) + (Number(counts.hos) || 0);
+    const total = publicSector + (Number(counts.private) || 0);
+    const facts = { publicSectorShare: total > 0 ? publicSector / total : 0, templeTransit: false, templeFireCover: false };
+    const temples = [];
+    Object.entries(typeof buildingData !== 'undefined' && buildingData ? buildingData : {}).forEach(([id, record]) => {
+      if (record?.type !== 'grand_temple') return;
+      const [row, col] = id.split(':').map(Number);
+      temples.push({ row, col, rows: record.footprintRows || 1, cols: record.footprintCols || 1 });
+    });
+    if (!temples.length) return facts;
+    const gap = (value, from, size) => Math.max(from - value, value - (from + size - 1), 0);
+    const nearTemple = (row, col) => temples.some((t) => Math.max(gap(row, t.row, t.rows), gap(col, t.col, t.cols)) <= CAMPAIGN_TEMPLE_TRANSIT_TILES);
+    try {
+      const state = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+      if (state) {
+        const stops = new Map((state.stops || []).map((stop) => [stop.id, stop]));
+        facts.templeTransit = (state.routes || []).some((route) => route.status !== 'suspended'
+          && Number(route.history?.at(-1)?.passengers) > 0
+          && (route.stopIds || []).some((id) => { const stop = stops.get(id); return stop && !stop.offMap && nearTemple(stop.row, stop.col); }));
+        const metro = typeof getMetroState === 'function' ? getMetroState() : null;
+        if (!facts.templeTransit && metro) {
+          facts.templeTransit = (metro.lines || []).some((line) => line.status === 'active' && lastRiders(line) > 0
+            && (typeof getMetroLineStations === 'function' ? getMetroLineStations(line, metro) : []).some((st) => nearTemple(st.row, st.col)));
+        }
+      }
+    } catch { /* no transport */ }
+    if (typeof serviceMap !== 'undefined' && serviceMap) {
+      facts.templeFireCover = temples.some((t) => {
+        for (let r = t.row; r < t.row + t.rows; r++) for (let c = t.col; c < t.col + t.cols; c++) if (serviceMap.get(`${r}:${c}`)?.fire) return true;
+        return false;
+      });
+    }
+    return facts;
+  }
+
   function buildCampaignSnapshot() {
     const base = typeof collectMedalSnapshot === 'function' ? collectMedalSnapshot() : { buildings: {}, transit: {} };
     const buildings = base.buildings || {};
     const zoneTiles = { res: 0, com: 0, ind: 0 };
+    // 第 5 章 服務覆蓋: the share of residential land each service reaches
+    const homeCover = { fire: 0, police: 0, health: 0, school: 0 };
+    const services = typeof serviceMap !== 'undefined' && serviceMap ? serviceMap : null;
     if (typeof zoneMap !== 'undefined' && Array.isArray(zoneMap)) {
-      for (const row of zoneMap) {
-        if (!row) continue;
+      zoneMap.forEach((row, r) => {
+        if (!row) return;
         for (let i = 0; i < row.length; i++) {
           const zone = row[i];
-          if (zone === ZONE_RES) zoneTiles.res++;
-          else if (zone === ZONE_COM) zoneTiles.com++;
+          if (zone === ZONE_RES) {
+            zoneTiles.res++;
+            const cell = services?.get(`${r}:${i}`);
+            if (!cell) continue;
+            if (cell.fire) homeCover.fire++;
+            if (cell.police) homeCover.police++;
+            if ((Number(cell.health) || 0) > 0) homeCover.health++;
+            if ((Number(cell.eduBasic) || 0) > 0) homeCover.school++;
+          } else if (zone === ZONE_COM) zoneTiles.com++;
           else if (zone === ZONE_IND) zoneTiles.ind++;
         }
-      }
+      });
     }
+    Object.keys(homeCover).forEach((key) => { homeCover[key] = zoneTiles.res > 0 ? homeCover[key] / zoneTiles.res : 0; });
     const loans = Array.isArray(city.loans) ? city.loans : [];
     return {
       ...base,
@@ -312,6 +364,7 @@
       ...collectFestivalFacts(),
       ...collectDragonBoatFacts().facts,
       ...collectP3Facts(),
+      ...collectHousingFacts(),
       crimeRate: Number(city.crimeRateIndex) || 0,
       tourismAppeal: Number(city.tourismAppeal) || 0,
       pollution: Number(city.pollution) || 0,
@@ -329,6 +382,7 @@
       roadTiles: typeof roadTileCount !== 'undefined' ? Number(roadTileCount) || 0 : 0,
       powerLines: typeof powerLineSet !== 'undefined' && powerLineSet ? powerLineSet.size : 0,
       zoneTiles,
+      homeCover,
     };
   }
 

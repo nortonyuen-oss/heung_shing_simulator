@@ -128,6 +128,8 @@ const city = {
   // 貨櫃貨運 (port-freight.js): this month's rates (derived) and the months' record (saved)
   portFreight: null,
   portFreightHistory: [],
+  // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
+  housingZones: {},
   // 區外交通: each side's districts a line can run off the map to, nearest first ({ id, km })
   regionDestinations: null,
   // 海底隧道 (undersea-tunnel.js): its two portals (tiles, direction, approach roads) and the sea tiles it runs under
@@ -475,6 +477,7 @@ function resetGameState() {
   city.regionFlows = null;
   city.portFreight = null;
   city.portFreightHistory = [];
+  city.housingZones = {};
   city.regionDestinations = null;
   city.underseaTunnels = [];
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };

@@ -107,7 +107,9 @@ function drawZoneSelectionPreview(scene, start, end) {
     if (pt.x < west.x) west = pt;
   });
 
-  const color = selectedTool === 'zone-res' ? 0x44ff66
+  // 公屋區 teal, 居屋區 violet (housing-types.js)
+  const housingType = typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+  const color = selectedTool === 'zone-res' ? (housingType === 'public' ? 0x3fd6c4 : housingType === 'hos' ? 0xb07ce8 : 0x44ff66)
               : selectedTool === 'zone-com' ? 0x4499ff
               : 0xffcc00;
 

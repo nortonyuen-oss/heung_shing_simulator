@@ -337,7 +337,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
       coordTitle = customName;
     } else {
       const tl = getBuildingTypeLabel(bData.type);
-      const subLabelKey = bData.type === 'residential' ? (bData.wealthTier ?? 'L') : (bData.level ?? 1);
+      const subLabelKey = bData.type === 'residential' ? getResidentialSubLabelKey(bData) : (bData.level ?? 1);
       const sl = getBuildingSubLabel(bData.type, subLabelKey);
       coordTitle = sl ? `${tl} · ${sl}` : tl;
     }
@@ -435,7 +435,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     // keep their existing level-keyed display untouched.
     const BLDG_DISPLAY = {
       residential: {
-        L: t('building.publicEstate'), M: t('building.privateResidence'), H: t('building.wealthyResidence'), UH: t('building.mansion'),
+        L: t('building.lowRentResidence'), M: t('building.privateResidence'), H: t('building.wealthyResidence'), UH: t('building.mansion'),
+        public: t('building.publicEstate'), hos: t('building.hosCourt'),
       },
       commercial:  { 1: t('building.smallShop'), 2: t('building.commercialBlockIcon'), 3: t('building.officeTowerIcon') },
       industrial:  { 1: t('building.smallFactory'), 2: t('building.industrialComplexIcon'), 3: t('building.heavyIndustryIcon') },
@@ -446,7 +447,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData && BLDG_DISPLAY[bData.type]) {
       const isResidentialBldg = bData.type === 'residential';
       const lvl      = bData.level ?? 1;
-      const dispKey  = isResidentialBldg ? (bData.wealthTier ?? 'L') : lvl;
+      const dispKey  = isResidentialBldg ? getResidentialSubLabelKey(bData) : lvl;
       const dispName = BLDG_DISPLAY[bData.type][dispKey] ?? `${getBuildingTypeLabel(bData.type)} ${dispKey}`;
       const popLabel = BLDG_POP_LABEL[bData.type] ?? t('inspect.residents');
       const avgEducation = typeof getAverageEducationForBuilding === 'function'
@@ -465,11 +466,14 @@ function showInspectPanel(scene, row, col, pointer = null) {
         <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>`;
     } else {
       bldgHtml = `<div class="insp-row insp-muted">${t('inspect.emptyLot')}</div>`;
+      // 公屋／居屋 come only as whole blocks (housing-types.js): a strip too narrow stays open
+      const lotHousingType = zone === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(row, col) : 'private';
+      if (lotHousingType !== 'private') bldgHtml += `<div class="insp-row insp-muted">${t(`zone.housingLotTip.${lotHousingType}`)}</div>`;
     }
 
     html += `
       <div class="insp-section">
-        <div class="insp-zone-name" style="color:${zColor}">${getZoneName(zone)} · ${getDensityLabel(density)}</div>
+        <div class="insp-zone-name" style="color:${zColor}">${getZoneName(zone, row, col)} · ${getDensityLabel(density)}</div>
         ${bldgHtml}
         <div class="insp-divider"></div>
         <div class="insp-row ${hasRoad  ? 'insp-ok' : 'insp-fail'}">${t('inspect.roadAccess', { status: hasRoad ? '✓' : t('inspect.needed') })}</div>

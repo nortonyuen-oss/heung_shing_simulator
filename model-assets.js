@@ -343,6 +343,10 @@ function createModelEntry(keyPrefix, index, entry, config, placeConfig = config)
     massingTier: config.modelKind === 'residential'
       ? getResidentialMassingTierFromFileName(sourceFileName || fileName)
       : null,
+    // 公屋／居屋 art (housing-types.js); 'private' for the rest
+    housingType: config.modelKind === 'residential' && typeof getResidentialHousingTypeFromFileName === 'function'
+      ? getResidentialHousingTypeFromFileName(sourceFileName || fileName)
+      : null,
     commercialTier: config.modelKind === 'commercial'
       ? getCommercialTierFromFileName(sourceFileName || fileName)
       : null,

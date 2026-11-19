@@ -125,12 +125,15 @@ function showTileDebug(scene, pointer) {
   };
   const BLDG_SUB_LABEL = {
     residential: {
-      L: 'Public Estate (L)', M: 'Private Residence (M)', H: 'Wealthy Residence (H)', UH: 'Mansion (UH)',
+      L: 'Low-Rent Homes (L)', M: 'Private Residence (M)', H: 'Wealthy Residence (H)', UH: 'Mansion (UH)',
+      public: 'Public Estate (公屋)', hos: 'HOS Court (居屋)',
     },
     commercial:  { 1: 'Shop',     2: 'Commercial Block',  3: 'Office Tower' },
     industrial:  { 1: 'Factory',  2: 'Industrial Complex',3: 'Heavy Industry'},
   };
-  const getBldgSubLabelKey = (record) => (record?.type === 'residential' ? (record.wealthTier ?? 'L') : (record?.level ?? 1));
+  const getBldgSubLabelKey = (record) => (record?.type === 'residential'
+    ? (typeof getResidentialSubLabelKey === 'function' ? getResidentialSubLabelKey(record) : (record.wealthTier ?? 'L'))
+    : (record?.level ?? 1));
 
   // Sprite texture key — prefer bData.spriteKey (set at placement time);
   // fall back to reading it from the sprite currently at this tile.

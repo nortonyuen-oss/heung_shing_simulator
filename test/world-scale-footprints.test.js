@@ -169,7 +169,7 @@ test('the 5x5 estates move to the 8x8 (borrowed) and 9x9 (cut) estate lots', () 
   assert.match(growth, /RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object\.freeze\(\[9, 8, 5, 4, 3, 2\]\)/);
   assert.match(growth, /LARGE_RESIDENTIAL_LOT_SIZES = Object\.freeze\(\[9, 8, 5\]\)/);
   assert.match(source('server.js'), /'residential\/house9x9'/);
-  assert.match(growth, /hasResidentialModelForFootprint\(footprintSize\) \{[\s\S]*?!model\.legacy/);
+  assert.match(growth, /hasResidentialModelForFootprint\(footprintSize, housingType = 'private'\) \{[\s\S]*?!model\.legacy/);
   const chances = vm.runInContext(`${source('constants.js')}\n;RES_LARGE_SPAWN_CHANCE`, vm.createContext({}));
   assert.ok(chances[3][9] > 0 && chances[3][8] > 0, 'high density grows estates');
   assert.equal(chances[1][8], 0, 'low density never does');

@@ -430,8 +430,9 @@ function pickRenewalModel(record, row, col, qualityContexts) {
     const factors = qualityContexts?.residential ? getResidentialSiteFactors(row, col, size, qualityContexts.residential) : null;
     const quality = factors?.quality ?? 0.5;
     // the same wealth tier where the lot size has one, so a street keeps its character
-    return getRandomHouseModel(setKey, quality, false, density, factors, record.wealthTier ?? null)
-      ?? getRandomHouseModel(setKey, quality, false, density, factors);
+    const housingType = typeof getHousingZoneType === 'function' ? getHousingZoneType(row, col) : 'private';
+    return getRandomHouseModel(setKey, quality, false, density, factors, record.wealthTier ?? null, housingType)
+      ?? getRandomHouseModel(setKey, quality, false, density, factors, null, housingType);
   }
   if (record.type === 'commercial') {
     const factors = qualityContexts?.commercial ? getCommercialSiteFactors(row, col, size, qualityContexts.commercial) : null;
@@ -566,8 +567,9 @@ function clearEstateLotHolds() {
 // growth for ESTATE_LOT_HOLD_MONTHS so the estate gets more rolls.
 function scanForLargeResidentialLots(scene, qualityContexts) {
   if (city.tick % LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS !== 0) return;
+  // the sizes any housing type has art for; each anchor then needs its own type's (housing-types.js)
   const residentialSizes = (city.demandR ?? 0) > 0
-    ? LARGE_RESIDENTIAL_LOT_SIZES.filter((size) => hasResidentialModelForFootprint(size)) : [];
+    ? LARGE_RESIDENTIAL_LOT_SIZES.filter((size) => ['private', 'public', 'hos'].some((type) => hasResidentialModelForFootprint(size, type))) : [];
   const commercialSizes = (city.demandC ?? 0) > 0
     ? LARGE_COMMERCIAL_LOT_SIZES.filter((size) => hasNonResidentialBuildingModelForFootprint(ZONE_COM, size, 0.5, DENSITY_HIGH, null))
     : [];
@@ -581,10 +583,12 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
     if (scene.buildingSprites.has(id)) continue;
 
     const landScore = getZoneGrowthLandScore(r, c, zone, qualityContexts.landValueMap);
+    const housingType = zone === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(r, c) : 'private';
     for (const size of sizes) {
+      if (zone === ZONE_RES && !hasResidentialModelForFootprint(size, housingType)) continue;
       if (!hasRoadNearFootprint(r, c, size, size)) continue;
       if (!canPlaceZoneBuildingFootprint(scene, r, c, zone, size, size)) continue;
-      if (zone === ZONE_RES && size >= 8) {
+      if (zone === ZONE_RES && size >= 8 && housingType === 'private') {
         const tier = qualityContexts.residential
           ? getResidentialSiteFactors(r, c, size, qualityContexts.residential).wealthDistrictTier : null;
         if (!isEstateLotDistrictAllowed(size, tier)) continue;
@@ -874,6 +878,8 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     const { size: footprintSize, forceWealthTier } = chooseResidentialFootprint(
       scene, r, c, density, optionsOverride, anchorFactors,
     );
+    if (!footprintSize) return false;
+    const isHousingEstate = anchorFactors.housingType === 'public' || anchorFactors.housingType === 'hos';
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
     const siteFactors = getResidentialSiteFactors(r, c, footprintSize, residentialQualityContext);
     const model = getRandomHouseModel(setKey, siteFactors.quality, preferHighScore, density, siteFactors, forceWealthTier);
@@ -882,7 +888,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
       selectedModel = model;
       key     = model.key;
       options = { ...model.metadata };
-    } else if (footprintSize > 1) {
+    } else if (footprintSize > 1 && !isHousingEstate) {
       // Larger models not ready yet — fall back to 1×1.
       const fallback = getRandomHouseModel('house', siteFactors.quality, preferHighScore, density, siteFactors);
       if (fallback) {
@@ -1009,6 +1015,10 @@ function getResidentialHouseSetForFootprint(footprintSize) {
 // from an explicit caller override (e.g. scanForLowDensityEstateUpgrades
 // pinning a redeveloped estate to UH), not from anything computed here.
 function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, siteFactors = null) {
+  const housingType = siteFactors?.housingType ?? 'private';
+  if (housingType === 'public' || housingType === 'hos') {
+    return chooseHousingEstateFootprint(scene, r, c, housingType, density, optionsOverride);
+  }
   const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
   if (forcedSize) {
     const fits = canPlaceResidentialFootprint(scene, r, c, forcedSize) && hasResidentialModelForFootprint(forcedSize);
@@ -1034,6 +1044,21 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
   }
 
   return { size: 1, forceWealthTier: null };
+}
+
+// 公屋區／居屋區 (housing-types.js): a block of the zone's own art in a lot size that art comes in -
+// no 1x1 fallback, an estate is a whole block. A merge's or large-lot scan's forced size when it
+// fits; else the larger sizes that fit get twice the usual large-lot odds, and the smallest that
+// fits the rest. Size 0: nothing fits here yet.
+function chooseHousingEstateFootprint(scene, r, c, housingType, density, optionsOverride = {}) {
+  const fits = (size) => hasResidentialModelForFootprint(size, housingType) && canPlaceResidentialFootprint(scene, r, c, size);
+  const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
+  if (forcedSize && fits(forcedSize)) return { size: forcedSize, forceWealthTier: null };
+  const sizes = RESIDENTIAL_LOT_SIZES_LARGEST_FIRST.filter(fits);
+  for (const size of sizes.slice(0, -1)) {
+    if (Math.random() < Math.min(0.9, 2 * getResidentialLargeSpawnChance(size, density))) return { size, forceWealthTier: null };
+  }
+  return { size: sizes.at(-1) ?? 0, forceWealthTier: null };
 }
 
 // Returns true when a block anchored at (r, c) is fully clear and zoned RES.
@@ -1113,11 +1138,14 @@ function getRandomNonResidentialModel(zone, footprintSize, landScore = 0.5, dens
 function canPlaceZoneBuildingFootprint(scene, r, c, zoneType, footprintCols, footprintRows) {
   if (!isInsideMap(r, c)) return false;
   const baseHeight = getTileHeight(r, c);
+  // a lot never spans 私人, 公屋 and 居屋 land (housing-types.js)
+  const housingType = zoneType === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(r, c) : null;
   for (let dr = 0; dr < footprintRows; dr++) {
     for (let dc = 0; dc < footprintCols; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc))                        return false;
       if (zoneMap[rr][cc] !== zoneType)                return false;
+      if (housingType !== null && getHousingZoneType(rr, cc) !== housingType) return false;
       if (scene.buildingSprites.has(getTileId(rr, cc))) return false;
       if (!canPlaceBuilding(rr, cc)) return false;
       if (getTileHeight(rr, cc) !== baseHeight) return false;
@@ -1169,7 +1197,8 @@ function findMergeableResidentialAnchor(scene, r, c, footprintSize) {
 
 function getMergeableResidentialBuildingsAt(scene, r, c, footprintSize) {
   if (!isInsideMap(r, c)) return null;
-  if (!hasResidentialModelForFootprint(footprintSize)) return null;
+  const housingType = typeof getHousingZoneType === 'function' ? getHousingZoneType(r, c) : 'private';
+  if (!hasResidentialModelForFootprint(footprintSize, housingType)) return null;
 
   const baseHeight = getTileHeight(r, c);
   const anchors = new Map();
@@ -1179,6 +1208,7 @@ function getMergeableResidentialBuildingsAt(scene, r, c, footprintSize) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc)) return null;
       if (zoneMap[rr][cc] !== ZONE_RES) return null;
+      if (typeof getHousingZoneType === 'function' && getHousingZoneType(rr, cc) !== housingType) return null;
       if (!canPlaceBuilding(rr, cc)) return null;
       if (getTileHeight(rr, cc) !== baseHeight) return null;
 
@@ -1329,10 +1359,11 @@ function hasCommercialBuildingModelForFootprint(
   return Object.values(weights).some((weight) => weight > 0);
 }
 
-function hasResidentialModelForFootprint(footprintSize) {
+function hasResidentialModelForFootprint(footprintSize, housingType = 'private') {
   const setKey = getResidentialHouseSetForFootprint(footprintSize);
   return (houseModelSets?.[setKey] ?? []).some((model) => (
     !model.legacy
+    && (model.housingType ?? 'private') === housingType
     && model.metadata
     && model.metadata.scale > 0.05
     && isSelectableZoneModelTexture(model)
@@ -1412,7 +1443,14 @@ function upgradeZoneBuilding(
     preferHighScore,
     residentialQualityContext,
     commercialQualityContext,
+    ...getHousingEstateLotOverride(zone, r, c, record),
   });
+}
+
+// 公屋／居屋 estates keep their lot when they level up or down (housing-types.js)
+function getHousingEstateLotOverride(zone, r, c, record) {
+  if (zone !== ZONE_RES || typeof getHousingZoneType !== 'function' || getHousingZoneType(r, c) === 'private') return {};
+  return { forceFootprint: Math.max(record?.footprintCols ?? 1, record?.footprintRows ?? 1) };
 }
 
 function shrinkOrRemoveZoneBuilding(scene, r, c) {
@@ -1424,7 +1462,7 @@ function shrinkOrRemoveZoneBuilding(scene, r, c) {
     const zone    = zoneMap[r][c];
     const density = record.density ?? (zoneDensityMap[r][c] ?? DENSITY_LOW);
     if (!removeBuilding(scene, r, c, { refreshInfrastructure: false })) return false;
-    spawnZoneBuilding(scene, r, c, zone, record.level - 1, density);
+    spawnZoneBuilding(scene, r, c, zone, record.level - 1, density, getHousingEstateLotOverride(zone, r, c, record));
   } else {
     if (!removeBuilding(scene, r, c, { refreshInfrastructure: false })) return false;
   }
@@ -1769,6 +1807,8 @@ function getResidentialSiteFactors(row, col, footprintSize = 1, context = create
     ...totals, economy, quality, urbanCore, skylineStats, wealthDistrictTier,
     marketQualityBonus: marketEffect.qualityBonus, marketUltraRichWeight: marketEffect.ultraRichWeight,
     row: centerRow, col: centerCol,
+    // 公屋區／居屋區 (housing-types.js), from the lot's anchor tile
+    housingType: typeof getHousingZoneType === 'function' ? getHousingZoneType(row, col) : 'private',
   };
 }
 
@@ -2060,8 +2100,12 @@ function getRandomHouseModel(
   density = DENSITY_LOW,
   siteFactors = null,
   forcedWealthTier = null,
+  housingTypeOverride = null,
 ) {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
+  // 公屋／居屋 art (housing-types.js) grows only on its own zone, the rest only on private land, so a
+  // home's art is always its housing type
+  const housingType = housingTypeOverride ?? siteFactors?.housingType ?? 'private';
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
   const valid = all.filter((m) => (
     !m.legacy  // kept only for buildings already standing (model-catalog.js legacyFiles)
@@ -2069,8 +2113,13 @@ function getRandomHouseModel(
     && m.metadata.scale > 0.05
     && m.wealthTier
     && isSelectableZoneModelTexture(m)
+    && (m.housingType ?? 'private') === housingType
   ));
   if (valid.length === 0) return null;
+  // 公屋區／居屋區 grow from their own art whatever the wealth district
+  if (housingType === 'public' || housingType === 'hos') {
+    return rememberSelectedZoneModel(pickVariedModel(valid, `house:${setKey}:housing:${housingType}`, siteFactors));
+  }
   const factors = siteFactors ?? {
     quality: clamp(landScore, 0, 1),
     landValue: clamp(landScore, 0, 1),

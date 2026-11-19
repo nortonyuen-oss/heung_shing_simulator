@@ -1612,6 +1612,9 @@ function applySaveData(scene, save) {
     for (let c = 0; c < MAP_WIDTH; c++)
       zoneMap[r][c] = (save.zoneMap?.[r] ?? [])[c] ?? ZONE_NONE;
 
+  // 公屋區／居屋區 (housing-types.js): older saves have none
+  if (typeof normalizeHousingZones === 'function') city.housingZones = normalizeHousingZones(city.housingZones, MAP_WIDTH, MAP_HEIGHT);
+
   // Restore zone density map (falls back to DENSITY_LOW for older saves)
   if (save.zoneDensityMap) {
     for (let r = 0; r < MAP_HEIGHT; r++)
@@ -1693,7 +1696,8 @@ function rebuildSceneFromSave(scene, save) {
       if (zone === ZONE_NONE) continue;
 
       const density = (save.zoneDensityMap?.[r]?.[c]) ?? DENSITY_LOW;
-      const zoneCode = zone === ZONE_RES ? 'res'
+      const zoneCode = typeof getZoneOverlayCode === 'function' ? getZoneOverlayCode(zone, r, c)
+                     : zone === ZONE_RES ? 'res'
                      : zone === ZONE_COM ? 'com'
                      : 'ind';
       const textureKey = `zone_overlay_${zoneCode}_${density}`;

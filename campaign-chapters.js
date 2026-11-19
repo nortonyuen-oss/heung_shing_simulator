@@ -830,6 +830,115 @@
     progress: (s) => `${internationalTitles(s).length} / ${count}`,
   });
 
+  // CHAPTER 05 黃大仙《有求必應》 (P4, docs/campaign-p4-design.md §2): the estates, 公屋 and 居屋
+  // beside private homes (housing-types.js), 黃大仙祠 (the grand temple) with a bus stop or station
+  // beside it, and the services the estates lack at the start. On the 九龍城 map's north: 樂富,
+  // 黃大仙, 新蒲崗 and 彩虹 under the hills (the map has no 慈雲山).
+  const mixedCommunity = (s) => num(s.publicSectorShare) >= 0.3 - 1e-9 && num(s.publicSectorShare) <= 0.7 + 1e-9;
+  const templeLinked = (s) => built(s, 'grand_temple') && !!s.templeTransit;
+  // 服務覆蓋達標: the share of residential land each service reaches (campaign.js homeCover)
+  const HOME_SERVICES = Object.freeze(['police', 'fire', 'health', 'school']);
+  const HOME_SERVICE_ICONS = Object.freeze({ police: '🚓', fire: '🚒', health: '🏥', school: '🏫' });
+  const CH05 = Object.freeze({
+    id: 'ch05',
+    startFile: 'UI/campaign/ch05.json',
+    deadlineMonths: 24,
+    fresh: { cityName: T('黃大仙', 'Wong Tai Sin', '黄大仙'), budget: 120000, transportExpansion: true },
+    intro: Object.freeze([
+      { speaker: 'resident', text: T('黃大仙有求必應，咁可唔可以求到條巴士線？', 'Wong Tai Sin answers every prayer - so can I pray for a bus route?', '黄大仙は願いを何でも叶えてくれる。じゃあバス路線もお願いできる？') },
+      { speaker: 'secretary', text: T('宗教活動有助提升城市文化及旅遊魅力。', 'Religious life adds to the city\'s culture and its appeal to visitors.', '宗教行事は都市の文化と観光の魅力を高めます。') },
+      { speaker: 'treasurer', text: T('但公屋維修同消防都要錢。', 'But public-housing repairs and fire cover both cost money.', 'でも公営住宅の修繕も消防も金がかかる。') },
+      { card: T('任務開始：黃大仙《有求必應》', 'Mission start: Wong Tai Sin - "Every Wish Answered"', '任務開始：黄大仙「有求必応」'),
+        hint: T('人口達 60,000，公屋同居屋住戶佔三至七成（住宅分區揀「公屋區」或「居屋區」）；起黃大仙祠（大型廟宇），6 格內有巴士站或地鐵站；地鐵同巴士有乘客；警署、消防局、醫院同學校各覆蓋六成住宅，有兩個街市；滿意度 60%，每月收支正數。',
+          'Reach 60,000 people with public and HOS housing at 30-70% of residents (zone residential land as Public Housing or HOS Housing); build Wong Tai Sin Temple (the grand temple) with a bus stop or metro station within 6 tiles; riders on the metro and buses; police, fire, hospital and school cover each reaching 60% of the homes, and two markets; happiness of 60% and a monthly surplus.',
+          '人口60,000人、公営住宅と居屋の住民を3〜7割に（住宅区で「公営住宅区」か「居屋区」を選ぶ）。黄大仙祠（大型寺院）を建て、6マス以内にバス停か地下鉄駅を。地下鉄とバスに乗客。警察・消防・病院・学校がそれぞれ住宅の6割をカバー、市場2か所。満足度60%、月の収支を黒字に。') },
+    ]),
+    stars: Object.freeze([
+      {
+        title: T('萬家燈火', 'Ten Thousand Lit Windows', '万家の灯'),
+        objectives: Object.freeze([
+          { id: 'mixed', label: T('人口達 60,000，公屋及居屋住戶佔三至七成', '60,000 people, with public and HOS housing at 30-70% of residents', '人口60,000人、公営住宅と居屋の住民が3〜7割'),
+            check: (s) => num(s.population) >= 60000 && mixedCommunity(s),
+            progress: (s) => `${fmt(s.population)} / 60,000 · ${pct(s.publicSectorShare)}` },
+          { id: 'temple', label: T('起黃大仙祠（大型廟宇），6 格內有載客嘅巴士站或地鐵站', 'Wong Tai Sin Temple (the grand temple), with a bus stop or metro station carrying riders within 6 tiles', '黄大仙祠（大型寺院）、6マス以内に乗客のいるバス停か地下鉄駅'),
+            check: templeLinked, progress: (s) => `🏮 ${tick(built(s, 'grand_temple'))} · 🚏 ${tick(!!s.templeTransit)}` },
+          { id: 'transit', label: T('地鐵同巴士有乘客', 'Riders on the metro and the buses', '地下鉄とバスに乗客'),
+            check: (s) => num(s.transit?.metro) > 0 && num(s.transit?.bus) > 0,
+            progress: (s) => `🚇 ${fmt(s.transit?.metro)} · 🚌 ${fmt(s.transit?.bus)}` },
+          { id: 'services', label: T('警署、消防局、醫院同學校各覆蓋六成住宅，有兩個街市', 'Police, fire, hospital and school cover each reaching 60% of the homes, and two markets', '警察・消防・病院・学校がそれぞれ住宅の6割をカバー、市場2か所'),
+            check: (s) => HOME_SERVICES.every((key) => num(s.homeCover?.[key]) >= 0.6 - 1e-9) && num(s.buildings?.public_market) >= 2,
+            progress: (s) => `${HOME_SERVICES.map((key) => `${HOME_SERVICE_ICONS[key]} ${pct(s.homeCover?.[key])}`).join(' · ')} · 🛒 ${fmt(s.buildings?.public_market)} / 2` },
+          balanceObjective(0.6),
+        ]),
+      },
+      {
+        title: T('新春頭炷香', 'The First Incense of the New Year', '新春の一番香'),
+        objectives: Object.freeze([
+          { id: 'firstIncense', label: T('黃大仙祠開咗之後舉辦一次新春', 'Hold Lunar New Year with Wong Tai Sin Temple standing', '黄大仙祠のある年に旧正月を開催'),
+            check: (s, base) => built(s, 'grand_temple') && heldSince(s, base, 'lunarNewYear') > 0,
+            progress: (s, base) => `🏮 ${tick(built(s, 'grand_temple'))} · 🧧 ${tick(heldSince(s, base, 'lunarNewYear') > 0)}` },
+          { id: 'crowds', label: T('黃大仙祠有消防覆蓋，6 格內有載客嘅巴士站或地鐵站', 'Fire cover on Wong Tai Sin Temple, and a bus stop or station with riders within 6 tiles', '黄大仙祠に消防の守り、6マス以内に乗客のいるバス停か駅'),
+            check: (s) => !!s.templeFireCover && templeLinked(s), progress: (s) => `🚒 ${tick(!!s.templeFireCover)} · 🚏 ${tick(templeLinked(s))}` },
+          { id: 'estates', label: T('公屋住戶達 25,000 人，失業率低於 7%', '25,000 public-housing residents, and unemployment under 7%', '公営住宅の住民25,000人、失業率7%未満'),
+            check: (s) => num(s.publicHousingResidents) >= 25000 && num(s.population) > 0 && num(s.unemploymentRate) < 0.07,
+            progress: (s) => `${fmt(s.publicHousingResidents)} / 25,000 · ${pct(s.unemploymentRate)}` },
+          { id: 'happiness', label: T('滿意度達 65%', 'Happiness of 65%', '満足度65%'),
+            check: (s) => num(s.happiness) >= 0.65, progress: (s) => pct(s.happiness) },
+        ]),
+      },
+      {
+        title: T('有求必應', 'Every Wish Answered', '有求必応'),
+        objectives: Object.freeze([
+          { id: 'bigEstates', label: T('公屋住戶達 40,000 人，公屋及居屋住戶仍佔三至七成', '40,000 public-housing residents, with public and HOS housing still at 30-70%', '公営住宅の住民40,000人、公営住宅と居屋は3〜7割のまま'),
+            check: (s) => num(s.publicHousingResidents) >= 40000 && mixedCommunity(s),
+            progress: (s) => `${fmt(s.publicHousingResidents)} / 40,000 · ${pct(s.publicSectorShare)}` },
+          { id: 'order', label: T('交通擠塞不高於 45%，罪案率低於 30%', 'Congestion at 45% or less and crime under 30%', '渋滞45%以下、犯罪率30%未満'),
+            check: (s) => num(s.trafficIndex) <= 0.45 && num(s.crimeRate) < 0.3, progress: (s) => `🚗 ${pct(s.trafficIndex)} · 🚓 ${pct(s.crimeRate)}` },
+          { id: 'heritage', label: T('黃大仙祠同至少一間傳統廟宇保留', 'Wong Tai Sin Temple and at least one traditional temple kept', '黄大仙祠と伝統寺院1つ以上を保存'),
+            check: (s) => built(s, 'grand_temple') && built(s, 'heritage_temple'),
+            progress: (s) => `🏮 ${tick(built(s, 'grand_temple'))} · ⛩ ${tick(built(s, 'heritage_temple'))}` },
+          { id: 'content', label: T('滿意度達 75%', 'Happiness of 75%', '満足度75%'),
+            check: (s) => num(s.happiness) >= 0.75, progress: (s) => pct(s.happiness) },
+          { id: 'reserve', label: T('財政儲備達 $300,000', 'Reserves of $300,000', '財政準備金$300,000'),
+            check: (s) => num(s.funds) >= 300000, progress: (s) => `$${fmt(s.funds)} / $300,000` },
+        ]),
+      },
+    ]),
+    // 中段事件《黃大仙話，今年條財政籤……》: the temple's first 求籤 - news and mood only, never a
+    // prophecy; the year's fortune itself is the newspaper's (annual-fortunes-data.js)
+    events: Object.freeze([
+      {
+        id: 'fortuneStick',
+        when: (s) => built(s, 'grand_temple'),
+        lines: Object.freeze([
+          { speaker: 'anchor', text: T('黃大仙祠落成後首次求籤，解籤師傅話市長抽到嘅係「財政籤」。', 'At the new Wong Tai Sin Temple\'s first fortune-telling, the interpreter says the mayor drew the "budget stick".', '黄大仙祠の完成後初のおみくじ。解説師によると、市長が引いたのは「財政みくじ」。') },
+          { speaker: 'resident', text: T('我抽到上上籤，點解仲塞車？', 'I drew the best stick of all - so why am I still stuck in traffic?', '大吉を引いたのに、なんでまだ渋滞してるの？') },
+          { speaker: 'treasurer', text: T('籤文唔會計入預算。要盈餘，就要靠政策。', 'Fortune sticks do not go into the budget. A surplus comes from policy.', 'おみくじは予算に計上しません。黒字は政策で出すものです。') },
+        ]),
+        forum: {
+          headline: T('黃大仙話，今年條財政籤……', 'Wong Tai Sin says this year\'s budget stick is...', '黄大仙いわく、今年の財政みくじは……'),
+          body: T('黃大仙祠首次求籤，人龍排到地鐵站。解籤檔話財政籤「中平」，市民反應兩極。', 'The temple\'s first fortune-telling drew a queue to the metro station. The stall reads the budget stick as "middling"; residents are split.', '黄大仙祠初のおみくじに地下鉄駅まで行列。財政みくじは「中吉」と解かれ、市民の反応は二分。'),
+          comment: T('市長抽唔抽到財政盈餘？', 'Can the mayor draw a budget surplus?', '市長は財政黒字を引き当てられる？'),
+        },
+      },
+    ]),
+    outro: Object.freeze([
+      { speaker: 'secretary', text: T('黃大仙求神拜佛之餘，公共服務都算跟得上。', 'Between the prayers and the incense, Wong Tai Sin\'s public services have kept up.', '黄大仙では神頼みの傍ら、公共サービスもどうにか追いつきました。') },
+      { speaker: 'education', text: T('下一站沙田，家長最關心嘅係子女教育，同……放假去唔去馬場。', 'Next stop Sha Tin, where parents care most about their children\'s schooling - and... whether to go racing on their day off.', '次は沙田。保護者の一番の関心は子どもの教育、それと……休みに競馬場へ行くかどうか。') },
+    ]),
+    outroForum: {
+      headline: T('【政府新聞】黃大仙屋邨社區服務全面到位', '[Government News] Wong Tai Sin\'s estates now fully served', '【政府発表】黄大仙の団地、公共サービスが全面整備'),
+      body: T('房屋署表示，區內公屋、居屋同私人住宅比例均衡；黃大仙祠交通接駁暢順，警署、消防局、醫院同街市已經投入服務。', 'The Housing Department says the district\'s mix of public, HOS and private homes is balanced; the temple is well linked, and the police and fire stations, hospital and market are all open.', '房屋署によると、区内の公営住宅・居屋・民間住宅のバランスは良好。黄大仙祠への交通も円滑で、警察署・消防署・病院・市場が稼働している。'),
+      comments: Object.freeze([
+        T('落樓就有街市，返工有地鐵，求籤有巴士。', 'A market downstairs, the metro to work, a bus to the temple.', '下に市場、通勤は地下鉄、お参りはバス。'),
+        T('上上籤應驗咗。', 'The best stick came true after all.', '大吉、当たったな。'),
+      ]),
+    },
+    failure: Object.freeze([
+      { speaker: 'resident', text: T('市長，求咗成兩年籤，條巴士線都未嚟……', 'Mayor, two years of prayers and still no bus route...', '市長、2年もお参りしたのに、バス路線はまだ来ない……') },
+    ]),
+  });
+
   // CHAPTER 06 沙田《望子成龍》: middle-income families, schools, and the ground-level East Rail.
   // The racecourse has no model yet: the big stadium stands in for it (〔暫代〕, until the art).
   const middleHomes = (s) => {
@@ -1503,7 +1612,7 @@
   });
 
   const CAMPAIGN_CHAPTER_SPECS = Object.freeze({
-    ch01: CH01, ch02: CH02, ch03: CH03, ch04: CH04, ch06: CH06, ch07: CH07, ch08: CH08, ch09: CH09,
+    ch01: CH01, ch02: CH02, ch03: CH03, ch04: CH04, ch05: CH05, ch06: CH06, ch07: CH07, ch08: CH08, ch09: CH09,
     ch12: CH12, ch13: CH13, ch16: CH16, ch17: CH17, ch18: CH18,
   });
 

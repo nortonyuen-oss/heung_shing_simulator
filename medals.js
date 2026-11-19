@@ -270,6 +270,10 @@
       gradeAOffices,
       surplusStreak: Math.max(0, Math.floor(Number(city.medalLog?.surplusStreak) || 0)),
       highDensityResidents: Math.round(highDensityResidents * districtDensity),
+      // 公屋／居屋 (housing-types.js)
+      publicHousingResidents: Number(city.housingResidents?.public) || 0,
+      hosResidents: Number(city.housingResidents?.hos) || 0,
+      privateResidents: Number(city.housingResidents?.private) || 0,
       scienceParkJobs,
       governmentRealizedPnl: Number(city.stockMarket?.governmentPortfolio?.realizedPnl) || 0,
       nightMarketRunning: !!policies.nightBazaarWeekend

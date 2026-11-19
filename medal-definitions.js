@@ -50,6 +50,9 @@
   const MEDAL_INDUSTRY_LEADER = Object.freeze({ commercial: 150, industrial: 40, unemploymentBelow: 0.08 });
   const MEDAL_FINANCIAL_CENTRE = Object.freeze({ gradeAOffices: 8, commercialTax: 10000 });
   const MEDAL_SURPLUS_STREAK_MONTHS = 12;
+  // 公屋／居屋 residents (housing-types.js)
+  const MEDAL_PUBLIC_HOUSING_RESIDENTS = 50000;
+  const MEDAL_HOS_RESIDENTS = 20000;
   // A12 (Norton 2026-11-17: 製作一個合理的投資獲利): the script's $2,000,000 was a coin flip after ten
   // game years of buying crashes with $10M; $1,000,000 is the game's own bar for a notable trading
   // profit (STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT) - about one good crash bought and sold.
@@ -234,14 +237,16 @@
       live: (s) => num(s.population) >= 100000 && distinctBuilt(s, MEDAL_TOURISM_LANDMARK_TYPES) >= 5,
     },
     {
-      id: 'B03', series: 'B', tier: null, status: 'blocked',
+      id: 'B03', series: 'B', tier: null, status: 'active',
       name: T('公屋之父', 'Father of Public Housing', '公営住宅の父'),
       desc: T('公共房屋住戶人口至少 50,000', 'At least 50,000 public-housing residents', '公営住宅の住民が50,000人以上'),
+      live: (s) => num(s.publicHousingResidents) >= MEDAL_PUBLIC_HOUSING_RESIDENTS,
     },
     {
-      id: 'B04', series: 'B', tier: null, status: 'blocked',
+      id: 'B04', series: 'B', tier: null, status: 'active',
       name: T('居者有其屋', 'Home Ownership Scheme', '居者有其屋'),
       desc: T('居屋居住人口至少 20,000', 'At least 20,000 Home Ownership Scheme residents', '居屋（分譲公営住宅）の住民が20,000人以上'),
+      live: (s) => num(s.hosResidents) >= MEDAL_HOS_RESIDENTS,
     },
     {
       id: 'B05', series: 'B', tier: null, status: 'active',

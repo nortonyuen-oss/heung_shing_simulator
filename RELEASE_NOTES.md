@@ -1,3 +1,27 @@
+# The City of Heung Shing v6.0.6 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 修正：手機章節地圖、勳章、旋轉地圖
+
+- **章節地圖唔再堆埋一齊**：手機上《玩轉18區》地圖細，九龍同港島十幾章嘅號碼疊埋，撳唔準。而家地圖顯示小圓點（揀中嗰章放大有號碼），下面加咗 18 章嘅格仔，有號碼同區名，撳格仔揀章。電腦版不變。
+- **手機睇到勳章**：「管理」同「更多」加咗「🏵 洋紫荊勳章」。
+- **手機可以旋轉地圖**：地圖右下角加咗 ↺ ↻ 兩粒掣，每撳一下轉 90°；建造緊或者開咗面板時會收埋。
+
+**台灣中文：** 修正手機版問題：《玩轉18區》章節地圖不再讓號碼疊在一起，地圖改為顯示小圓點，下方新增 18 章的格狀按鈕（附號碼與區名）；「管理」與「更多」新增「🏵 洋紫荊勳章」；地圖右下角新增 ↺ ↻ 按鈕，每按一下旋轉 90°。電腦版不變。
+
+**English:** Phone fixes: on the chapter map of The 18 Districts the chapter numbers no longer pile up on top of each other. The map shows small dots (the chosen chapter large, with its number) and the 18 chapters are a grid of buttons under it, with their districts. The Bauhinia Medals open from Manage and More, and two round buttons (↺ ↻) at the lower right turn the map 90 degrees; they step aside while you build or a panel is open. The desktop is unchanged.
+
+**日本語:** スマートフォンでの修正：「18区をめぐる」の章マップで番号が重ならなくなりました。地図は小さな点で表示し（選んだ章は番号つきで大きく）、その下に18章のボタン（番号と区名）を並べました。「管理」と「その他」から洋紫荊勲章を開けるようになり、右下の ↺ ↻ ボタンで地図を90度ずつ回転できます（建設中やパネル表示中は隠れます）。パソコン版は変わりません。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.5 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

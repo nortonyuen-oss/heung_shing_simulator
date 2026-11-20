@@ -52,7 +52,10 @@ test('church and university forum stories require their actual buildings', () =>
   const newspaper = source('newspaper.js');
   assert.match(newspaper, /hasBuildingType\('heritage_church'\)[\s\S]*?fatherWithPrisoner\.webp/);
   assert.match(newspaper, /hasBuildingType\('university'\)[\s\S]*?academicUniversityRank\.webp/);
-  assert.match(newspaper, /hasBuildingType\('ocean_park'\)[\s\S]*?oceanParkMemories\.webp/);
+  const { LOVERS_STORY_DEFS } = require('../lovers-stories');
+  const oceanPark = LOVERS_STORY_DEFS.find((def) => def.id === 'ocean-park');
+  assert.equal(oceanPark.eligible({ buildings: [], weather: {} }), false);
+  assert.equal(oceanPark.eligible({ buildings: ['ocean_park'], weather: {} }), true);
 });
 
 test('airport approval and every stock crash use their new forum images', () => {

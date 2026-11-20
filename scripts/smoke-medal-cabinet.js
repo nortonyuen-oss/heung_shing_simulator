@@ -10,6 +10,7 @@ const { MEDAL_DEFS } = require('../medal-definitions');
 const { renderBauhiniaMedalSvg } = require('../medal-art');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, '.data/medal-cabinet');
+const VIEWPORTS = [['desktop', 1280, 800, false], ['tablet', 768, 1024, true], ['phone', 393, 852, true], ['small-phone', 320, 568, true], ['landscape', 852, 393, true]];
 const stamp = (city = '堅尼地城', month = 12) => ({ city, year: 1913, month, at: `2026-11-${String(month).padStart(2, '0')}T00:00:00Z` });
 const earnedIds = ['A01', 'A02', 'A04', 'A08', 'A09', 'A10', 'A11', 'A12', 'A13', 'A14', 'A16', 'A17'];
 const profile = { schemaVersion: 1, earned: {}, parts: { A03: { region: stamp(), port: stamp('太子') }, A07: { nightBazaar: stamp() } }, facts: {} };
@@ -18,7 +19,7 @@ earnedIds.forEach((id, index) => {
   if (MEDAL_DEFS.find((def) => def.id === id).parts) profile.parts[id] = Object.fromEntries(MEDAL_DEFS.find((def) => def.id === id).parts.map((part) => [part.id, stamp()]));
 });
 const styles = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[0]).join('\n');
-const fixture = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">${styles}<link rel="stylesheet" href="mobile-ui.css"><link rel="stylesheet" href="medal-cabinet.css"><style>body{background:linear-gradient(#07101b66,#07101b66),url('UI/backgroundTitle.webp') center/cover}#fixture-open{position:fixed;top:0;left:0}</style></head><body><button id="fixture-open" onclick="openMedalCabinet()">勳章</button><script>
+const fixture = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<link rel="stylesheet" href="mobile-ui.css"><link rel="stylesheet" href="medal-cabinet.css"><style>body{background:linear-gradient(#07101b66,#07101b66),url('UI/backgroundTitle.webp') center/cover}#fixture-open{position:fixed;top:0;left:0}</style></head><body><button id="fixture-open" onclick="openMedalCabinet()">勳章</button><script>
 window.fixtureLanguage='zhHant';window.fixtureProfile=${JSON.stringify(profile)};
 window.getCurrentLanguage=()=>window.fixtureLanguage;
 window.HeungShingStorage={request:async()=>window.fixtureFail?{ok:false,status:500}:{ok:true,json:async()=>({data:window.fixtureProfile})}};
@@ -27,7 +28,7 @@ window.HeungShingStorage={request:async()=>window.fixtureFail?{ok:false,status:5
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch({ headless: true, ...(process.env.CI ? {} : { channel: 'chrome' }) });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, hasTouch: true, isMobile: true });
   const errors = [];
   await context.route('http://medals.test/**', async (route) => {
     const name = new URL(route.request().url()).pathname;
@@ -38,12 +39,92 @@ async function main() {
     return route.fulfill({ contentType: types[path.extname(file)] || 'application/octet-stream', body: fs.readFileSync(file) });
   });
   const page = await context.newPage();
+  const cdp = await context.newCDPSession(page);
   page.on('pageerror', (error) => errors.push(error.message));
   const card = (id) => page.locator(`[data-medal-id="${id}"]`);
   const cards = () => page.locator('[data-medal-id]');
   const search = () => page.locator('[data-medal-search]');
   const chooseSeries = (id) => page.locator(`[data-medal-series="${id}"]`).click();
   const filter = (id) => page.locator(`[data-medal-filter="${id}"]`).click();
+  async function checkScrolling(name, touch = false) {
+    const scroll = page.locator('.mc-scroll');
+    await page.evaluate(() => {
+      window.fixtureTouchEvents = [];
+      if (window.fixtureTouchTraceReady) return;
+      window.fixtureTouchTraceReady = true;
+      for (const type of ['touchstart', 'touchmove', 'touchend', 'pointercancel']) document.addEventListener(type, (event) => {
+        const point = event.touches?.[0];
+        fixtureTouchEvents.push({ type, target: event.target.classList?.value, x: point?.clientX, y: point?.clientY, prevented: event.defaultPrevented });
+        fixtureTouchEvents = fixtureTouchEvents.slice(-8);
+      }, { passive: true, capture: true });
+    });
+    await scroll.evaluate((el) => { el.scrollTop = 0; });
+    const geometry = await scroll.evaluate((el) => ({ height: el.clientHeight, content: el.scrollHeight }));
+    assert(geometry.height > 20 && geometry.content > geometry.height, `${name}: a bounded scroll area exists ${JSON.stringify(geometry)}`);
+    const seen = new Set();
+    async function captureVisible() {
+      const ids = await scroll.evaluate((el) => {
+        const bounds = el.getBoundingClientRect();
+        return [...el.querySelectorAll('[data-medal-id]')].filter((card) => {
+          const rect = card.getBoundingClientRect();
+          return rect.bottom > bounds.top && rect.top < bounds.bottom;
+        }).map((card) => card.dataset.medalId);
+      });
+      ids.forEach((id) => seen.add(id));
+    }
+    await captureVisible();
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: touch, maxTouchPoints: 1 });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    for (let step = 0; step < 200; step++) {
+      const before = await scroll.evaluate((el) => ({ top: el.scrollTop, bottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 1 }));
+      if (before.bottom) break;
+      const box = await scroll.boundingBox();
+      const x = box.x + box.width * 0.3, y = box.y + box.height * 0.5;
+      const viewport = page.viewportSize();
+      assert(x >= 0 && y >= 0 && x < viewport.width && y < viewport.height, `${name}: scroll area remains inside the viewport ${JSON.stringify({ box, viewport })}`);
+      if (touch) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        for (let move = 1; move <= 8; move++) {
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - box.height * 0.4 * move / 8 }] });
+          await page.evaluate(() => new Promise(requestAnimationFrame));
+        }
+        // Hold before lifting so a fling cannot skip unobserved rows in this coverage check.
+        await page.evaluate(() => new Promise((resolve) => {
+          let frames = 0;
+          const next = () => ++frames >= 7 ? resolve() : requestAnimationFrame(next);
+          requestAnimationFrame(next);
+        }));
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } else {
+        await page.mouse.move(x, y);
+        await page.mouse.wheel(0, box.height * 0.65);
+      }
+      try {
+        await page.waitForFunction((previous) => document.querySelector('.mc-scroll').scrollTop > previous, before.top, { timeout: 3000 });
+      } catch (error) {
+        const layout = await page.evaluate(({ x, y }) => {
+          const el = document.querySelector('.mc-scroll');
+          const hit = document.elementFromPoint(x, y);
+          return { inner: [innerWidth, innerHeight], visual: [visualViewport.width, visualViewport.height, visualViewport.scale], scroll: [el.scrollTop, el.clientHeight, el.scrollHeight], hit: hit?.outerHTML.slice(0, 180), detailOpen: document.querySelector('.mc-layout').className,
+            events: fixtureTouchEvents, ancestorScroll: [...document.querySelectorAll('#medal-cabinet-dialog .dialog-box, #medal-cabinet-dialog .dialog-body, .mc-gallery, .mc-scroll, .medal-grid')].map(node=>({class:node.className,top:node.scrollTop,touch:getComputedStyle(node).touchAction,overflow:getComputedStyle(node).overflowY})) };
+        }, { x, y });
+        await page.screenshot({ path: path.join(OUT, `${name}-scroll-failure.png`) });
+        throw Error(`${name}: native scroll stalled at step ${step}: ${JSON.stringify({ box, before, layout })}`, { cause: error });
+      }
+      await captureVisible();
+    }
+    const last = await page.locator('[data-medal-id="E01"]').evaluate((el) => {
+      const bounds = el.closest('.mc-scroll').getBoundingClientRect(), rect = el.getBoundingClientRect();
+      return rect.bottom <= bounds.bottom + 1 && rect.bottom > bounds.top;
+    });
+    assert.equal(seen.size, 36, `${name}: native scrolling exposes all 36 medals`);
+    assert(last, `${name}: the final medal is visible at the bottom`);
+    assert.equal(await page.locator('[data-medal-body]').evaluate((el) => el.scrollTop), 0, `${name}: the surrounding layout stays fixed`);
+    if (name === 'desktop' || name === 'phone') await page.screenshot({ path: path.join(OUT, `${name}-scrolled-bottom.png`) });
+    await scroll.evaluate((el) => { el.scrollTop = 0; });
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    console.log(`PASS: ${name} ${touch ? 'touch' : 'wheel'} scrolling exposes all 36 medals`);
+  }
   async function checkLayout(name) {
     const failures = await page.evaluate(() => {
       const dialog = document.querySelector('#medal-cabinet-dialog .dialog-box');
@@ -64,8 +145,18 @@ async function main() {
   try {
     await page.goto('http://medals.test/');
     await page.locator('#fixture-open').click();
+    if (process.env.MEDAL_SCROLL_CASE) {
+      const [name, width, height, touch] = VIEWPORTS.find(([name]) => name === process.env.MEDAL_SCROLL_CASE);
+      await page.setViewportSize({ width, height });
+      await page.evaluate((touch) => { document.documentElement.dataset.uiProfile = touch ? 'touch' : 'desktop'; }, touch);
+      await checkScrolling(name, touch);
+      return;
+    }
     assert.equal(await cards().count(), 36);
     assert.equal(await page.locator('[data-medal-completion] strong').textContent(), '12');
+    await page.evaluate(() => { window.fixtureMapWheel = 0; window.addEventListener('wheel', () => fixtureMapWheel++); });
+    await checkScrolling('desktop');
+    assert.equal(await page.evaluate(() => fixtureMapWheel), 0, 'scrolling the cabinet does not reach the map wheel listener');
     await card('A03').click();
     assert.match(await page.locator('.mc-detail').textContent(), /已完成 2 \/ 3/);
     assert.match(await page.locator('.mc-detail').textContent(), /太子/);
@@ -113,11 +204,12 @@ async function main() {
     // A fresh browser context/profile is not needed to verify all three shipped languages.
     for (const language of ['zhHant', 'en', 'ja']) {
       await page.evaluate((language) => { window.fixtureLanguage = language; return openMedalCabinet(); }, language);
-      for (const [name, width, height, touch] of [['desktop', 1280, 800, false], ['tablet', 768, 1024, true], ['phone', 393, 852, true], ['small-phone', 320, 568, true], ['landscape', 852, 393, true]]) {
+      for (const [name, width, height, touch] of VIEWPORTS) {
         await page.setViewportSize({ width, height });
         await page.evaluate((touch) => { document.documentElement.dataset.uiProfile = touch ? 'touch' : 'desktop'; }, touch);
         if (await page.locator('[data-medal-back]').isVisible()) await page.locator('[data-medal-back]').click();
         await checkLayout(`${language}/${name}`);
+        if (language === 'zhHant') await checkScrolling(name, touch);
         await card('A07').click();
         await checkLayout(`${language}/${name}/long checklist`);
         if (width <= 760) {
@@ -163,7 +255,7 @@ async function main() {
     await art.setContent(`<html lang="zh-Hant"><head><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;padding:42px 48px;background:#111d2c;color:#eeeae1;font-family:'Noto Sans TC','Segoe UI',sans-serif}header{border-bottom:1px solid #2c3c4d;padding-bottom:24px}small{font-size:10px;letter-spacing:3px;color:#dec18a}h1{font-size:28px;font-weight:500;letter-spacing:4px;margin:10px 0 8px}p{font-size:12px;color:#9aa9ba;margin:0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:28px}.medal{text-align:center;border:1px solid #2c3c4d;border-radius:8px;padding:18px;background:radial-gradient(ellipse at 50% 30%,#dec18a09,transparent 80%)}svg{width:166px;height:178px;display:block;margin:0 auto 12px}h2{font-size:15px;font-weight:500;letter-spacing:2px;margin:0 0 7px}.medal small{font-size:8px;letter-spacing:2px;color:#9aa9ba}</style></head><body><header><small>HEUNG SHING · HONOURS COLLECTION</small><h1>洋紫荊勳章</h1><p>五瓣琺瑯洋紫荊 · 金屬雕邊 · 紫色綬帶</p></header><div class="grid">${tiers.map(([tier, label, en]) => `<div class="medal">${renderBauhiniaMedalSvg(tier)}<h2>${label}</h2><small>${en}</small></div>`).join('')}</div></body></html>`);
     await art.screenshot({ path: path.join(OUT, 'artwork.png') });
     await art.close();
-    console.log('PASS: collection, filters, search, secrecy, escaping, sorting, focus, empty/error/retry; 3 languages × 5 viewports; no browser errors.');
+    console.log('PASS: native wheel/touch scrolling reaches all 36 medals and the final row; fixed layout; collection, filters, search, secrecy, focus and retries; 3 languages × 5 viewports; no browser errors.');
     console.log(`Screenshots: ${OUT}`);
   } finally { await browser.close(); }
 }

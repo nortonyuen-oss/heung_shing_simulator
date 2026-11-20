@@ -163,6 +163,8 @@ jobs:
       - run: npx playwright-core install --with-deps chromium
       - name: Bauhinia medal cabinet
         run: node scripts/smoke-medal-cabinet.js
+      - name: Lovers story illustrations
+        run: node scripts/smoke-lovers-stories.js
       - name: Territory navigation
         run: npm run smoke:world:geography
       - name: Automatic territory development

@@ -321,10 +321,12 @@
       live: (s) => num(s.ridicule) >= 100,
     },
     {
-      id: 'D01', series: 'S', tier: 'memorial', status: 'blocked', hidden: true,
+      id: 'D01', series: 'S', tier: 'memorial', status: 'active', hidden: true,
       name: T('Claire的回憶', 'Claire\'s Memories', 'クレアの思い出'),
-      desc: T('解鎖五段回憶', 'Unlock all five memories', '五つの思い出をすべて解放する'),
+      desc: T('完成情侶相簿全部生活故事，見證最後的告別', 'Complete the lovers’ photo diary, including the final farewell', '恋人たちのアルバムを別れの最終章まで見届ける'),
       quote: T('「星星之所以美麗，是因為有一朵看不見的花。」', '"The stars are beautiful because of a flower that cannot be seen."', '「星が美しいのは、見えない花が一輪あるからだ。」'),
+      live: (s) => fact(s, 'loversStoryComplete'),
+      stampFact: 'loversStoryComplete',
     },
     {
       id: 'E01', series: 'S', tier: 'grand', status: 'blocked',
@@ -388,7 +390,9 @@
       });
       if (!partsDone) return;
       if (def.live && !def.live(s)) return;
-      profile.earned[def.id] = { ...stamp };
+      // Event honours retain the city/date of completion if profile loading finishes later.
+      const eventStamp = def.stampFact ? s.facts?.[def.stampFact] : null;
+      profile.earned[def.id] = { ...(eventStamp && typeof eventStamp === 'object' ? eventStamp : stamp) };
       newlyEarned.push(def.id);
     });
     return { newlyEarned, newParts };

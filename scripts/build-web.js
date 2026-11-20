@@ -66,6 +66,7 @@ async function main() {
   const directories = ['UI', 'Music', 'Sounds', 'data', 'newRoadTiles', 'kenney_isometric-roads'];
   for (const dir of directories) for (const file of walk(path.join(ROOT, dir))) {
     const logical = path.relative(ROOT, file).split(path.sep).join('/');
+    if (logical.startsWith('UI/storyBoardGraphics/')) continue; // Artist source boards; forum-ready exports live in UI/news.
     if (!/\.(png|webp|jpe?g|m4a|mp3|wav|ogg|json)$/i.test(file)) continue;
     await add(logical, file, dir === 'UI');
     if (['newRoadTiles', 'kenney_isometric-roads'].includes(dir)) output(logical, fs.readFileSync(file));

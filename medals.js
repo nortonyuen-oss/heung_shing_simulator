@@ -157,6 +157,12 @@
     noteMedalAbsurdEvent(`forum:${storyId}`);
   }
 
+  // The complete city diary, not a single farewell photo or parts from different saves.
+  function noteMedalLoversStoryComplete() {
+    if (isMedalTrackingPaused() || typeof isLoversStoryComplete !== 'function' || !isLoversStoryComplete(city.loversStories)) return [];
+    return runMedalEvaluation();
+  }
+
   // transport-expansion.js settleTransportMonth: each mode's riders for the month just closed
   function noteMedalTransitMonth(modes) {
     Object.entries(modes || {}).forEach(([mode, passengers]) => {
@@ -269,6 +275,9 @@
 
   function runMedalEvaluation() {
     if (isMedalTrackingPaused()) return [];
+    // Also recover completion from a saved diary if the final-story notification was missed.
+    // Record before awaiting the player profile so switching cities during load cannot lose it.
+    if (typeof isLoversStoryComplete === 'function' && isLoversStoryComplete(city.loversStories)) noteMedalFact('loversStoryComplete');
     if (!medalRuntime.loaded) {
       medalRuntime.pendingEvaluation = true;
       loadMedalProfile();
@@ -503,7 +512,7 @@
           ${[['all', L('全部', 'All', 'すべて')], ['earned', L('已取得', 'Awarded', '獲得済み')], ['unearned', L('未取得', 'Unearned', '未獲得')]].map(([id, label]) => `<button type="button" class="mc-filter" data-medal-filter="${id}" aria-pressed="${cabinetView.filter === id}">${htmlText(label)}</button>`).join('')}
         </div><input type="search" class="mc-search" data-medal-search placeholder="${htmlText(L('搜尋勳章…', 'Search medals…', '勲章を検索…'))}" aria-label="${htmlText(L('搜尋勳章', 'Search medals', '勲章を検索'))}" value="${escapeMedalHtml(cabinetView.query)}">
         <select class="mc-sort" data-medal-sort aria-label="${htmlText(L('勳章排序', 'Sort medals', '勲章の並べ替え'))}">${[['catalogue', L('編號排序', 'Catalogue order', '番号順')], ['recent', L('最近取得', 'Recently awarded', '獲得が新しい順')], ['progress', L('條件完成度', 'Objective progress', '条件の達成度')]].map(([id, label]) => `<option value="${id}"${cabinetView.sort === id ? ' selected' : ''}>${htmlText(label)}</option>`).join('')}</select></div>
-        <div class="mc-scroll"><div class="medal-grid"></div></div>
+        <div class="mc-scroll" tabindex="0" role="region" aria-label="${htmlText(L('勳章清單，可上下捲動', 'Medal collection, scroll to browse', '勲章一覧、上下にスクロールできます'))}"><div class="medal-grid"></div></div>
       </section>
       <aside class="mc-detail" id="medal-cabinet-detail" aria-label="${htmlText(L('勳章詳情', 'Medal details', '勲章の詳細'))}" tabindex="0"></aside>
     </div>`;
@@ -597,6 +606,7 @@
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     });
     dialog.addEventListener('keyup', (event) => event.stopPropagation());
+    dialog.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
     return dialog;
   }
 
@@ -622,7 +632,7 @@
   Object.assign(globalThis, {
     loadMedalProfile, runMedalEvaluation, collectMedalSnapshot, onMedalCityLoaded, openMedalCabinet, updateMedalKpi,
     noteMedalFact, noteMedalAbsurdEvent, noteMedalResolutionOutcome, noteMedalPolicyEnacted,
-    noteMedalForumStory, noteMedalTransitMonth,
+    noteMedalForumStory, noteMedalTransitMonth, noteMedalLoversStoryComplete,
     getMedalProfile: () => medalRuntime.profile,
   });
 })();

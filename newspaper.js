@@ -596,7 +596,29 @@ function getForumNamedOfficials() {
   return [...new Set(ids)].map((id) => ({ id, name: getCouncilNewsOfficialDisplayName(id) })).filter((item) => item.name);
 }
 
+function buildLoversForumTopic(monthIndex, language) {
+  if (typeof pickLoversStory !== 'function') return null;
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return null;
+  if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) return null;
+  city.loversStories = normalizeLoversStoryState(city.loversStories, city.forumPosts);
+  const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  const buildingTypes = ['ocean_park', 'cultural_center', 'park', 'park_small', 'park_large', 'park_flagship', 'murray_house', 'seafood_restaurant', 'gold_coast_hotel'];
+  const def = pickLoversStory({
+    buildings: buildingTypes.filter((type) => hasBuildingType(type)),
+    population: city.population, commercialCount: city.commercialCount,
+    month: city.month, weather: city.weather || {}, pollution: city.pollution,
+    cityAttractiveness: city.cityAttractiveness,
+    promenadeTiles: Object.keys(city.promenade?.tiles || {}).length,
+    ferryRiders: transport?.lastModeTotals?.ferry || 0,
+    metroRiders: transport?.lastModeTotals?.metro || 0,
+  }, city.loversStories, monthIndex);
+  if (!def) return null;
+  const copy = (key) => def[key][language] || def[key].en;
+  return { category: def.ending ? '城中熱話' : '開心些牙', headline: copy('headline'), body: copy('body'), comment: copy('comment'), image: def.image, loversStoryId: def.id, ending: !!def.ending };
+}
+
 function localizeForumTopicJapanese(topic, context) {
+  if (topic.loversStoryId) return topic; // These stories already have their own Japanese copy.
   const { chief, treasury, police, observatory, business, tourism, religion, culture, official, cityName, pollution, crime, unemployment, net, higherEdu } = context;
   const stories = {
     'UI/news/sideNewsNewYearEvent.webp': [`${business}、新春写真でセンター争い　獅子舞に議員が倒される`, `記念撮影は大混乱。掲示板では「政策より立ち位置が重要なのか」との声が相次いだ。`, '結局、一番きれいに写ったのは獅子だった。'],
@@ -700,14 +722,6 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     zh ? `${chief}指香城大學繼續榮登全球100大　投資教育有很好回報` : `${chief} says university remains in global top 100`,
     zh ? `高等教育指數升至 ${Math.round((Number(city.educationHigherIndex) || 0) * 100)}，學生與網民討論排名能否轉化成更多職位。` : `Higher education reached ${Math.round((Number(city.educationHigherIndex) || 0) * 100)}, prompting debate over jobs.`,
     zh ? '排名有升，canteen飯價可唔可以唔升？' : 'Can the ranking rise without canteen prices rising?', 'UI/news/academicUniversityRank.webp'));
-  if (hasBuildingType('ocean_park') && Math.abs(monthIndex) % 6 === 0) {
-    featuredTopic = forumStory('城中熱話',
-      zh ? '海洋公園 X 小王子展覽開幕　情侶打卡留下甜蜜回憶' : 'Ocean Park × The Little Prince exhibition gives couples a picture-perfect day',
-      zh ? '海洋公園推出期間限定小王子主題展覽，多個玫瑰花園及星空裝置成為熱門打卡位。園方表示會定期舉辦不同活動，吸引市民再次入場。' : 'The limited exhibition adds rose-garden and starlight photo spots, part of a new programme of recurring park events.',
-      zh ? '小王子得一朵玫瑰，我部手機影咗一百張相。' : 'The Little Prince had one rose; my phone now has a hundred photos.',
-      'UI/news/oceanParkMemories.webp');
-    topics.push(featuredTopic);
-  }
   if ((Number(city.weather?.temperatureC) || 0) >= 35) topics.push(forumStory('城中熱話',
     zh ? `35°C仍拒開冷氣　${observatory}：風扇好夠` : `At 35°C, ${observatory} still says a fan is enough`,
     zh ? `天文台辦公室錄得高溫，網民質疑節能示範是否已變成耐熱挑戰。` : `Users question whether an energy-saving example has become a heat endurance test.`,
@@ -772,6 +786,8 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     body: zh ? `${official.name}表示歡迎市民繼續在討論區提供「有建設性又好笑」的意見。` : `${official.name} welcomed more “constructive and funny” suggestions from residents.`,
     comment: zh ? '最開心係今個月冇新奇怪議案。' : 'Best part: no strange new resolution this month.',
   });
+  const loversTopic = buildLoversForumTopic(monthIndex, language);
+  if (loversTopic) topics.push(loversTopic);
   if (!topics.length) {
     const lastPost = (city.forumPosts || [])[(city.forumPosts || []).length - 1];
     const lastPostMonthIndex = lastPost ? getCityMonthIndex(lastPost.year, lastPost.month) : -Infinity;
@@ -787,11 +803,13 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
   // other story leads, February's whatever leads
   const kirinRanThisYear = Number(city.council?.forumEventState?.kirinLastYear) === Number(city.year);
   if (kirinStory && !kirinRanThisYear && (city.month === 2 || !featuredTopic)) featuredTopic = kirinStory;
+  if (!featuredTopic && loversTopic) featuredTopic = loversTopic;
   const recentImages = new Set((city.forumPosts || []).slice(-12).map((post) => post.image).filter(Boolean));
   const freshImageTopics = topics.filter((candidate) => candidate.image && !recentImages.has(candidate.image));
   const candidateTopics = freshImageTopics.length ? freshImageTopics : topics;
   let topic = featuredTopic ?? candidateTopics[Math.abs(monthIndex) % candidateTopics.length];
   const medalStoryId = topic.medalStoryId || '';
+  const loversStoryId = topic.loversStoryId || '';
   if (language === 'ja') {
     topic = localizeForumTopicJapanese(topic, {
       chief, treasury, police, observatory, business, tourism, religion, culture,
@@ -803,7 +821,7 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
   const post = addForumPost({
     headline: topic.headline,
     image: topic.image || '',
-    body: [
+    body: loversStoryId ? [topic.body] : [
       topic.body,
       language === 'zhHant'
         ? `${secondOfficial.name}回應指會「密切留意」，網民笑稱香城最穩定的公共服務，可能就是密切留意本身。`
@@ -811,19 +829,30 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
           ? `${secondOfficial.name}は「注意深く見守る」と回答。掲示板では、香城で最も安定した公共サービスは「見守ること」そのものだと皮肉られた。`
           : `${secondOfficial.name} said the situation would be “closely monitored”; users joked that close monitoring may be the city’s most reliable public service.`,
     ],
-    quoteSpeakerId: official.id,
+    quoteSpeakerId: loversStoryId ? '' : official.id,
     source: 'local',
     social: {
-      likes: Math.round(scale * 1.1).toLocaleString(), laughs: Math.round(scale * 0.8).toLocaleString(),
-      angry: Math.round(scale * 0.18).toLocaleString(), commentCount: Math.round(scale * 0.54).toLocaleString(),
+      likes: Math.round(scale * 1.1).toLocaleString(), laughs: Math.round(scale * (loversStoryId ? topic.ending ? 0 : 0.12 : 0.8)).toLocaleString(),
+      angry: loversStoryId ? '0' : Math.round(scale * 0.18).toLocaleString(), commentCount: Math.round(scale * 0.54).toLocaleString(),
       shares: Math.round(scale * 0.32).toLocaleString(),
-      comments: [
+      comments: loversStoryId ? [
+        { author: getExamForumCitizenName(`${monthIndex}:resident`), text: topic.comment },
+        { author: getExamForumCitizenName(`${monthIndex}:neighbour`), text: topic.ending
+          ? zh ? '回憶係真，告別都係真。願佢哋各自安好。' : language === 'ja' ? '思い出も、別れも本当。二人とも元気で。' : 'The memories were real, and so is goodbye. Wishing them both well.'
+          : zh ? '記得呢對情侶，原來又多咗一頁回憶。' : language === 'ja' ? '見覚えのある二人。また一ページ、思い出が増えましたね。' : 'I recognise this couple. Another page for their album.' },
+      ] : [
         { author: getExamForumCitizenName(`${monthIndex}:resident`), text: topic.comment },
         { author: official.name, text: zh ? '已收到大家意見，相關部門會認真研究。' : language === 'ja' ? '皆さんの意見は受け取りました。担当部門で検討します。' : 'Your views have been noted for departmental review.' },
         { author: secondOfficial.name, text: zh ? '研究完成前會先成立小組研究點樣研究。' : language === 'ja' ? '検討開始前に、検討方法を検討する会議体を設置します。' : 'Before the review is complete, a group will study how the review should be studied.' },
       ],
     },
-  }, { id: `monthly-forum-${monthIndex}`, category: topic.category, author: zh ? '香城熱話台' : language === 'ja' ? '香城トレンド' : 'Heung Shing Trending' });
+  }, { id: loversStoryId ? `lovers-${loversStoryId}` : `monthly-forum-${monthIndex}`, category: topic.category,
+    author: loversStoryId ? zh ? '香城生活誌' : language === 'ja' ? '香城暮らしの便り' : 'Heung Shing Life' : zh ? '香城熱話台' : language === 'ja' ? '香城トレンド' : 'Heung Shing Trending' });
+  if (post && loversStoryId && post.id === `lovers-${loversStoryId}` && post.image === topic.image) {
+    city.loversStories.seen[loversStoryId] = monthIndex;
+    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+    if (topic.ending && typeof noteMedalLoversStoryComplete === 'function') noteMedalLoversStoryComplete();
+  }
   if (post && medalStoryId === 'kirinCouncillor' && city.council) {
     if (!city.council.forumEventState || typeof city.council.forumEventState !== 'object') city.council.forumEventState = { labExplosionLastMonthIndex: -1 };
     city.council.forumEventState.kirinLastYear = Math.floor(Number(city.year) || 0);
@@ -957,7 +986,7 @@ function renderForumHistory(filter = 'all') {
     if (post.image) {
       const thumbnail = document.createElement('img');
       thumbnail.className = 'forum-thread-thumb';
-      thumbnail.src = resolveForumImageSrc(post.image);
+      thumbnail.src = resolveForumImageThumbnailSrc(post.image);
       thumbnail.alt = '';
       thumbnail.loading = 'lazy';
       summary.appendChild(thumbnail);

@@ -262,6 +262,7 @@ const city = {
   forumPosts: [],
   lastForumMonthIndex: -1,
   lastCaacaantengAdMonthIndex: -1,
+  loversStories: { seen: {} },
   // 洋紫荊勳章 (medals.js): this city's absurd events by game year, for 國際笑話中心
   medalLog: { absurd: [] },
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
@@ -461,6 +462,7 @@ function resetGameState() {
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
   city.lastCaacaantengAdMonthIndex = -1;
+  city.loversStories = { seen: {} };
   city.medalLog = { absurd: [] };
   city.districtProfileId = '';
   city.regionNeighbours = null;
@@ -539,6 +541,14 @@ function resolveForumImageSrc(value) {
   const proxied = '/api/forum/images/';
   if (path.startsWith(proxied)) return FORUM_PUBLIC_IMAGE_BASE + path.slice(proxied.length);
   return typeof resolveBundledAssetPath === 'function' ? resolveBundledAssetPath(path) : path;
+}
+
+function resolveForumImageThumbnailSrc(value) {
+  const path = normalizeForumImagePath(value);
+  if (!path.startsWith('UI/news/')) return resolveForumImageSrc(value);
+  const thumbnail = path.replace(/^UI\/news\//, 'UI/news/thumbs/');
+  return globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && typeof resolveBundledAssetPath === 'function'
+    ? resolveBundledAssetPath(thumbnail) : thumbnail;
 }
 
 // Typhoon lifecycle used to be counted in calendar-day ticks (4-9 per storm);
@@ -926,6 +936,7 @@ function normalizeCityFinanceState() {
   }
   city.lastForumMonthIndex = Math.floor(toFiniteOr(city.lastForumMonthIndex, -1));
   city.lastCaacaantengAdMonthIndex = Math.floor(toFiniteOr(city.lastCaacaantengAdMonthIndex, -1));
+  if (typeof normalizeLoversStoryState === 'function') city.loversStories = normalizeLoversStoryState(city.loversStories, city.forumPosts);
   city.creditRating = city.creditRating || 'A';
 }
 

@@ -40,6 +40,22 @@ test('resolution result news uses packaged WebP assets at generation and display
   assert.match(newspaper, /forumImage\.src = imagePath/);
 });
 
+test('forum rows use real thumbnails while saved story paths keep their full-size illustration', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'city-state.js'), 'utf8');
+  const start = source.indexOf('function normalizeForumImagePath');
+  const end = source.indexOf('\nfunction normalizeCityFinanceState', start);
+  const context = vm.createContext({});
+  vm.runInContext(source.slice(start, end), context);
+  assert.equal(vm.runInContext("resolveForumImageThumbnailSrc('UI/news/loversGallery.webp')", context), 'UI/news/thumbs/loversGallery.webp');
+  assert.equal(vm.runInContext("normalizeForumImagePath('UI/news/loversGallery.webp')", context), 'UI/news/loversGallery.webp');
+  assert.equal(vm.runInContext("resolveForumImageThumbnailSrc('../bad.webp')", context), '');
+  context.HEUNG_SHING_CONFIG = { platform: 'web' };
+  context.resolveBundledAssetPath = (logical) => logical === 'UI/news/thumbs/loversGallery.webp' ? 'assets/gallery-thumb.webp' : logical;
+  assert.equal(vm.runInContext("resolveForumImageThumbnailSrc('UI/news/loversGallery.webp')", context), 'assets/gallery-thumb.webp');
+  assert.equal(vm.runInContext("resolveForumImageSrc('UI/news/loversGallery.webp')", context), 'UI/news/loversGallery.webp');
+  assert.match(fs.readFileSync(path.join(ROOT, 'newspaper.js'), 'utf8'), /thumbnail\.src = resolveForumImageThumbnailSrc\(post\.image\)/);
+});
+
 test('startup does not request the removed legacy building tile set', () => {
   const main = require('./main-source').mainSource;
   const catalog = fs.readFileSync(path.join(ROOT, 'model-catalog.js'), 'utf8');

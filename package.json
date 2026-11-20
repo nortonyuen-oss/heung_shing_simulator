@@ -89,6 +89,7 @@
       "**/*",
       "UI/news/**/*.webp",
       "!UI/news/**/*.png",
+      "!UI/storyBoardGraphics/**",
       "!release/**",
       "!docs/**",
       "!test/**",

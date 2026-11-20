@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const medals = require('../medal-definitions.js');
+const { LOVERS_STORY_DEFS } = require('../lovers-stories.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const source = (fileName) => fs.readFileSync(path.join(ROOT, fileName), 'utf8');
@@ -17,8 +18,9 @@ const judge = (snapshot, profile = medals.createEmptyMedalProfile()) => {
   return { ...result, profile };
 };
 const earns = (snapshot, id) => judge(snapshot).newlyEarned.includes(id);
+const completeDiary = () => ({ seen: Object.fromEntries(LOVERS_STORY_DEFS.map((def, i) => [def.id, 100 + i * 3])) });
 
-test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 31 judged now', () => {
+test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 32 judged now', () => {
   assert.equal(medals.MEDAL_DEFS.length, 36);
   assert.equal(new Set(medals.MEDAL_DEFS.map((def) => def.id)).size, 36);
   const bySeries = (series) => medals.MEDAL_DEFS.filter((def) => def.series === series).map((def) => def.id);
@@ -27,8 +29,8 @@ test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 31 ju
   assert.deepEqual(bySeries('S'), ['C01', 'D01', 'E01']);
   const byStatus = (status) => medals.MEDAL_DEFS.filter((def) => def.status === status).map((def) => def.id);
   assert.deepEqual(byStatus('locked'), [], 'A15-A19 set 2026-11-17');
-  assert.deepEqual(byStatus('blocked'), ['B03', 'B04', 'B07', 'D01', 'E01'], '公屋/居屋, routes, Claire, the campaign');
-  assert.equal(byStatus('active').length, 31);
+  assert.deepEqual(byStatus('blocked'), ['B03', 'B04', 'B07', 'E01'], '公屋/居屋, routes, the campaign');
+  assert.equal(byStatus('active').length, 32);
   medals.MEDAL_DEFS.forEach((def) => {
     ['zhHant', 'en', 'ja'].forEach((language) => {
       assert.ok(def.name[language], `${def.id} name in ${language}`);
@@ -55,6 +57,17 @@ test('「大於／超過」 is strict and 「至少／達」 is not (C.7)', () =
   assert.equal(earns({ ...exchange, governmentRealizedPnl: 1000000 }, 'A12'), false, 'the notable-profit bar, exceeded');
   assert.equal(earns({ ...exchange, governmentRealizedPnl: 1000001 }, 'A12'), true);
   assert.equal(earns({ governmentRealizedPnl: 9e9 }, 'A12'), false, 'no stock exchange, no medal');
+});
+
+test('Claire’s Memories is the existing hidden memorial, awarded only for a recorded completed story', () => {
+  const def = medals.MEDAL_DEFS_BY_ID.D01;
+  assert.equal(def.status, 'active');
+  assert.equal(def.hidden, true);
+  assert.equal(def.tier, 'memorial');
+  assert(def.quote.zhHant);
+  assert.equal(earns({}, 'D01'), false);
+  assert.equal(earns({ facts: { 'forum:farewell': stamp() } }, 'D01'), false);
+  assert.equal(earns({ facts: { loversStoryComplete: stamp() } }, 'D01'), true);
 });
 
 test('transport: firsts are remembered; the tycoon needs all four modes in a month and > $10,000 fares', () => {
@@ -232,6 +245,7 @@ function loadRuntime({ stored = null, getOk = true } = {}) {
     getCurrentLanguage: () => 'zhHant',
   });
   context.globalThis = context;
+  vm.runInContext(source('lovers-stories.js'), context);
   vm.runInContext(source('medal-definitions.js'), context);
   vm.runInContext(source('medals.js'), context);
   const flush = async () => { for (let i = 0; i < 5; i++) await new Promise((resolve) => setImmediate(resolve)); };
@@ -257,6 +271,108 @@ test('runtime: loads the player profile, judges the city, saves the cabinet, toa
   const put = requests.find((request) => request.method === 'PUT');
   assert.ok(put?.body?.data?.earned?.A01, 'the cabinet is written back');
   assert.ok(put.body.data.earned.B11, 'with everything it already had');
+});
+
+test('runtime: the completed diary awards the hidden medal immediately, persists it and never awards it twice', async () => {
+  const { context, flush, runTimers, requests } = loadRuntime();
+  await flush();
+  context.city.loversStories = completeDiary();
+  delete context.city.loversStories.seen.farewell;
+  context.onMedalCityLoaded();
+  assert.equal(context.getMedalProfile().earned.D01, undefined);
+  context.city.loversStories = completeDiary();
+  assert(context.noteMedalLoversStoryComplete().includes('D01'));
+  assert.equal(context.getMedalProfile().earned.D01.city, '測試城');
+  assert(context.getMedalProfile().facts.loversStoryComplete);
+  context.noteMedalLoversStoryComplete();
+  context.onMedalCityLoaded();
+  context.city.name = '另一座城';
+  context.city.loversStories = { seen: {} };
+  context.runMedalEvaluation();
+  assert.equal(context.getMedalProfile().earned.D01.city, '測試城');
+  assert.equal(context.toasts.filter((toast) => toast.message.includes('Claire')).length, 1);
+  runTimers(); await flush();
+  assert(requests.some((request) => request.method === 'PUT' && request.body.data.earned.D01 && request.body.data.facts.loversStoryComplete));
+});
+
+test('runtime: loading a completed city backfills the medal even after its news history is pruned', async () => {
+  const { context, flush } = loadRuntime();
+  await flush();
+  context.city.loversStories = completeDiary();
+  context.city.forumPosts = [];
+  context.onMedalCityLoaded();
+  assert(context.getMedalProfile().earned.D01);
+});
+
+test('runtime: two incomplete cities cannot combine their stories into the memorial', async () => {
+  const { context, flush } = loadRuntime();
+  await flush();
+  const diary = completeDiary();
+  context.city.loversStories = { seen: Object.fromEntries(Object.entries(diary.seen).slice(0, 6)) };
+  context.onMedalCityLoaded();
+  context.city.name = '第二座城';
+  context.city.loversStories = { seen: Object.fromEntries(Object.entries(diary.seen).slice(6)) };
+  context.noteMedalLoversStoryComplete();
+  context.onMedalCityLoaded();
+  assert.equal(context.getMedalProfile().facts.loversStoryComplete, undefined);
+  assert.equal(context.getMedalProfile().earned.D01, undefined);
+});
+
+test('runtime: a completion received during profile loading is kept; storage failure and attract mode do not award', async () => {
+  const pending = loadRuntime();
+  pending.context.city.loversStories = completeDiary();
+  pending.context.noteMedalLoversStoryComplete();
+  assert(pending.context.getMedalProfile().facts.loversStoryComplete);
+  pending.context.city.name = '等待讀取時切換的城市';
+  pending.context.city.month = 9;
+  pending.context.city.loversStories = { seen: {} };
+  await pending.flush();
+  assert(pending.context.getMedalProfile().earned.D01);
+  assert.equal(pending.context.getMedalProfile().earned.D01.city, '測試城', 'retain the city which completed the story');
+  assert.equal(pending.context.getMedalProfile().earned.D01.month, 3, 'retain its completion month');
+
+  const failed = loadRuntime({ getOk: false });
+  failed.context.city.loversStories = completeDiary();
+  failed.context.noteMedalLoversStoryComplete();
+  failed.runTimers(); await failed.flush();
+  assert.equal(failed.context.getMedalProfile().earned.D01, undefined);
+  assert.equal(failed.requests.some((request) => request.method === 'PUT'), false);
+
+  const showcase = loadRuntime();
+  await showcase.flush();
+  showcase.context.city.loversStories = completeDiary();
+  showcase.context.isAttractModeActive = () => true;
+  showcase.context.noteMedalLoversStoryComplete();
+  showcase.context.runMedalEvaluation();
+  assert.equal(showcase.context.getMedalProfile().facts.loversStoryComplete, undefined);
+  assert.equal(showcase.context.getMedalProfile().earned.D01, undefined);
+});
+
+test('runtime: only a successfully published final story triggers the medal hook', async () => {
+  const { context, flush } = loadRuntime();
+  await flush();
+  context.city.month = 9;
+  context.city.loversStories = completeDiary();
+  delete context.city.loversStories.seen.farewell;
+  Object.assign(context, {
+    hasBuildingType: () => false,
+    getCouncilNewsOfficialDisplayName: () => '測試官員',
+    getDefaultCityName: () => '香城', tMonth: String,
+    getTransportExpansionState: () => ({ lastModeTotals: { metro: 10 } }),
+    getCityMonthIndex: () => context.city.year * 12 + context.city.month - 1,
+    normalizeForumImagePath: (value) => value,
+  });
+  context.Math = Object.assign(Object.create(Math), { random: () => 0 });
+  vm.runInContext(source('newspaper.js'), context);
+  vm.runInContext('maybeAnnounceCaacaantengAd = () => null; actualAddForumPost = addForumPost; addForumPost = () => null;', context);
+  assert.equal(context.generateMonthlyForumPost(), null);
+  assert.equal(context.getMedalProfile().earned.D01, undefined);
+  assert.equal(context.city.loversStories.seen.farewell, undefined);
+  context.city.month++;
+  vm.runInContext('addForumPost = actualAddForumPost;', context);
+  const post = context.generateMonthlyForumPost();
+  assert.equal(post.id, 'lovers-farewell');
+  assert(context.getMedalProfile().earned.D01);
 });
 
 test('runtime: a failed profile load never writes over the stored cabinet, and the showcase earns nothing', async () => {

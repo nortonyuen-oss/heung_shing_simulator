@@ -171,3 +171,19 @@ test('P4 start towns: 10, 11, 14 and 15 start built on their maps, short of thei
   assert.equal(count(ch15, 'police_station'), 1, 'the streets little watched');
   assert.ok(Math.round(100 - ch15.city.crimeRateIndex * 100) <= 40, 'safety near 35 at the start');
 });
+
+// P5 驗收: a start town's own run of surpluses (the months it was being built) never counts - only the
+// months since the chapter began (13, 16, 17 and 18 opened with 8-11 months already).
+test('P5: a surplus streak counts only the months since the chapter began', () => {
+  const base = { monthIndex: 500 };
+  const streak = (id, star, objectiveId, s) => objective(id, star, objectiveId).check(s, base);
+  assert.equal(streak('ch13', 0, 'surplusStreak', { surplusStreak: 9, monthIndex: 500 }), false, 'the start town\'s nine months');
+  assert.equal(streak('ch13', 0, 'surplusStreak', { surplusStreak: 9, monthIndex: 502 }), false, 'two months in');
+  assert.equal(streak('ch13', 0, 'surplusStreak', { surplusStreak: 9, monthIndex: 503 }), true, 'three months in');
+  assert.equal(streak('ch13', 0, 'surplusStreak', { surplusStreak: 1, monthIndex: 510 }), false, 'a deficit broke it');
+  assert.equal(objective('ch13', 0, 'surplusStreak').progress({ surplusStreak: 9, monthIndex: 501 }, base), '1 / 3');
+  assert.equal(streak('ch18', 0, 'investment', { governmentHoldings: 5, surplusStreak: 11, monthIndex: 500 }), false);
+  assert.equal(streak('ch11', 0, 'books', { population: 1, unemploymentRate: 0.05, surplusStreak: 4, monthIndex: 504 }), true);
+  // with no month to go by (an old run), the streak as it stands
+  assert.equal(objective('ch13', 0, 'surplusStreak').check({ surplusStreak: 3 }, {}), true);
+});

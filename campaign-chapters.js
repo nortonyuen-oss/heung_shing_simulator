@@ -24,6 +24,14 @@
   const heldSince = (s, base, id) => num(s.festivalHeldYear?.[id]) - num(base?.festivalHeldYear?.[id]);
   const heldAnySince = (s, base) => Object.keys(s.festivalHeldYear || {}).some((id) => heldSince(s, base, id) > 0);
   const tick = (ok) => (ok ? '✓' : '—');
+  // the surplus months running since the chapter began: a start town's own run of surpluses (its months
+  // while it was built) never counts. Uncapped when either month is unknown.
+  const streakSince = (s, base) => {
+    const now = Number(s?.monthIndex);
+    const from = Number(base?.monthIndex);
+    const months = base?.monthIndex != null && Number.isFinite(now) && Number.isFinite(from) ? Math.max(0, now - from) : Infinity;
+    return Math.min(num(s.surplusStreak), months);
+  };
 
   // Who speaks. The mayor and treasurer are the council's portraits (UI/officials); the campaign's own
   // cast are 256 px headshots (UI/campaign/portraits) cut from Norton's harbour portraits in UI/officials
@@ -235,7 +243,7 @@
           { id: 'population', label: T('人口達 30,000', 'Population of 30,000', '人口30,000人'),
             check: (s) => num(s.population) >= 30000, progress: (s) => `${fmt(s.population)} / 30,000` },
           { id: 'surplus', label: T('連續 12 個月盈餘', 'A surplus 12 months running', '12か月連続の黒字'),
-            check: (s) => num(s.surplusStreak) >= 12, progress: (s) => `${fmt(s.surplusStreak)} / 12` },
+            check: (s, base) => streakSince(s, base) >= 12, progress: (s, base) => `${fmt(streakSince(s, base))} / 12` },
           { id: 'happiness', label: T('滿意度達 75%', 'Happiness of 75%', '満足度75%'),
             check: (s) => num(s.happiness) >= 0.75, progress: (s) => pct(s.happiness) },
           { id: 'traffic', label: T('交通擠塞指數不高於 40%', 'Traffic congestion at 40% or less', '交通渋滞指数40%以下'),
@@ -670,8 +678,8 @@
             check: (s) => built(s, 'gold_coast_hotel') && built(s, 'yacht_club'),
             progress: (s) => `🏨 ${tick(built(s, 'gold_coast_hotel'))} · ⛵ ${tick(built(s, 'yacht_club'))}` },
           { id: 'surplus', label: T('連續 12 個月盈餘，滿意度達 70%', 'A surplus 12 months running, happiness of 70%', '12か月連続の黒字、満足度70%'),
-            check: (s) => num(s.surplusStreak) >= 12 && num(s.happiness) >= 0.7,
-            progress: (s) => `${fmt(s.surplusStreak)} / 12 · ${pct(s.happiness)}` },
+            check: (s, base) => streakSince(s, base) >= 12 && num(s.happiness) >= 0.7,
+            progress: (s, base) => `${fmt(streakSince(s, base))} / 12 · ${pct(s.happiness)}` },
         ]),
       },
     ]),
@@ -844,7 +852,7 @@
 
   const streakObjective = (months) => ({
     id: 'surplusStreak', label: T(`連續 ${months} 個月財政盈餘`, `A surplus ${months} months running`, `${months}か月連続の黒字`),
-    check: (s) => num(s.surplusStreak) >= months, progress: (s) => `${fmt(s.surplusStreak)} / ${months}`,
+    check: (s, base) => streakSince(s, base) >= months, progress: (s, base) => `${fmt(streakSince(s, base))} / ${months}`,
   });
   // monthly commercial and industrial tax against the chapter's start (base.taxCI)
   const taxGrowth = (s, base) => (num(base?.taxCI) > 0 ? num(s.taxCI) / num(base.taxCI) - 1 : 0);
@@ -1607,8 +1615,8 @@
             check: (s) => built(s, 'stock_exchange') && num(s.gradeAOffices) >= 5,
             progress: (s) => `🏦 ${tick(built(s, 'stock_exchange'))} · ${fmt(s.gradeAOffices)} / 5` },
           { id: 'investment', label: T('政府投資基金有持倉，連續 3 個月盈餘', 'The government investment fund holds shares; three months of surplus', '政府投資ファンドが株式を保有、3か月連続黒字'),
-            check: (s) => num(s.governmentHoldings) > 0 && num(s.surplusStreak) >= 3,
-            progress: (s) => `📈 ${fmt(s.governmentHoldings)} · ${fmt(s.surplusStreak)} / 3` },
+            check: (s, base) => num(s.governmentHoldings) > 0 && streakSince(s, base) >= 3,
+            progress: (s, base) => `📈 ${fmt(s.governmentHoldings)} · ${fmt(streakSince(s, base))} / 3` },
           { id: 'tunnel', label: T('西區海底隧道有車流，至少一條過海巴士線行經隧道', 'The Western Harbour Tunnel with traffic, and a cross-harbour bus route through it', '西区海底トンネルに交通、トンネル経由の越境バス1路線以上'),
             check: (s) => num(s.underseaTunnels) > 0 && num(s.tunnelBusRoutes) >= 1,
             progress: (s) => `🚇 ${fmt(s.underseaTunnels)} · 🚌 ${fmt(s.tunnelBusRoutes)}` },
@@ -1833,8 +1841,8 @@
             check: (s) => townServices(s) && balancedSectors(s), progress: (s) => `${tick(townServices(s))} · ${sectorShares(s).map(pct).join(' / ')}` },
           ridersObjective('rail', 'metro', 5000, T('地鐵每月載客 5,000 人次（青衣客運）', 'The metro carries 5,000 riders a month (Tsing Yi\'s passengers)', '地下鉄の月間乗客5,000人（青衣の旅客）')),
           { id: 'books', label: T('失業率低於 7%，連續 3 個月盈餘', 'Unemployment under 7% and 3 months of surplus in a row', '失業率7%未満、3か月連続の黒字'),
-            check: (s) => num(s.population) > 0 && num(s.unemploymentRate) < 0.07 && num(s.surplusStreak) >= 3,
-            progress: (s) => `${pct(s.unemploymentRate)} · ${fmt(s.surplusStreak)} / 3` },
+            check: (s, base) => num(s.population) > 0 && num(s.unemploymentRate) < 0.07 && streakSince(s, base) >= 3,
+            progress: (s, base) => `${pct(s.unemploymentRate)} · ${fmt(streakSince(s, base))} / 3` },
         ]),
       },
       {
@@ -2073,7 +2081,7 @@
           { id: 'community', label: T('街市保留，基層住宅仍佔兩成半（唔可以趕走基層換豪宅）', 'The market kept, and low-income homes still 25% (no pushing them out for luxury flats)', '市場を残し、低所得の住宅は25%（追い出して高級住宅にしない）'),
             check: (s) => built(s, 'public_market') && lowIncomeShare(s) >= 0.25 - 1e-9, progress: (s) => `🛒 ${tick(built(s, 'public_market'))} · ${pct(lowIncomeShare(s))}` },
           { id: 'books', label: T('連續 12 個月盈餘，財政儲備達 $200,000', '12 months of surplus in a row, reserves of $200,000', '12か月連続の黒字、財政準備金$200,000'),
-            check: (s) => num(s.surplusStreak) >= 12 && num(s.funds) >= 200000, progress: (s) => `${fmt(s.surplusStreak)} / 12 · $${fmt(s.funds)}` },
+            check: (s, base) => streakSince(s, base) >= 12 && num(s.funds) >= 200000, progress: (s, base) => `${fmt(streakSince(s, base))} / 12 · $${fmt(s.funds)}` },
         ]),
       },
     ]),

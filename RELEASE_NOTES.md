@@ -1,3 +1,27 @@
+# The City of Heung Shing v6.0.2 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 修正：手機玩主線、序幕信封圖
+
+- **手機教學唔再擋住畫面**：《玩轉18區》嘅目標面板之前擺咗喺手機畫面正中間。而家貼喺頂欄下面（橫向時擺喺左邊），目標清單收埋做一行，撳先展開，地圖大部分都睇得到。
+- **教學識講手機版**：教學會講「撳下面「建造」→「路政署」」，唔再講桌面版嘅「左邊」；要撳嘅「建造」、分類同工具按鈕會發光提示。
+- **網頁版序幕見返封信**：序幕《女皇密令》嘅背景圖（唐樓書桌上嘅皇家火漆信）之前喺網頁版載入唔到，只見到調暗咗嘅畫面。而家正常顯示，手機打橫時火漆印都會喺對白框上面。
+
+**台灣中文：** 手機遊玩《玩轉18區》時，目標面板不再擋住畫面中央：改為貼在頂欄下方（橫向時在左側），目標清單收合成一行，點選才展開；教學改用手機版說法（「點下方「建造」→「路政署」」），並讓要點的按鈕發光提示。另修正網頁版序幕《女皇密令》的背景圖（蓋著皇家火漆的信）無法載入的問題。
+
+**English:** The 18 Districts on a phone: the objectives panel no longer covers the middle of the map. It now docks under the top bar (on the left when the phone is held sideways), and the objectives fold to one line until tapped. The tutorial tells you where the phone keeps each tool (Build → Highways rather than "on the left") and lights the buttons to press. The browser version also shows the prologue's backdrop, the letter under the royal seal, which failed to load there before.
+
+**日本語:** スマートフォンで「18区をめぐる」を遊ぶとき、目標パネルが画面の中央を覆わなくなりました。上部バーの下（横向きでは左側）に表示され、目標リストはタップするまで1行に折りたたまれます。チュートリアルはスマートフォン版の操作（下の「建設」→「道路局」）で案内し、押すボタンを光らせます。また、ブラウザー版でプロローグ「女王の密令」の背景画像（王室の封蝋つきの手紙）が読み込まれない問題を修正しました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.1 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

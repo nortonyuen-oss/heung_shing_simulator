@@ -68,6 +68,15 @@
 [data-ui-profile="touch"] #mobile-ui.nav-open .m-nav-handle { bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom) + 6px); }
 [data-ui-profile="touch"] #mobile-ui:has(#mobile-panel:not([hidden])) .m-nav-handle { left: min(50%, calc(100% - var(--mobile-panel-width) - env(safe-area-inset-right) - 30px)); }
 [data-ui-profile="touch"] #mobile-ui.is-building .m-nav-handle, [data-ui-profile="touch"] #mobile-ui.is-building .m-nav { display: none; }
+/* Turning the map (Norton 2026-11-21: 手機唔可以旋轉地圖): the desktop's arrows live on the minimap, which
+   the touch UI hides. Two buttons at the lower right, over the menu (or its handle when the menu is
+   folded); out of the way while a tool drafts, a line is picked or a panel is open. */
+[data-ui-profile="touch"] #mobile-ui .m-rotate { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 10px); display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
+[data-ui-profile="touch"] #mobile-ui.nav-open .m-rotate { bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom) + 12px); }
+[data-ui-profile="touch"] #mobile-ui .m-rotate button { width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 50%; border: none; background: rgba(241, 244, 248, 0.82); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(20, 30, 28, 0.25); font-size: 22px; line-height: 1; color: #22303a; }
+[data-ui-profile="touch"] #mobile-ui:is(.is-building, .is-picking-route) .m-rotate, [data-ui-profile="touch"] #mobile-ui:has(#mobile-panel:not([hidden])) .m-rotate { display: none; }
+/* a territory's minimap sits at the lower right: the buttons go above it */
+[data-ui-profile="touch"]:has(#city-minimap[data-world-map="true"]:not([style*="display: none"])) #mobile-ui .m-rotate { bottom: calc(var(--mobile-nav) + var(--mobile-ticker) + env(safe-area-inset-bottom) + 230px); }
 [data-ui-profile="touch"] .m-confirm { position: absolute; bottom: 0; left: 0; right: 0; min-height: calc(var(--mobile-confirm) + env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: center; padding: 4px max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); background: linear-gradient(#f1f4f8, #e2e8ef); border-top: 2px solid #9aa8b8; pointer-events: auto; }
 [data-ui-profile="touch"] .m-confirm-description { flex: 1; min-width: 0; line-height: 1.2; }
 [data-ui-profile="touch"] .m-confirm-description strong { display: block; }
@@ -94,7 +103,7 @@
 /* Keep existing native save/import dialogs and title screen, with touch-sized controls. The
    overview map's district pins are buttons too (for keyboard/click access) but are fixed-size
    18px map markers, not form controls - the 44px minimum stretched every one into an 18x44 oval. */
-[data-ui-profile="touch"] :is(.sim-dialog, #landing-screen) :is(button:not(.setup-overview-marker), select, input:not([type="checkbox"]), .save-slot) { min-height: 44px; font-size: 16px; touch-action: manipulation; }
+[data-ui-profile="touch"] :is(.sim-dialog, #landing-screen) :is(button:not(.setup-overview-marker):not(.cs-pin), select, input:not([type="checkbox"]), .save-slot) { min-height: 44px; font-size: 16px; touch-action: manipulation; }
 [data-ui-profile="touch"] .sim-dialog { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
 [data-ui-profile="touch"] #landing-screen { height: 100dvh; overflow-y: auto; align-items: flex-start; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
 [data-ui-profile="touch"] .landing-card { width: 100%; max-width: 860px; min-height: 0; padding: 8px 0; margin: auto; }
@@ -120,6 +129,8 @@
   [data-ui-profile="touch"] { --mobile-confirm: 116px; --mobile-inspect-bottom: var(--mobile-nav); }
   [data-ui-profile="touch"] .m-nav { display: grid; }
   [data-ui-profile="touch"] #mobile-ui.is-building .m-nav { display: grid; }
+  /* upright the menu is always there: the rotate buttons sit above it */
+  [data-ui-profile="touch"] #mobile-ui .m-rotate { bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom) + 12px); }
   [data-ui-profile="touch"] #mobile-ui .m-nav-handle { display: none; }
   [data-ui-profile="touch"] .m-nav button { flex-direction: column; gap: 0; font-size: 12px; padding: 2px; }
   [data-ui-profile="touch"] .m-panel { width: 100%; bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom)); padding-bottom: 0; }

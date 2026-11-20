@@ -501,7 +501,7 @@ function mobileRenderPage() {
     }
   } else if (mobilePage === 'more') {
     const rows = [['save', 'save', '💾'], ['save-as', 'saveAs', '💾'], ['load-game', 'load', '📂'], ['export-save', 'export', '↗'], ['import-save', 'import', '↙'], ['main-menu', 'mainMenu', '🏠']];
-    const dialogs = [['open-forum-history', 'menu.openForum', '💬'], ['open-festival-calendar', 'menu.festivalCalendar', '🗓️'], ['open-ai-news-settings', 'menu.aiNews', '📰'], ['show-help', 'menu.help', '❔'], ['show-about', 'menu.about', 'ℹ️']];
+    const dialogs = [['open-medal-cabinet', 'menu.medalCabinet', '🏵'], ['open-forum-history', 'menu.openForum', '💬'], ['open-festival-calendar', 'menu.festivalCalendar', '🗓️'], ['open-ai-news-settings', 'menu.aiNews', '📰'], ['show-help', 'menu.help', '❔'], ['show-about', 'menu.about', 'ℹ️']];
     updateSettingsMenu();
     body.innerHTML = `<h3>${mobileText('file')}</h3><div class="m-list">${rows.map(([action, key, icon]) => mobileRow(`data-mobile-menu="${action}"`, mobileText(key), '', icon)).join('')}${mobileRow('data-mobile-action="rename"', mobileText('rename'), '', '✏️')}</div>
       <h3>${mobileText('settings')}</h3><div class="m-list">${mobileRow('data-mobile-native="jukebox"', t('jukebox.title'), '', '🎵')}${mobileRow('data-mobile-native="roads"', t('roadTileSet.windowTitle'), '', '🛣️')}${dialogs.map(([action, key, icon]) => mobileRow(`data-mobile-dialog="${action}"`, document.querySelector(`[data-menu-action="${action}"]`)?.textContent || t(key), '', icon)).join('')}</div>
@@ -513,7 +513,9 @@ function mobileRenderPage() {
       <label>${mobileText('profile')} ${mobileProfileSelect()}</label><p>${mobileText('beta')}</p>`;
   } else if (mobilePage === 'manage') {
     const windows = [['finance', 'budget.label', '💰'], ['budget', 'budget.windowTitle', '📋'], ['council', 'council.windowTitle', '🏛️'], ['stocks', 'stockExchange.windowTitle', '🏦'], ['charts', 'chart.title', '📈']];
-    body.innerHTML = `<div class="m-list">${windows.map(([key, title, icon]) => mobileRow(`data-mobile-native="${key}" ${key === 'council' && !isCouncilMeetingUnlocked() ? 'aria-disabled="true"' : ''}`, t(title), key === 'council' && !isCouncilMeetingUnlocked() ? t('legislative.windowLocked') : '', icon)).join('')}</div><h3>${mobileText('demand')}</h3><div id="mobile-demand"></div><h3>${mobileText('indices')}</h3><div id="mobile-indices"></div>`;
+    // 洋紫荊勳章: the desktop opens the cabinet from the top bar's KPI and the menu (Norton 2026-11-21: 手機版查看唔到勳章)
+    const medals = mobileRow('data-mobile-dialog="open-medal-cabinet"', t('menu.medalCabinet').replace(/^🏵\s*/, '').replace(/[….]+$/, ''), '', '🏵');
+    body.innerHTML = `<div class="m-list">${windows.map(([key, title, icon]) => mobileRow(`data-mobile-native="${key}" ${key === 'council' && !isCouncilMeetingUnlocked() ? 'aria-disabled="true"' : ''}`, t(title), key === 'council' && !isCouncilMeetingUnlocked() ? t('legislative.windowLocked') : '', icon)).join('')}${medals}</div><h3>${mobileText('demand')}</h3><div id="mobile-demand"></div><h3>${mobileText('indices')}</h3><div id="mobile-indices"></div>`;
     mobileUpdateOverview();
   } else if (mobilePage === 'layers') {
     body.innerHTML = `<div class="m-list">${Object.keys(OVERLAY_TITLES).map((key) => mobileRow(`data-mobile-overlay="${key}"`, t(OVERLAY_TITLES[key]), '', OVERLAY_ICONS[key])).join('')}</div>${mobileRow('data-mobile-action="weather"', t('topbar.currentWeather'), '', '🌦️')}`;
@@ -553,6 +555,7 @@ function setupMobileUi() {
       <span class="m-ticker-icon" aria-hidden="true">💬</span>
       <span class="m-ticker-text" id="mobile-ticker-text"></span>
     </button>
+    <div class="m-rotate" role="group"><button type="button" id="mobile-rotate-ccw" data-i18n-aria="tool.rotateCCW" data-i18n-title="tool.rotateCCW">↺</button><button type="button" id="mobile-rotate-cw" data-i18n-aria="tool.rotateCW" data-i18n-title="tool.rotateCW">↻</button></div>
     <section class="m-panel" id="mobile-panel" hidden aria-labelledby="mobile-panel-title">
       <header class="m-panel-head"><button type="button" class="m-icon" id="mobile-panel-back" data-mobile-aria="back">‹</button><h2 id="mobile-panel-title"></h2><button type="button" class="m-icon" id="mobile-panel-close" data-mobile-aria="close">✕</button></header>
       <div class="m-panel-body" id="mobile-panel-body"></div>
@@ -617,7 +620,10 @@ function setupMobileUi() {
       document.getElementById('mobile-panel-body').scrollTop = scroll;
     } else if (button.dataset.mobileDialog) handleMenuAction(button.dataset.mobileDialog);
     else if (button.dataset.mobileAction === 'weather') { updateWeatherLegendDialog(); showDialog('weather-legend-dialog'); }
-    else if (button.id === 'mobile-route-picker-done') {
+    else if (button.id === 'mobile-rotate-cw' || button.id === 'mobile-rotate-ccw') {
+      // the desktop's rotate arrows sit on the minimap, which the touch UI hides (Norton 2026-11-21)
+      if (typeof activeScene !== 'undefined' && activeScene) rotateMap(activeScene, button.id === 'mobile-rotate-cw' ? 1 : -1);
+    } else if (button.id === 'mobile-route-picker-done') {
       if (MOBILE_DIRECT_TAP_TOOLS.includes(mobileMode)) {
         mobileCancelDirectTapDraft(mobileMode);
         mobileSelectTool('inspect');

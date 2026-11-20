@@ -1095,6 +1095,13 @@
         style="left:${box.x.toFixed(2)}%;top:${box.y.toFixed(2)}%" data-chapter="${chapter.id}"
         title="${escapeHtml(say(chapter.district))}">${String(chapter.number).padStart(2, '0')}</button>`;
     }).join('');
+    // on a phone the 18 pins pile up on the small map: the chapters are a grid of buttons as well
+    const chips = CAMPAIGN_CHAPTERS.map((chapter) => {
+      const state = getChapterState(chapter);
+      const selected = runtime.selectedChapterId === chapter.id;
+      return `<button type="button" class="cs-chip is-${state.key}${selected ? ' is-selected' : ''}" data-chapter="${chapter.id}" aria-pressed="${selected}">
+        <b>${String(chapter.number).padStart(2, '0')}</b><span>${escapeHtml(say(chapter.district))}</span></button>`;
+    }).join('');
     const chapter = CAMPAIGN_CHAPTERS_BY_ID[runtime.selectedChapterId] || CAMPAIGN_CHAPTERS[0];
     const state = getChapterState(chapter);
     const stateText = {
@@ -1114,6 +1121,7 @@
     dialog.querySelector('[data-cs-body]').innerHTML = `
       <div class="cs-top">${mayorRow}<div class="cs-summary">${escapeHtml(say(L(`主線 ${cleared}／18 區・星數 ${total}／54`, `Main story ${cleared}/18 districts · ${total}/54 stars`, `メイン ${cleared}／18区・星 ${total}／54`)))}</div></div>
       <div class="cs-map"><img src="UI/hk-district-overview.webp" alt="">${pins}</div>
+      <div class="cs-grid" role="group" aria-label="${escapeHtml(say(L('章節', 'Chapters', '章')))}">${chips}</div>
       <div class="cs-detail">
         <div class="cs-detail-title">${escapeHtml(say(L(`第 ${String(chapter.number).padStart(2, '0')} 章・`, `Chapter ${chapter.number} · `, `第${chapter.number}章・`)))}${escapeHtml(say(chapter.district))}《${escapeHtml(say(chapter.title))}》</div>
         <div class="cs-detail-meta"><span class="cp-stars">${renderStars(state.stars)}</span> ${escapeHtml(say(stateText))}</div>
@@ -1472,7 +1480,25 @@
       #campaign-select-dialog .cs-pin.is-cleared { background: #c9a227; }
       #campaign-select-dialog .cs-pin.is-soon, #campaign-select-dialog .cs-pin.is-preparing { background: #6f7f90; }
       #campaign-select-dialog .cs-pin.is-locked { background: #3d444b; opacity: 0.8; }
-      #campaign-select-dialog .cs-pin.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; }
+      #campaign-select-dialog .cs-pin.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; z-index: 2; }
+      #campaign-select-dialog .cs-grid { display: none; }
+      /* a phone (Norton 2026-11-21: 手機版啲數字堆埋一齊): 18 pins of 28px pile up on a map some 330px
+         wide - Kowloon and the island are a heap. The map stays as an overview of small dots, the chosen
+         chapter's large with its number, and the chapters are a grid of buttons under it. */
+      @media (max-width: 640px), (max-height: 520px) {
+        #campaign-select-dialog .cs-map img { max-height: 42vh; }
+        #campaign-select-dialog .cs-pin { width: 12px; height: 12px; border-width: 1px; font-size: 0; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+        #campaign-select-dialog .cs-pin.is-selected { width: 26px; height: 26px; border-width: 2px; font-size: 10px; }
+        #campaign-select-dialog .cs-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 8px; }
+        #campaign-select-dialog .cs-chip { min-height: 44px; padding: 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+          border: 2px solid #fff; border-radius: 6px; color: #fff; font: 700 14px/1.1 Arial, sans-serif; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }
+        #campaign-select-dialog .cs-chip span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 10px/1.2 "PingFang TC", "Noto Sans TC", Arial, sans-serif; }
+        #campaign-select-dialog .cs-chip.is-open { background: #1e5cb3; }
+        #campaign-select-dialog .cs-chip.is-cleared { background: #c9a227; }
+        #campaign-select-dialog .cs-chip.is-soon, #campaign-select-dialog .cs-chip.is-preparing { background: #6f7f90; }
+        #campaign-select-dialog .cs-chip.is-locked { background: #3d444b; opacity: 0.8; }
+        #campaign-select-dialog .cs-chip.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; }
+      }
       #campaign-select-dialog .cs-detail { margin-top: 10px; }
       #campaign-select-dialog .cs-detail-title { font-size: 15px; font-weight: 700; }
       #campaign-select-dialog .cs-detail-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }

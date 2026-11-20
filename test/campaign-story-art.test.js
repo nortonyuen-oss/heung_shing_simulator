@@ -116,3 +116,31 @@ test('story art: a dialogue box closes on a phone held upright', () => {
     .filter((rule) => !rule.startsWith('#campaign-dialogue[hidden]'))
     .forEach((rule) => assert.match(rule, /:not\(\[hidden\]\)/, rule));
 });
+
+// 2026-11-21 (Norton: 手機版啲數字堆埋一齊): on a phone the chapter map's 18 pins pile up; the map
+// becomes an overview of dots and the chapters a grid of buttons, the desktop unchanged.
+test('story art: the chapter map on a phone is a grid of chapters under a map of dots', () => {
+  const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
+  assert.ok(runtime.includes('<div class="cs-grid" role="group"'));
+  assert.ok(runtime.includes('class="cs-chip is-${state.key}'));
+  assert.ok(runtime.includes('#campaign-select-dialog .cs-grid { display: none; }'), 'no grid on the desktop');
+  assert.match(runtime, /@media \(max-width: 640px\), \(max-height: 520px\) \{\s*#campaign-select-dialog \.cs-map img/);
+  assert.match(runtime, /#campaign-select-dialog \.cs-pin \{ width: 12px; height: 12px;[^}]*pointer-events: none;/);
+  assert.ok(fs.readFileSync(path.join(ROOT, 'mobile-ui.css'), 'utf8').includes('button:not(.setup-overview-marker):not(.cs-pin)'),
+    'the touch rule that makes dialog buttons 44px tall leaves the map dots alone');
+});
+
+// 2026-11-21 (Norton: 手機版查看唔到勳章，亦唔可以旋轉地圖): the desktop opens the medals from its top bar
+// and turns the map from the minimap's corners - the touch UI hides both.
+test('story art: a phone opens the medals and turns the map', () => {
+  const mobile = fs.readFileSync(path.join(ROOT, 'mobile-ui.js'), 'utf8');
+  assert.ok(mobile.includes('<button type="button" id="mobile-rotate-ccw"'));
+  assert.ok(mobile.includes('<button type="button" id="mobile-rotate-cw"'));
+  assert.ok(mobile.indexOf('class="m-rotate"') < mobile.indexOf('<section class="m-panel"'), 'an open panel covers the buttons');
+  assert.ok(mobile.includes("rotateMap(activeScene, button.id === 'mobile-rotate-cw' ? 1 : -1)"));
+  assert.ok(mobile.includes(`mobileRow('data-mobile-dialog="open-medal-cabinet"'`), 'in 管理');
+  assert.ok(mobile.includes("['open-medal-cabinet', 'menu.medalCabinet', '🏵']"), 'in 更多');
+  assert.ok(fs.readFileSync(path.join(ROOT, 'topbar.js'), 'utf8').includes("case 'open-medal-cabinet':"));
+  const css = fs.readFileSync(path.join(ROOT, 'mobile-ui.css'), 'utf8');
+  assert.match(css, /#mobile-ui:is\(\.is-building, \.is-picking-route\) \.m-rotate, \[data-ui-profile="touch"\] #mobile-ui:has\(#mobile-panel:not\(\[hidden\]\)\) \.m-rotate \{ display: none; \}/);
+});

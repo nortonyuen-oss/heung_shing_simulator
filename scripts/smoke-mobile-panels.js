@@ -91,7 +91,9 @@ async function checkPanelLayouts(page, cdp) {
     check('leaving finance restores its exact original DOM location', await page.evaluate(() => document.getElementById('budget-detail').parentElement.id === 'budget-panel' && document.getElementById('budget-detail').nextSibling === window.mobileOriginalBudgetNext));
     await page.evaluate(() => { document.getElementById('mobile-panel-body').scrollTop = 100; });
     const scroll = await page.locator('#mobile-panel-body').evaluate(el => el.scrollTop);
-    await native('budget'); await back();
+    // a DOM click: Playwright's own would first scroll the row into view, changing the very position
+    // under test (the 管理 page scrolls past it since it gained the medals row)
+    await page.locator('[data-mobile-native="budget"]').evaluate(el => el.click()); await back();
     check('back restores the previous menu scroll position', await page.locator('#mobile-panel-body').evaluate((el, expected) => Math.abs(el.scrollTop - expected) < 1, scroll));
     await page.evaluate(() => { city.population = 12000; mobileRenderPage(); });
     await native('council');

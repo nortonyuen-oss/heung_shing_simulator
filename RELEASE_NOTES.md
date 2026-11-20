@@ -1,3 +1,27 @@
+# The City of Heung Shing v6.0.3 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 新功能：市長登記、市長日
+
+- **市長登記**：撳「玩轉18區」之前，會先出一張羊皮紙登記表（設計參考《大航海時代4》），填市長姓名同生日，再喺 36 個香城人物入面揀自己嘅樣貌。已經玩過嘅玩家，下次撳「玩轉18區」都會見到。
+- **市長就係你**：主線入面市長講嘢時，名牌會用你嘅名，頭像用你揀嗰個。章節地圖頂有市長卡，撳一下隨時可以改。
+- **市長日**：每年生日嗰個月晚上 8:00 至 8:30，所有城市都會為你放金色同紫色煙花，城市新聞亦會報道。三號風球或以上、紅雨或黑雨會取消。
+
+**台灣中文：** 新增市長登記：進入「玩轉18區」前，先在羊皮紙登記表（設計參考《大航海時代4》）填寫市長姓名與生日，再從 36 位香城人物中選擇自己的樣貌；主線中市長說話時會使用你的名字與頭像，章節地圖上的市長卡可隨時修改。每年生日所在月份的晚上 8:00 至 8:30 是「市長日」，所有城市都會施放金色與紫色煙火；三號風球以上、紅雨或黑雨會取消。
+
+**English:** Mayor registration: before The 18 Districts, a parchment form (after Uncharted Waters 4) asks for the mayor's name and birthday, then a face from 36 Heung Shing characters. Players who have already started see it the next time they open The 18 Districts. In the story the mayor speaks with your name and face, and the mayor card on the chapter map lets you change them. Every year your birthday month brings Mayor's Day: gold and purple fireworks over every city from 8:00 to 8:30 in the evening, called off by typhoon signal 3 or above or a red or black rainstorm.
+
+**日本語:** 市長登録を追加しました。「18区をめぐる」の前に、羊皮紙の登録用紙（『大航海時代IV』風）で市長の名前と誕生日を入力し、香城の36人の中から自分の顔を選びます。ストーリーでは市長があなたの名前と顔で話し、章マップの市長カードからいつでも変更できます。毎年誕生月の夜8:00〜8:30は「市長の日」で、すべての都市で金色と紫の花火が上がります（シグナル3以上の台風、赤・黒の大雨警報で中止）。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.2 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

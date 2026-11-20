@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v6.0.2 — 【玩轉18區】
+# 香城模擬器 (The City of Heung Shing) v6.0.3 — 【玩轉18區】
 
-香城模擬器 (The City of Heung Shing) v6.0.2 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v6.0.3 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.3
+
+Mayor registration: before The 18 Districts, give the mayor your name and birthday, then pick a face from 36 Heung Shing characters. In the story the mayor speaks with your name and face, and the chapter map lets you change them. Your birthday month brings Mayor's Day: gold and purple fireworks over every city at eight in the evening.
 
 ## New in v6.0.2
 

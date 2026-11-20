@@ -415,6 +415,18 @@ test('desktop package explicitly includes forum WebP assets', () => {
   assert.ok(packageJson.build.files.includes('UI/news/**/*.webp'));
 });
 
+test('the game starts only after the scripts below main.js are in (a cached reload must not race them)', () => {
+  const main = require('./main-source').mainSource;
+  const initializeStart = main.indexOf('async function initializeGame()');
+  const initializeEnd = main.indexOf('\nfunction loadModelAssetManifest()', initializeStart);
+  const initializeBody = main.slice(initializeStart, initializeEnd);
+  const waitForParse = initializeBody.indexOf("document.addEventListener('DOMContentLoaded'");
+  assert.ok(waitForParse > initializeBody.indexOf('setupMenuBar();'), 'the menu still binds first');
+  assert.ok(waitForParse < initializeBody.indexOf('await loadModelAssetManifest();'));
+  assert.ok(waitForParse < initializeBody.indexOf('updateTerrainToolUi();'), 'TERRAIN_OPTIONS comes from terrain-presets.js, after main.js');
+  assert.ok(waitForParse < initializeBody.indexOf('new Phaser.Game(config);'));
+});
+
 test('menu controls bind before asynchronous model discovery and forum opening is failure-tolerant', () => {
   const main = require('./main-source').mainSource;
   const newspaper = fs.readFileSync(path.join(ROOT, 'newspaper.js'), 'utf8');

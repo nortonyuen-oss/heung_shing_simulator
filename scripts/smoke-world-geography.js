@@ -12,8 +12,9 @@ const landmarks = [
   { id: 'ap-lei-chau', col: 1697, row: 1832, sensors: [{ col: 1697, row: 1832, water: false }, { col: 1697, row: 1801, water: true }] },
   { id: 'kai-tak-runway', col: 1980, row: 1450, sensors: [{ col: 1980, row: 1450, water: false }, { col: 1992, row: 1438, water: true }, { col: 1968, row: 1462, water: true }] },
 ];
-// A reload boots the whole game again: about 5 s on a desktop, but 15-20x that on a CI runner
-// (software WebGL), so the settle after a reload gets RELOAD_SETTLE_MS.
+// A reload boots the whole game again: about 5 s in desktop Chrome, 14 s in headless Chromium's
+// software WebGL, and slower still on a CI runner - so the settle after a reload gets
+// RELOAD_SETTLE_MS. (v6.0.1's CI timeouts here were a boot race, fixed in main.js initializeGame.)
 const RELOAD_SETTLE_MS = 180000;
 async function settle(page, timeout = 45000) {
   await page.waitForFunction(() => {

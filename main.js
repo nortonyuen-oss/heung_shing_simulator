@@ -753,6 +753,13 @@ async function initializeGame() {
   // Phaser's heavier startup work are still in flight. In particular, players
   // need to be able to leave fullscreen even if asset loading stalls.
   setupMenuBar();
+  // main.js runs partway down the page: the scripts after it (tool-menu.js, terrain-presets.js,
+  // world/world-game-host.js…) must all be in before the steps below use them. The awaits here
+  // usually outlast the parse, but on a reload with every file cached they can settle first -
+  // then updateTerrainToolUi() threw on TERRAIN_OPTIONS and the game never started.
+  if (document.readyState === 'loading') {
+    await new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+  }
   await globalThis.HeungShingStorage?.initialize();
   await loadModelAssetManifest();
   houseModelSets = await discoverHouseModelSets();

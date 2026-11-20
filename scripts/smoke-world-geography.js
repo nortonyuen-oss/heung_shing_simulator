@@ -12,11 +12,14 @@ const landmarks = [
   { id: 'ap-lei-chau', col: 1697, row: 1832, sensors: [{ col: 1697, row: 1832, water: false }, { col: 1697, row: 1801, water: true }] },
   { id: 'kai-tak-runway', col: 1980, row: 1450, sensors: [{ col: 1980, row: 1450, water: false }, { col: 1992, row: 1438, water: true }, { col: 1968, row: 1462, water: true }] },
 ];
-async function settle(page) {
+// A reload boots the whole game again: about 5 s on a desktop, but 15-20x that on a CI runner
+// (software WebGL), so the settle after a reload gets RELOAD_SETTLE_MS.
+const RELOAD_SETTLE_MS = 180000;
+async function settle(page, timeout = 45000) {
   await page.waitForFunction(() => {
     const h = globalThis.__worldGameHost, s = h?.manager?.snapshot();
     return h?.ready && s.states.ACTIVE === s.wanted && !s.states.MOUNTING && !s.states.UNMOUNTING;
-  }, null, { timeout: 45000 });
+  }, null, { timeout });
 }
 async function clickLandmark(page, landmark, touch) {
   // Compute where the landmark is painted from the projected raster bounds,
@@ -88,7 +91,7 @@ async function clickLandmark(page, landmark, touch) {
           console.log('PASS', mobile ? 'phone' : 'desktop', landmark.id, 'rotation', rotation);
         }
       }
-      await page.click('[data-city-minimap-mode="world"]'); await page.evaluate(() => saveGame()); await page.reload(); await settle(page);
+      await page.click('[data-city-minimap-mode="world"]'); await page.evaluate(() => saveGame()); await page.reload(); await settle(page, RELOAD_SETTLE_MS);
       assert.equal(await page.evaluate(() => __worldGameHost.minimap.mode), 'world'); assert.deepEqual(errors, []); await context.close();
     }
     fs.writeFileSync(path.join(OUT, 'minimap-navigation.json'), JSON.stringify(report, null, 2));

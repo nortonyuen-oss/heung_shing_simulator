@@ -430,6 +430,10 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData.type === 'cruise_terminal' && typeof buildCruiseTerminalInspectHtml === 'function') {
       html += buildCruiseTerminalInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
     }
+    // 九龍城寨文化園區 (walled-city.js): its visitors, its fire cover and its films
+    if (bData.type === 'walled_city_park' && typeof buildWalledCityInspectHtml === 'function') html += buildWalledCityInspectHtml();
+    // 天壇大佛 (big-buddha.js): on a hill, by bus
+    if (bData.type === 'buddha_statue' && typeof buildBigBuddhaInspectHtml === 'function') html += buildBigBuddhaInspectHtml();
   }
 
   // Infrastructure building

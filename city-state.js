@@ -132,6 +132,8 @@ const city = {
   cruiseHistory: [],
   airportRoutes: null,
   airportHistory: [],
+  // 九龍城寨文化園區 (walled-city.js): the film shooting, the films made
+  walledCity: null,
   // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
   housingZones: {},
   // 舊樓 (welfare.js): homes repaired and blocks redeveloped, all time
@@ -498,6 +500,7 @@ function resetGameState() {
   city.cruiseHistory = [];
   city.airportRoutes = null;
   city.airportHistory = [];
+  city.walledCity = null;
   city.housingZones = {};
   city.buildingRepairs = 0;
   city.buildingRebuilds = 0;
@@ -1082,6 +1085,8 @@ function computeLandmarkFinancials() {
   if (typeof getPortFreightMonthlyDues === 'function') revenue += getPortFreightMonthlyDues();
   // and the cruise terminals' passenger dues (cruise-terminal.js)
   if (typeof getCruiseMonthlyDues === 'function') revenue += getCruiseMonthlyDues();
+  // the 城寨 park's tickets (walled-city.js)
+  if (typeof getWalledCityMonthlyTakings === 'function') revenue += getWalledCityMonthlyTakings();
   // the airport's charges on its passengers, and what its daily flights cost (airport-routes.js)
   if (typeof getAirportRouteFinancials === 'function') {
     const flights = getAirportRouteFinancials();

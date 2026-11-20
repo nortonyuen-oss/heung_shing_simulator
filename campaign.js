@@ -351,6 +351,30 @@
     return facts;
   }
 
+  // 九龍城寨文化園區 (walled-city.js, P4 第 14 章): its visitors and fire cover, the films started and
+  // made; 天壇大佛 (big-buddha.js, 第 10 章): on a hill, by bus, its pilgrims
+  function collectLandmarkFacts() {
+    const facts = { walledCityVisitors: 0, walledCityFireCover: false, walledCityShooting: false, walledCityFilms: 0, walledCityFilmsStarted: 0,
+      buddhaOnHill: false, buddhaBus: false, buddhaVisitors: 0 };
+    try {
+      if (typeof getWalledCityState === 'function') {
+        const park = getWalledCityState();
+        facts.walledCityVisitors = park.visitors;
+        facts.walledCityFireCover = !!park.lot && park.fireCover;
+        facts.walledCityShooting = !!park.shooting;
+        facts.walledCityFilms = park.made;
+        facts.walledCityFilmsStarted = park.started;
+      }
+      if (typeof getBigBuddhaState === 'function') {
+        const buddha = getBigBuddhaState();
+        facts.buddhaOnHill = !!buddha.lot && buddha.onHill;
+        facts.buddhaBus = !!buddha.lot && buddha.bus;
+        facts.buddhaVisitors = buddha.visitors;
+      }
+    } catch { /* neither */ }
+    return facts;
+  }
+
   // 郵輪碼頭 (cruise-terminal.js, P4 第 14 章): last month's calls, passengers and the share of them who
   // left by public transport (the script's 上月), this month's calls, and the call-day peak on the roads
   function collectCruiseFacts() {
@@ -426,6 +450,7 @@
       ...collectWelfareFacts(),
       ...collectCruiseFacts(),
       ...collectAirportFacts(),
+      ...collectLandmarkFacts(),
       crimeRate: Number(city.crimeRateIndex) || 0,
       tourismAppeal: Number(city.tourismAppeal) || 0,
       pollution: Number(city.pollution) || 0,

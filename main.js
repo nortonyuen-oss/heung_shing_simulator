@@ -657,7 +657,7 @@ function getZoneName(zone, row = null, col = null) {
 }
 
 function getBuildingTypeLabel(type) {
-  return t({
+  const key = {
     residential: 'building.residential',
     commercial: 'building.commercial',
     industrial: 'building.industrial',
@@ -677,6 +677,7 @@ function getBuildingTypeLabel(type) {
     public_market: 'building.publicMarket',
     community_centre: 'building.communityCentre',
     cruise_terminal: 'building.cruiseTerminal',
+    walled_city_park: 'building.walledCityPark',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',
@@ -689,7 +690,12 @@ function getBuildingTypeLabel(type) {
     grand_temple: 'building.grandTemple',
     heritage_church: 'building.heritageChurch',
     indoor_coliseum: 'building.indoorColiseum',
-  }[type] ?? type);
+  }[type];
+  if (key) return t(key);
+  // the landmarks with no name of their own (大佛, 文化中心...) go by their tool's
+  const toolKey = `toolRow.${String(type).replace(/_([a-z])/g, (_, ch) => ch.toUpperCase())}`;
+  const toolName = t(toolKey);
+  return toolName && toolName !== toolKey ? toolName : type;
 }
 
 // Residential is keyed by wealthTier (L/M/H/UH) - see sim-wealth-districts.js

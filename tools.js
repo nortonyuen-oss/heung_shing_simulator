@@ -44,6 +44,7 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
   'cultural-center':   'cultural_center',
   'space-museum':      'space_museum',
   'buddha-statue':     'buddha_statue',
+  'walled-city-park':  'walled_city_park',
   'heritage-temple':   'heritage_temple',
   'grand-temple':      'grand_temple',
   'heritage-church':   'heritage_church',

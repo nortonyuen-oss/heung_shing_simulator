@@ -1797,6 +1797,7 @@ const BUILDING_UNLOCK_SPEAKER_IDS = Object.freeze({
   heritage_church: 'councillor_religion',
   buddha_statue: 'councillor_religion',
   cultural_center: 'councillor_tourism',
+  walled_city_park: 'councillor_tourism',
   space_museum: 'councillor_liberty',
   exhibition_center: 'councillor_business',
   indoor_coliseum: 'councillor_tourism',

@@ -1697,7 +1697,8 @@
 
   // CHAPTER 10 離島《飛越香城》: the airport's routes and passengers (airport-routes.js), 東涌 grown
   // round it, the 東涌綫 and 機場快綫 off the map into town, and the night noise. On the 赤鱲角 map.
-  // 天壇大佛 is the big Buddha that already exists; the cable car is an easter egg, never a condition.
+  // 天壇大佛 is the big Buddha (its art already the Tian Tan Buddha), up a hill and reached by bus
+  // (big-buddha.js); the cable car is an easter egg, never a condition.
   const metroOffMap = (s) => Object.values(s.offMap?.metro || {}).reduce((sum, riders) => sum + num(riders), 0);
   const townServices = (s) => ['police_station', 'fire_station', 'hospital'].every((type) => built(s, type)) && (built(s, 'primary_school') || built(s, 'secondary_school'));
   const CH10 = Object.freeze({
@@ -1739,8 +1740,9 @@
       {
         title: T('天壇大佛', 'The Big Buddha', '天壇大仏'),
         objectives: Object.freeze([
-          { id: 'buddha', label: T('起天壇大佛', 'Build the Big Buddha', '天壇大仏を建てる'),
-            check: (s) => built(s, 'buddha_statue'), progress: (s) => tick(built(s, 'buddha_statue')) },
+          { id: 'buddha', label: T('天壇大佛起喺山上（地勢第 3 級或以上），有巴士線停大佛', 'The Big Buddha on a hill (terrain level 3 or higher), with a bus route stopping at it', '天壇大仏を山の上（地形3段以上）に建て、バス路線を停める'),
+            check: (s) => built(s, 'buddha_statue') && !!s.buddhaOnHill && !!s.buddhaBus,
+            progress: (s) => `🗿 ${tick(built(s, 'buddha_statue'))} · ⛰ ${tick(!!s.buddhaOnHill)} · 🚌 ${tick(!!s.buddhaBus)}` },
           busRoutesObjective(4),
           { id: 'tourism', label: T('旅遊吸引力達 65', 'Tourism appeal of 65', '観光魅力度65'),
             check: (s) => num(s.tourismAppeal) >= 65, progress: (s) => `${fmt(s.tourismAppeal)} / 65` },
@@ -1898,7 +1900,8 @@
 
   // CHAPTER 14 九龍城《啟德再起飛》 (cruise-terminal.js): 220,000 people at Kai Tak, the cruise terminal
   // linked into town, the 屯馬綫 and the buses, the call-day jam managed, a big shopping centre. The
-  // walled city park and its films are phase 7: until then the cultural centre stands in (〔暫代〕).
+  // 九龍城寨文化園區 and its films (walled-city.js): the park covered by a fire station, three films made.
+  const filmsSince = (s, base) => Math.max(0, num(s.walledCityFilms) - num(base?.walledCityFilms));
   const CH14 = Object.freeze({
     id: 'ch14',
     startFile: 'UI/campaign/ch14.json',
@@ -1940,8 +1943,9 @@
       {
         title: T('城寨重生', 'The Walled City Reborn', '城砦の再生'),
         objectives: Object.freeze([
-          { id: 'walledCity', label: T('興建九龍城寨文化園區（暫用文化中心，待第 7 期美術）', 'Build the Walled City heritage park (the cultural centre for now, until its art)', '九龍城砦文化パークを建設（美術待ちの間は文化センターで代用）'),
-            check: (s) => built(s, 'cultural_center'), progress: (s) => tick(built(s, 'cultural_center')) },
+          { id: 'walledCity', label: T('興建九龍城寨文化園區，有消防局覆蓋', 'Build the Kowloon Walled City Park, covered by a fire station', '九龍城砦文化パークを建て、消防署の範囲内に'),
+            check: (s) => built(s, 'walled_city_park') && !!s.walledCityFireCover,
+            progress: (s) => `🏯 ${tick(built(s, 'walled_city_park'))} · 🚒 ${tick(!!s.walledCityFireCover)}` },
           { id: 'tourRoute', label: T('郵輪、地鐵、文化園區連成旅遊動線：六成郵輪旅客搭公共交通，地鐵每月 15,000 人次', 'Cruise, metro and the park as one tourist route: 60% of cruise passengers by public transport, 15,000 metro riders a month', 'クルーズ・地下鉄・文化パークを結ぶ観光ルート：クルーズ客の60%が公共交通、地下鉄の月間乗客15,000人'),
             check: (s) => num(s.cruiseTransitShare) >= 0.6 - 1e-9 && num(s.transit?.metro) >= 15000,
             progress: (s) => `${pct(s.cruiseTransitShare)} / 60% · 🚇 ${fmt(s.transit?.metro)} / 15,000` },
@@ -1954,6 +1958,8 @@
       {
         title: T('城寨宇宙', 'The Walled City Universe', '城砦ユニバース'),
         objectives: Object.freeze([
+          { id: 'films', label: T('城寨園區拍完 3 部電影（喺園區開拍）', 'Three films made at the Walled City Park (start them at the park)', '城砦パークで映画を3本撮り終える（パークで撮影開始）'),
+            check: (s, base) => filmsSince(s, base) >= 3, progress: (s, base) => `🎬 ${fmt(filmsSince(s, base))} / 3` },
           { id: 'tourism', label: T('旅遊吸引力達 80', 'Tourism appeal of 80', '観光魅力度80'),
             check: (s) => num(s.tourismAppeal) >= 80, progress: (s) => `${fmt(s.tourismAppeal)} / 80` },
           { id: 'order', label: T('交通擠塞 45% 以下，滿意度達 75%', 'Congestion at 45% or less, happiness of 75%', '渋滞45%以下、満足度75%'),
@@ -1963,11 +1969,11 @@
         ]),
       },
     ]),
-    // 中段事件《古大樂、共金寶、林豐開機》: the first film at the walled city park (its stand-in for now)
+    // 中段事件《古大樂、共金寶、林豐開機》: the first film the chapter starts at the walled city park
     events: Object.freeze([
       {
         id: 'filmShoot',
-        when: (s) => built(s, 'cultural_center'),
+        when: (s, run) => num(s.walledCityFilmsStarted) > num(run?.base?.walledCityFilmsStarted),
         scene: 'UI/campaign/events/kowloonWalledCity.webp',
         lines: Object.freeze([
           { speaker: 'producer', text: T('今次我哋有古大樂、共金寶、林豐，套戲叫《九龍城寨之圍揪》！', 'This time we have Koo Dai-lok, Kung Kam-po and Lam Fung - the film is called "Twilight of the Walled-In"!', '今回は古大楽、共金宝、林豊の出演、タイトルは『九龍城砦之囲揪』！') },
@@ -2146,6 +2152,9 @@
       // 舊樓 (P4 第 15 章): repairs made before the chapter began are not the chapter's
       buildingRepairs: Math.max(0, Math.floor(num(snapshot?.buildingRepairs))),
       buildingRebuilds: Math.max(0, Math.floor(num(snapshot?.buildingRebuilds))),
+      // 城寨 films (P4 第 14 章): only the chapter's count
+      walledCityFilms: Math.max(0, Math.floor(num(snapshot?.walledCityFilms))),
+      walledCityFilmsStarted: Math.max(0, Math.floor(num(snapshot?.walledCityFilmsStarted))),
       monthIndex: Math.floor(num(snapshot?.monthIndex ?? monthIndex)),
     };
   }

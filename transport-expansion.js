@@ -197,6 +197,7 @@ const TRANSPORT_DESTINATION_UNITS = Object.freeze({
   airport: 260,
   container_port: 180,
   cruise_terminal: 220,
+  walled_city_park: 160,
 });
 
 const GAME_EXPANSION_REGISTRY = Object.freeze({

@@ -172,7 +172,7 @@ const BUILDING_NIGHT_VARIANTS = Object.freeze(['night', 'half', 'deep', 'lamps']
 const BUILDING_NIGHT_LANDMARK_TYPES = new Set([
   'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
   'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
-  'murray_house', 'ocean_park', 'football_stadium', 'airport',
+  'murray_house', 'ocean_park', 'football_stadium', 'airport', 'walled_city_park',
 ]);
 const BUILDING_NIGHT_INDUSTRIAL_TYPES = new Set([
   'industrial', 'power_plant_coal', 'power_plant_solar', 'power_plant_nuclear',

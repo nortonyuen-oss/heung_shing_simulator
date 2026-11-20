@@ -124,7 +124,7 @@ test('P3: measured from the start - village houses kept, tax growth, industry ke
   const run = campaign.createCampaignRun('ch13', 500, startSnapshot);
   assert.deepEqual({ ...run.base, festivalHeldYear: undefined, festivalNoVenueYear: undefined },
     // buildingRepairs: P4 第 15 章's repairs since the start (welfare.js)
-    { villageHouses: 200, taxCI: 10000, industrialCount: 100, buildingRepairs: 0, buildingRebuilds: 0, monthIndex: 500, festivalHeldYear: undefined, festivalNoVenueYear: undefined });
+    { villageHouses: 200, taxCI: 10000, industrialCount: 100, buildingRepairs: 0, buildingRebuilds: 0, walledCityFilms: 0, walledCityFilmsStarted: 0, monthIndex: 500, festivalHeldYear: undefined, festivalNoVenueYear: undefined });
   const stored = campaign.normalizeCampaignRun(JSON.parse(JSON.stringify(run)));
   assert.equal(stored.base.taxCI, 10000);
   assert.equal(stored.base.monthIndex, 500);

@@ -349,7 +349,7 @@ const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_RADIUS = 18;
 const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_TYPES = Object.freeze([
   'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
   'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
-  'murray_house', 'ocean_park', 'football_stadium', 'yacht_club',
+  'murray_house', 'ocean_park', 'football_stadium', 'yacht_club', 'walled_city_park',
 ]);
 // The flip side of the amenity requirement above: a cell within reach of a
 // noxious facility - industrial buildings, any power plant, the container
@@ -1235,6 +1235,14 @@ SPECIAL_BUILDING_MODELS.cruise_terminal = {
   footprintCols: 6,
   footprintRows: 6,
 };
+// 九龍城寨文化園區 (walled-city.js, P4 第 14 章): a 6x6 lot. Until Norton draws the park, a stand-in of
+// nine of the game's old tenements packed together (scripts/source-art/walledCity/standin.py).
+SPECIAL_BUILDING_MODELS.walled_city_park = {
+  spriteKey: 'walled_city_park_6x6',
+  path: 'Models/specialSites/6x6/walledCityPark6-01.png',
+  footprintCols: 6,
+  footprintRows: 6,
+};
 // The terminal's other facings, by where the sea lies on screen (refreshCruiseTerminalSprites): the
 // render's mirror, and - until the land-side view is drawn - the same art with its back to the sea.
 const CRUISE_TERMINAL_FACING_MODELS = Object.freeze([
@@ -1550,6 +1558,7 @@ const SPECIAL_BUILDING_UNLOCKS = {
   ocean_park:         { requiresResolution: 'oceanParkDevelopmentProject', hideUntilApproved: true, maxCount: 1 },
   community_centre:   { unlockPopulation: 3000 },
   cruise_terminal:    { unlockPopulation: 40000, maxCount: 2 },
+  walled_city_park:   { unlockPopulation: 60000, maxCount: 1 },
   football_stadium:   { unlockPopulation: 40000, maxCount: 1 },
   airport:            { requiresResolution: 'roseGardenAirportProject', hideUntilApproved: true, maxCount: 1 },
   container_port:     { unlockPopulation: 15000 },
@@ -1568,6 +1577,8 @@ const SPECIAL_BUILDING_EFFECTS = {
   community_centre:   { happinessBonus: 0.004, communitySupportBonus: 0.01, upkeep: 160 },
   // its takings are the passengers' (cruise-terminal.js: tourism and dues); this is the berth's lease
   cruise_terminal:    { attractivenessBonus: 4, landValueBonus: 0.04, landValueRadius: 8, revenue: 300, upkeep: 1500 },
+  // its tickets are its visitors' (walled-city.js); the upkeep is an old city's to keep standing
+  walled_city_park:   { attractivenessBonus: 6, landValueBonus: 0.06, landValueRadius: 8, happinessBonus: 0.01, upkeep: 900 },
   public_market:      { landValueBonus: 0.02, landValueRadius: 6, upkeep: 80 },
   exhibition_center: { attractivenessBonus: 6,  landValueBonus: 0.10, landValueRadius: 10, revenue: 260, upkeep: 900 },
   cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
@@ -1604,6 +1615,7 @@ const SPECIAL_BUILDING_EFFECTS = {
 const SPECIAL_BUILDING_COSTS = {
   community_centre:   1800,
   cruise_terminal:    40000,
+  walled_city_park:   30000,
   public_market:      3200,
   exhibition_center: 15000,
   cultural_center:    9000,
@@ -1710,6 +1722,7 @@ const BUILDING_POWER_DEMAND = {
   public_market: 8,
   community_centre: 6,
   cruise_terminal: 24,
+  walled_city_park: 10,
   seafood_restaurant: 4,
   fish_loading_bay: 1,
   yacht_club: 5,

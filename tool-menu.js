@@ -437,6 +437,7 @@ function getToolCategoryForTool(tool) {
   if (
     tool === 'exhibition-center'
     || tool === 'buddha-statue'
+    || tool === 'walled-city-park'
     || tool === 'murray-house'
     || tool === 'ocean-park'
   ) return 'landmarks';

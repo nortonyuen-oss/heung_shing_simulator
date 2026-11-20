@@ -558,6 +558,7 @@ const ICE_CREAM_VISITOR_ATTRACTION_TYPES = Object.freeze([
   'murray_house',
   'ocean_park',
   'football_stadium',
+  'walled_city_park',
 ]);
 const ICE_CREAM_TARGET_TYPES = Object.freeze([
   ...ICE_CREAM_EDUCATION_TARGET_TYPES,

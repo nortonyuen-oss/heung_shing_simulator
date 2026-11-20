@@ -39,13 +39,14 @@ function preview(c, tool, start, end = start, options = {}) {
   return c.previewTouchToolAction(c.scene, { tool, start, end, options });
 }
 
-test('Phase B covers exactly the approved 34 buildings and six other tools; legacy house stays desktop-only', () => {
+test('Phase B covers exactly the approved 35 buildings and six other tools; legacy house stays desktop-only', () => {
   const c = setup();
-  // 34 with the 社區中心 (welfare.js, P4) and the 郵輪碼頭 (cruise-terminal.js, P4)
-  assert.equal(vm.runInContext('Object.keys(TOUCH_BUILDING_TYPES).length', c), 34);
+  // 35 with the 社區中心 (welfare.js, P4), the 郵輪碼頭 (cruise-terminal.js, P4) and the 城寨園區 (walled-city.js, P4)
+  assert.equal(vm.runInContext('Object.keys(TOUCH_BUILDING_TYPES).length', c), 35);
   assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['community-centre']", c), 'community_centre');
   assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['cruise-terminal']", c), 'cruise_terminal');
-  assert.equal(vm.runInContext('TOUCH_PHASE_B_TOOLS.length', c), 40);
+  assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['walled-city-park']", c), 'walled_city_park');
+  assert.equal(vm.runInContext('TOUCH_PHASE_B_TOOLS.length', c), 41);
   assert.equal(vm.runInContext("TOUCH_PHASE_B_TOOLS.includes('house')", c), false);
 });
 

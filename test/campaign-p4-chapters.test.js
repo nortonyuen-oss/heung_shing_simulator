@@ -45,6 +45,12 @@ test('P4 10 離島: flights with passengers, 東涌 grown, the line into town, t
   assert.equal(objective('ch10', 0, 'noise').check({ ...s, airportCurfew: false, airportNoiseResidents: 0 }), false, 'the curfew itself');
   assert.equal(objective('ch10', 2, 'world').check({ airportRoutes: 6, airportLongHaul: 1 }), false, 'two long-haul');
   assert.equal(SPECS.ch10.events[0].when({ buildings: { buddha_statue: 1 } }), true, 'the cable car, once the Buddha stands');
+  // 二星 天壇大佛: up a hill and served by a bus (big-buddha.js)
+  const buddha = (facts) => objective('ch10', 1, 'buddha').check({ buildings: { buddha_statue: 1 }, buddhaOnHill: true, buddhaBus: true, ...facts });
+  assert.equal(buddha({}), true);
+  assert.equal(buddha({ buddhaOnHill: false }), false, 'on flat ground');
+  assert.equal(buddha({ buddhaBus: false }), false, 'tour coaches only');
+  assert.equal(buddha({ buildings: {} }), false, 'no Buddha');
 });
 
 test('P4 11 葵青: 150,000 people, 8,000 TEU, the trucks off the homes (under 10%), not all port, rail and books', () => {
@@ -74,8 +80,15 @@ test('P4 14 九龍城: 220,000 people, the cruise passengers into town, the 屯�
   assert.equal(objective('ch14', 0, 'peak').check({ ...s, cruisePeakTraffic: 0.6 }), false);
   assert.equal(objective('ch14', 0, 'peak').check({ ...s, cruiseCallsThisMonth: 0 }), false, 'no calls, nothing managed');
   assert.equal(objective('ch14', 0, 'gigabox').check({ ...s, gradeAOffices: 7 }), false, 'the start town\'s seven');
+  // 二星: the 城寨 park, covered by a fire station; 三星: three films made since the chapter began
+  assert.equal(objective('ch14', 1, 'walledCity').check({ buildings: { walled_city_park: 1 }, walledCityFireCover: true }), true);
+  assert.equal(objective('ch14', 1, 'walledCity').check({ buildings: { walled_city_park: 1 }, walledCityFireCover: false }), false, 'no fire cover');
+  assert.equal(objective('ch14', 1, 'walledCity').check({ buildings: { cultural_center: 1 }, walledCityFireCover: true }), false, 'the old stand-in');
+  assert.equal(objective('ch14', 2, 'films').check({ walledCityFilms: 4 }, { walledCityFilms: 1 }), true);
+  assert.equal(objective('ch14', 2, 'films').check({ walledCityFilms: 3 }, { walledCityFilms: 1 }), false, 'only the chapter\'s films');
   const film = SPECS.ch14.events.find((e) => e.id === 'filmShoot');
-  assert.equal(film.when({ buildings: { cultural_center: 1 } }), true);
+  assert.equal(film.when({ walledCityFilmsStarted: 1 }, { base: { walledCityFilmsStarted: 0 } }), true, 'the first film the chapter starts');
+  assert.equal(film.when({ walledCityFilmsStarted: 1, buildings: { walled_city_park: 1 } }, { base: { walledCityFilmsStarted: 1 } }), false, 'the park alone');
   assert.equal(film.scene, 'UI/campaign/events/kowloonWalledCity.webp');
   assert.ok(film.lines.some((line) => line.speaker === 'filmStar'), '古大樂 at last');
 });

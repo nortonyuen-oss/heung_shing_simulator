@@ -516,6 +516,7 @@ test('ice cream targets include education sites and every non-airport visitor at
     'murray_house',
     'ocean_park',
     'football_stadium',
+    'walled_city_park',
   ]);
   assert.deepEqual(ICE_CREAM_TARGET_TYPES, [
     'primary_school',
@@ -533,6 +534,7 @@ test('ice cream targets include education sites and every non-airport visitor at
     'murray_house',
     'ocean_park',
     'football_stadium',
+    'walled_city_park',
   ]);
   ICE_CREAM_TARGET_TYPES.forEach((type) => assert.equal(isIceCreamTargetBuilding(type), true));
   ['library', 'park_large', 'airport', 'container_port', 'stock_exchange', 'residential'].forEach((type) => {

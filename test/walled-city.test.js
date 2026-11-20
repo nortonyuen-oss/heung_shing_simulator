@@ -150,11 +150,15 @@ test('天壇大佛 in a city: the lot\'s ground, the bus stop near it, its panel
 
 test('城寨 park and 天壇大佛 in the game: the landmark, its tool, panel, takings, tourism, facts, i18n', () => {
   const constants = source('constants.js');
-  assert.match(constants, /SPECIAL_BUILDING_MODELS\.walled_city_park = \{[\s\S]*?walledCityPark6-01\.png[\s\S]*?footprintCols: 6/);
+  // Norton's art on a 4x4 lot (2026-11-20); a park built on the stand-in's 6x6 keeps its ground
+  assert.match(constants, /SPECIAL_BUILDING_MODELS\.walled_city_park = \{[\s\S]*?spriteKey: 'walled_city_park_4x4'[\s\S]*?walledCityPark4-01\.png[\s\S]*?footprintCols: 4,\s*footprintRows: 4/);
+  assert.match(constants, /walled_city_park: \[\{ spriteKey: 'walled_city_park_6x6', textureKey: 'walled_city_park_4x4', path: 'Models\/specialSites\/4x4\/walledCityPark4-01\.png', footprintCols: 6, footprintRows: 6, legacy: true \}\]/);
   assert.match(constants, /walled_city_park:\s+\{ unlockPopulation: 60000, maxCount: 1 \}/);
   assert.match(constants, /walled_city_park:\s+\{ attractivenessBonus: 6[^}]*upkeep: 900 \}/);
-  assert.ok(fs.existsSync(path.join(ROOT, 'Models/specialSites/6x6/walledCityPark6-01.png')));
-  assert.ok(fs.existsSync(path.join(ROOT, 'scripts/source-art/walledCity/standin.py')));
+  assert.ok(fs.existsSync(path.join(ROOT, 'Models/specialSites/4x4/walledCityPark4-01.png')));
+  assert.ok(fs.existsSync(path.join(ROOT, 'scripts/source-art/walledCity/fit.py')));
+  assert.ok(!fs.existsSync(path.join(ROOT, 'scripts/source-art/walledCity/standin.py')), 'the stand-in would overwrite the art');
+  assert.match(source('walled-city.js'), /footprint: 4,/);
   assert.match(source('tools.js'), /'walled-city-park':\s+'walled_city_park'/);
   assert.match(source('tool-menu.js'), /tool === 'walled-city-park'/);
   const html = source('index.html');

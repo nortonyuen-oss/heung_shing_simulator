@@ -11,7 +11,7 @@
 // Saved: city.walledCity = { shooting: { titleIndex, startMonthIndex, endMonthIndex } | null, started,
 // made, films: [{ titleIndex, monthIndex, gross, levy }] (12 at most), buzzUntil }.
 const WALLED_CITY_TUNING = Object.freeze({
-  footprint: 6,                // 〔暫定〕 6 x 6 (the real walled city was some 210 x 120 m)
+  footprint: 4,                // 4 x 4 for Norton's art (a park built on the 6 x 6 stand-in keeps its lot)
   baseVisitors: 6000,          // 〔暫定〕 a month at tourism appeal 0 ...
   visitorsPerAppeal: 200,      // ... and more for each point (appeal 60: 18,000)
   ticket: 0.25,                // $ the park's takings a visitor

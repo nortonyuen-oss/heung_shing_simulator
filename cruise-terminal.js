@@ -37,9 +37,9 @@ const CRUISE_TUNING = Object.freeze({
   historyMonths: 12,
 });
 
-// The four facings by where the sea lies on screen (scripts/source-art/cruiseTerminal/fit.py):
-// the render's berth faces the lower right; its mirror the lower left; the two with the sea behind
-// are the same art, its back to the sea, until the land-side view is drawn.
+// The four facings by where the sea lies on screen (scripts/source-art/cruiseTerminal/fit.py), from
+// Norton's two views: the sea view (berth to the lower left) and its mirror; the land view (berth
+// behind, to the upper right - the entrance, coaches and taxis in front) and its mirror.
 const CRUISE_TERMINAL_FACING_KEYS = Object.freeze({
   e: 'cruise_terminal_6x6', s: 'cruise_terminal_6x6_m', w: 'cruise_terminal_6x6_back', n: 'cruise_terminal_6x6_back_m',
 });
@@ -444,7 +444,18 @@ function refreshCruiseTerminalSprites(scene) {
     const model = typeof getSpecialBuildingModelBySpriteKey === 'function' ? getSpecialBuildingModelBySpriteKey(key) : null;
     const opts = typeof specialBuildingModelMetadata !== 'undefined' ? specialBuildingModelMetadata[key] : null;
     const sprite = scene?.buildingSprites?.get(id);
-    if (!model || (sprite && !scene.textures.exists(key))) return;
+    if (!model) return;
+    if (sprite && !scene.textures.exists(key)) {
+      // The browser fetches building art on demand (Electron loads every facing at boot): fetch
+      // this one and turn the terminal once it is in - without this the web's terminal kept the
+      // facing it was built with however the map turned (v6.0.0-v6.0.3).
+      if (typeof requestZoneModelTexture === 'function' && typeof getFixedBuildingModelLoadPath === 'function') {
+        requestZoneModelTexture(scene, { key, path: getFixedBuildingModelLoadPath(model) }, (loaded) => {
+          if (loaded) refreshCruiseTerminalSprites(scene);
+        }, { sprite });
+      }
+      return;
+    }
     record.spriteKey = key;
     record.assetId = model.path;
     if (opts) {

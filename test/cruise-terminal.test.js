@@ -79,7 +79,10 @@ test('cruise terminal art: four facings by where the sea lies on screen, the art
   ['cruiseTerminal6-01', 'cruiseTerminal6-01_m', 'cruiseTerminal6-01_back', 'cruiseTerminal6-01_back_m'].forEach((name) => {
     assert.ok(fs.existsSync(path.join(ROOT, 'Models/specialSites/6x6', `${name}.png`)), name);
   });
-  assert.ok(fs.existsSync(path.join(ROOT, 'scripts/source-art/cruiseTerminal/cruiseTerminal6-01-source.png')));
+  // Norton's two views (2026-11-20): the sea side and the land side, each with its quay over the whole sea edge
+  ['cruiseTerminal6-02-sea-source.png', 'cruiseTerminal6-02-land-source.png'].forEach((name) =>
+    assert.ok(fs.existsSync(path.join(ROOT, 'scripts/source-art/cruiseTerminal', name)), name));
+  assert.match(fs.readFileSync(path.join(ROOT, 'scripts/source-art/cruiseTerminal/fit.py'), 'utf8'), /LAND_VIEW_SCALE = 1\.0/);
   assert.ok(fs.existsSync(path.join(ROOT, 'scripts/source-art/cruiseTerminal/fit.py')));
   const constants = source('constants.js');
   assert.match(constants, /SPECIAL_BUILDING_MODELS\.cruise_terminal = \{\s*spriteKey: 'cruise_terminal_6x6',\s*path: 'Models\/specialSites\/6x6\/cruiseTerminal6-01\.png',\s*footprintCols: 6,\s*footprintRows: 6/);

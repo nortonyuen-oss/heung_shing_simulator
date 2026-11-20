@@ -1226,25 +1226,26 @@ SPECIAL_BUILDING_MODELS.fish_loading_bay = {
   footprintCols: 2,
   footprintRows: 2,
 };
-// 郵輪碼頭 (cruise-terminal.js, P4 第 14 章): Norton's render (2026-11-19) squared to 2:1 on a 6x6 lot
-// on the shore, its berth along the sea side and a faint pad on the land side
-// (scripts/source-art/cruiseTerminal/fit.py). Turned to the sea by CRUISE_TERMINAL_FACING_MODELS.
+// 郵輪碼頭 (cruise-terminal.js, P4 第 14 章): Norton's two views (2026-11-20, sea side and land side)
+// squared to 2:1 on a 6x6 lot on the shore, the berth along the sea side, what the art leaves bare on a
+// faint pad (scripts/source-art/cruiseTerminal/fit.py). Turned to the sea by CRUISE_TERMINAL_FACING_MODELS.
 SPECIAL_BUILDING_MODELS.cruise_terminal = {
   spriteKey: 'cruise_terminal_6x6',
   path: 'Models/specialSites/6x6/cruiseTerminal6-01.png',
   footprintCols: 6,
   footprintRows: 6,
 };
-// 九龍城寨文化園區 (walled-city.js, P4 第 14 章): a 6x6 lot. Until Norton draws the park, a stand-in of
-// nine of the game's old tenements packed together (scripts/source-art/walledCity/standin.py).
+// 九龍城寨文化園區 (walled-city.js, P4 第 14 章): Norton's render (2026-11-20), drawn at 2:1 already;
+// scripts/source-art/walledCity/fit.py only cleans its alpha and cuts it to its box. A 4x4 lot (Norton:
+// 「好似4x4比例啱啲」); parks built on the stand-in's 6x6 keep it (LEGACY_SPECIAL_BUILDING_MODELS).
 SPECIAL_BUILDING_MODELS.walled_city_park = {
-  spriteKey: 'walled_city_park_6x6',
-  path: 'Models/specialSites/6x6/walledCityPark6-01.png',
-  footprintCols: 6,
-  footprintRows: 6,
+  spriteKey: 'walled_city_park_4x4',
+  path: 'Models/specialSites/4x4/walledCityPark4-01.png',
+  footprintCols: 4,
+  footprintRows: 4,
 };
-// The terminal's other facings, by where the sea lies on screen (refreshCruiseTerminalSprites): the
-// render's mirror, and - until the land-side view is drawn - the same art with its back to the sea.
+// The terminal's other facings, by where the sea lies on screen (refreshCruiseTerminalSprites): the sea
+// view's mirror, and the land view (the berth behind) with its mirror.
 const CRUISE_TERMINAL_FACING_MODELS = Object.freeze([
   ['cruise_terminal_6x6_m', 'Models/specialSites/6x6/cruiseTerminal6-01_m.png'],
   ['cruise_terminal_6x6_back', 'Models/specialSites/6x6/cruiseTerminal6-01_back.png'],
@@ -1309,6 +1310,8 @@ const LEGACY_SPECIAL_BUILDING_MODELS = {
   space_museum: [{ spriteKey: 'space_museum_2x2', textureKey: 'space_museum_3x3', path: 'Models/specialSites/2x2/spaceMuseum2-01.png', footprintCols: 2, footprintRows: 2, legacy: true }],
   cultural_center: [{ spriteKey: 'cultural_center_4x4', textureKey: 'cultural_center_6x6', path: 'Models/specialSites/4x4/culturalCentre4-01.png', footprintCols: 4, footprintRows: 4, legacy: true }],
   indoor_coliseum: [{ spriteKey: 'indoor_coliseum_3x3', textureKey: 'indoor_coliseum_5x5', path: 'Models/specialSites/3x3/hungHomColiseum3-01_fixed.png', footprintCols: 3, footprintRows: 3, legacy: true }],
+  // 城寨 parks built 2026-11-20 on the stand-in's 6x6 lot: the same picture over their old ground
+  walled_city_park: [{ spriteKey: 'walled_city_park_6x6', textureKey: 'walled_city_park_4x4', path: 'Models/specialSites/4x4/walledCityPark4-01.png', footprintCols: 6, footprintRows: 6, legacy: true }],
 };
 
 function getAllSpecialBuildingModels(buildingType) {

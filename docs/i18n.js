@@ -290,6 +290,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.0.1","date":"2026-11-20","dateLabel":"2026年11月20日","title":"玩轉18區","items":["修正標題畫面背景播緊城市展示時，撳「玩轉18區 → 重看序幕」成段過場睇唔到嘅問題。","官網截圖新增 5 張《玩轉18區》畫面：章節地圖、序幕、灣仔開場同遊戲畫面、東區紫色生日電車事件。"]},
     {"version":"v6.0.0","date":"2026-11-20","dateLabel":"2026年11月20日","title":"玩轉18區","items":["全新主線《玩轉18區》：女皇密令開場，香港 18 區每區一章，喺真實地區地圖上面玩，大部分有預砌開局城市；每章三粒星（一星有限期），有中段事件、每區代表人物同轉場插圖，進度跨存檔保存。","主線帶嚟嘅新系統，自由建設都用得：貨櫃吞吐量同貨車路線、公屋區同居屋區、福利法案同舊樓維修重建、治安指數。","啟德郵輪碼頭、機場國際航線同夜間宵禁、赤鱲角新地圖、九龍城寨文化園區同拍戲、山上嘅天壇大佛。","區外交通：巴士、渡輪、地鐵可以開出地圖邊，接駁鄰近地區。","香城討論區新增一次性情侶生活相簿；36 項洋紫荊勳章全部可以判定，包括 18 區各取得一星嘅《九龍皇帝》。"]},
     {"version":"v5.11.0","date":"2026-11-17","dateLabel":"2026年11月17日","title":"香城洋紫荊勳章","items":["新增玩家專屬洋紫荊勳章櫃：36 項收藏，31 項現時可判定；勳章同部分條件跨城市存檔累積，保留取得城市同遊戲年月。","全新深藍配香檳金介面，加入系列、搜尋、已取得／未取得篩選、排序及獨立詳情；手機用收藏／詳情兩頁。","原創五瓣琺瑯洋紫荊、金屬章框及紫色綬帶，配合銅、銀、金及特殊等級；隱藏勳章解鎖前唔會洩露名稱或條件。","政府股票買賣按交易引起嘅價格變動逐段成交，修正即買即賣可以獲利嘅問題。"]},
     {"version":"v5.10.4","date":"2026-11-17","dateLabel":"2026年11月17日","title":"香城茶餐廳","items":["修正輕鐵起路軌卡死：地面路軌打直過馬路之後，再由嗰格平交路沿馬路起路面路軌，之後無論喺邊度起路軌（包括普通地面）都會被拒。而家只檢查今次拖拉經過嘅格，舊存檔亦即刻可以繼續起。"]},
@@ -667,6 +668,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.0.1": {"title":"玩轉18區","items":["修正標題畫面背景播放城市展示時，點選「玩轉18區 → 重看序幕」整段過場看不到的問題。","官網截圖新增 5 張《玩轉18區》畫面：章節地圖、序幕、灣仔開場與遊戲畫面、東區紫色生日電車事件。"]},
     "v6.0.0": {"title":"玩轉18區","items":["全新主線《玩轉18區》：女皇密令開場，香港 18 區各一章，在真實地區地圖上遊玩，多數有預先建好的開局城市；每章三顆星（第一顆星有期限），附中段事件、各區代表人物與轉場插圖，進度跨存檔保存。","主線帶來的新系統，自由建設也能使用：貨櫃吞吐量與貨車路線、公屋與居屋區、福利法案與舊樓維修重建、治安指數。","啟德郵輪碼頭、機場國際航線與夜間宵禁、赤鱲角新地圖、九龍城寨文化園區與拍片、山上的天壇大佛。","跨區交通：公車、渡輪、地鐵可以開出地圖邊緣，連接鄰近地區。","香城討論區新增一次性的情侶生活相簿；36 項洋紫荊勳章全部可判定，包括 18 區各取得一顆星的《九龍皇帝》。"]},
     "v5.11.0": {"title":"香城洋紫荊勳章","items":["新增玩家專屬洋紫荊勳章櫃：36 項收藏，目前可判定 31 項；勳章與部分條件跨城市存檔累積，保留取得城市及遊戲年月。","全新深藍與香檳金介面，加入系列、搜尋、已取得／未取得篩選、排序及獨立詳情；手機使用收藏與詳情兩頁。","原創五瓣琺瑯洋紫荊、金屬章框與紫色綬帶，搭配銅、銀、金及特殊等級；隱藏勳章在解鎖前不會透露名稱或條件。","政府股票交易依交易引起的價格變動逐段成交，修正立即買進再賣出即可獲利的問題。"]},
     "v5.10.4": {"title":"香城茶餐廳","items":["修正輕鐵鋪軌卡死：地面軌道直線穿過馬路後，再由該平交道沿馬路鋪設路面軌道，之後無論在哪裡鋪軌（包括普通地面）都會被拒。現在只檢查本次拖曳經過的格子，舊存檔亦可立即繼續鋪設。"]},
@@ -1037,6 +1039,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.0.1": {"title":"The 18 Districts","items":["Fixed the prologue replayed from the title screen (The 18 Districts → Replay the prologue) playing unseen while the showcase city ran behind the menu.","The website gallery opens with five new screenshots from The 18 Districts: the chapter map, the prologue, Wan Chai's opening and play screen, and Eastern's purple birthday tram event."]},
     "v6.0.0": {"title":"The 18 Districts","items":["The 18 Districts, a new story campaign: after the Queen's secret orders, one chapter for each of Hong Kong's 18 districts on its real district map, most with a prebuilt start town. Three stars a chapter (the first against a deadline), mid-chapter events, a local character for every district and new chapter illustrations; progress is kept across saves.","New systems from the campaign, in free play too: container freight and lorry routes, public and HOS housing estates, welfare bills, old buildings to repair or redevelop, and a safety index.","The Kai Tak cruise terminal, international airport routes with a night curfew, a new Chek Lap Kok map, the Kowloon Walled City park with its film shoots, and the Big Buddha on its hill.","Region transit: bus, ferry and metro lines can run off the map to neighbouring districts.","A couple's one-time photo diary in the city news; all 36 Bauhinia Medals are now judged, including King of Kowloon for a star in all 18 districts."]},
     "v5.11.0": {"title":"Heung Shing Bauhinia Medals","items":["A player-wide Bauhinia cabinet with 36 honours, 31 currently judged. Medals and recorded objectives accumulate across cities, with the awarding city and game date preserved.","A navy-and-brass cabinet with series, search, earned/unearned filters, sorting and a separate detail panel; a compact collection and detail view on phones.","Original five-petal enamel Bauhinia medals with metal rims and purple ribbons in bronze, silver, gold and special finishes. Secret names and criteria stay concealed until earned.","Government stock trades fill along their own price movement, preventing profit from an immediate buy-and-sell."]},
     "v5.10.4": {"title":"Heung Shing Cha Chaan Teng","items":["Fixed light rail track building locking up: after ground track crossed a road and street track was laid along the road from that level crossing, every later drag - even over plain open ground - was refused. Only the dragged tiles are checked now, and saved cities can build again straight away."]},
@@ -1407,6 +1410,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.0.1": {"title":"18区をめぐる","items":["タイトル画面の背景でショーケース都市が動いている間、「18区をめぐる → プロローグを再生」のカットシーンが表示されない問題を修正。","公式サイトのスクリーンショットに「18区をめぐる」の画面を5枚追加：章マップ、プロローグ、湾仔のオープニングとプレイ画面、東区の紫のバースデー電車イベント。"]},
     "v6.0.0": {"title":"18区をめぐる","items":["新ストーリーモード「18区をめぐる」：女王の密命から始まり、香港18区を一区一章、実在の地区マップで遊びます（多くは街が用意された状態から）。各章に星3つ（1つ目は期限付き）、章の途中のイベント、各区の代表キャラクターと新しい挿絵。進行状況はセーブをまたいで保存されます。","ストーリーから生まれた新システムはフリープレイでも利用可能：コンテナ取扱量とトラックの経路、公営住宅・居屋の団地、福祉法案、老朽ビルの修繕・建て替え、治安指数。","啓徳クルーズターミナル、空港の国際線と夜間運航禁止、新しい赤鱲角マップ、九龍城砦文化パークと映画撮影、山上の天壇大仏。","地区外交通：バス・フェリー・地下鉄が地図の外の隣接地区まで走れるように。","掲示板に一度きりの恋人たちのフォトダイアリー。洋紫荊勲章は全36種を判定、18区すべてで星を獲得する「九龍皇帝」も。"]},
     "v5.11.0": {"title":"香城洋紫荊勲章","items":["プレイヤー共通の洋紫荊勲章コレクションを追加。全36種のうち現在31種を判定し、勲章と記録済み条件を都市間で累積。受賞都市とゲーム内年月も保存します。","紺とシャンパンゴールドの新画面に、シリーズ、検索、獲得状態の絞り込み、並べ替えと詳細を追加。スマートフォンでは一覧と詳細を切り替えます。","五弁の七宝風洋紫荊、金属の縁、紫のリボンによるオリジナル勲章。銅・銀・金と特別等級を用意し、隠し勲章の名前と条件は獲得まで非公開です。","政府の株取引を自身の価格変動に沿って約定させ、買ってすぐ売るだけで利益が出る問題を修正。"]},
     "v5.10.4": {"title":"香城茶餐廳","items":["ライトレールの線路が敷けなくなる問題を修正：地上線路で道路を横断し、その踏切から道路沿いに併用軌道を敷くと、以後どこでも（普通の空き地でも）敷設を拒否されていました。今回ドラッグしたマスだけを検査するようにし、既存のセーブもすぐに敷設を続けられます。"]},
@@ -1802,8 +1806,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.0 — 【玩轉18區】",
-      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。",
+      versionBadge: "v6.0.1 — 【玩轉18區】",
+      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.1 修正標題畫面重看序幕。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1911,8 +1915,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.0 — 【玩轉18區】",
-      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。",
+      versionBadge: "v6.0.1 — 【玩轉18區】",
+      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.1 修正標題畫面重看序幕。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2020,8 +2024,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v6.0.0 — 【The 18 Districts】",
-      versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong.",
+      versionBadge: "v6.0.1 — 【The 18 Districts】",
+      versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong. 6.0.1 fixes replaying the prologue from the title screen.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2130,8 +2134,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.0 — 【18区をめぐる】",
-      versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。",
+      versionBadge: "v6.0.1 — 【18区をめぐる】",
+      versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。6.0.1 でタイトル画面からのプロローグ再生を修正。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

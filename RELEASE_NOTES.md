@@ -1,3 +1,26 @@
+# The City of Heung Shing v6.0.1 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 修正：標題畫面重看序幕
+
+- 標題畫面背景播緊城市展示嘅時候，撳「玩轉18區 → 重看序幕」，成段《女皇密令》過場同背景圖都被隱藏咗，玩家乜都睇唔到。而家過場會正常顯示。
+- 官網截圖新增 5 張《玩轉18區》畫面：章節地圖、序幕、灣仔開場同遊戲畫面、東區紫色生日電車事件。
+
+**台灣中文：** 修正標題畫面背景播放城市展示時，點選「玩轉18區 → 重看序幕」整段過場與背景圖都被隱藏的問題；官網截圖新增 5 張《玩轉18區》畫面。
+
+**English:** A campaign fix: replaying the prologue from the title screen (The 18 Districts → Replay the prologue) while the showcase city ran behind the menu hid the whole cut-scene and its backdrop along with the game's other layers. It shows again. The website gallery also opens with five new screenshots from The 18 Districts.
+
+**日本語:** タイトル画面の背景でショーケース都市が動いている間に「18区をめぐる → プロローグを再生」を選ぶと、カットシーンと背景画像が他のレイヤーと一緒に隠れて何も見えない問題を修正しました。公式サイトのスクリーンショットにも「18区をめぐる」の画面を5枚追加しました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.0 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

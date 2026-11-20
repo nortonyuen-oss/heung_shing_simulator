@@ -17,6 +17,10 @@ const { execFileSync } = require('node:child_process');
         const script = await fetch(new URL(match[1], base), { method: 'HEAD', signal: AbortSignal.timeout(15000) });
         assert(script.ok, `Missing deployed script ${match[1]}`);
       }
+      // the Android app opens full screen only while the site vouches for its signing key
+      const links = await fetch(`${base}/.well-known/assetlinks.json`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      assert(links.ok && /application\/json/.test(links.headers.get('content-type') || ''), `assetlinks.json: HTTP ${links.status}`);
+      assert.deepEqual(await links.json(), require('../android/assetlinks.json'), 'assetlinks.json is not the repository\'s');
       console.log(`Verified deployed web v${info.version} at ${base}, commit ${commit}.`);
       return;
     } catch (error) {

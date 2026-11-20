@@ -226,9 +226,51 @@ jobs:
           WEB_SAVE_PATH: ${{ runner.temp }}/edge-smoke.heungshing
           WEB_SCREENSHOT_PATH: ${{ runner.temp }}/edge-smoke.png
 
+  android:
+    # 香城模擬器 for Android (android/README.md): a Trusted Web Activity on the browser version, signed
+    # with the release key from the repository's secrets
+    name: Build Android app
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build and sign the APK
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing GitHub Actions secret ANDROID_KEYSTORE_BASE64"; exit 1; }
+          export ANDROID_KEYSTORE="$RUNNER_TEMP/heungshing-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE"
+          version="$(node -p "require('./package.json').version")"
+          (cd android/twa && ./gradlew assembleRelease --no-daemon)
+          mkdir -p release-android
+          apk="release-android/The.City.of.Heung.Shing-${version}-android.apk"
+          cp android/twa/app/build/outputs/apk/release/app-release.apk "$apk"
+          build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          # signed with the key the site vouches for (android/assetlinks.json), or Chrome shows a URL bar
+          expected="$(node -p "require('./android/assetlinks.json')[0].target.sha256_cert_fingerprints[0].replace(/:/g, '').toLowerCase()")"
+          "$build_tools/apksigner" verify --print-certs "$apk" | grep -i "SHA-256 digest: ${expected}"
+          rm -f "$ANDROID_KEYSTORE"
+          ls -lh release-android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: release-android/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
   release:
     name: Publish synchronized release
-    needs: [build, web, edge]
+    needs: [build, web, edge, android]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: github-pages
@@ -262,12 +304,14 @@ jobs:
           win_portable="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*.exe' ! -name '*Setup*' | head -n 1)"
           win_latest="$(find artifacts/windows-installers -maxdepth 1 -type f -name 'latest.yml' | head -n 1)"
           win_setup_blockmap="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*Setup*.exe.blockmap' | head -n 1)"
+          android_apk="$(find artifacts/android-apk -maxdepth 1 -type f -name '*-android.apk' | head -n 1)"
           test -n "$mac_arm64_dmg"
           test -n "$mac_x64_dmg"
           test -n "$win_setup"
           test -n "$win_portable"
           test -n "$win_latest"
           test -n "$win_setup_blockmap"
+          test -n "$android_apk"
           setup_public="The.City.of.Heung.Shing.Setup.${version}.exe"
           cp "$mac_arm64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-arm64.dmg"
           cp "$mac_x64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-x64.dmg"
@@ -275,6 +319,7 @@ jobs:
           cp "$win_portable" "release-assets/The.City.of.Heung.Shing.${version}.exe"
           cp "$win_setup_blockmap" "release-assets/${setup_public}.blockmap"
           cp "$win_latest" "release-assets/latest.yml"
+          cp "$android_apk" "release-assets/The.City.of.Heung.Shing-${version}-android.apk"
           OLD_SETUP="$(basename "$win_setup")" \
           OLD_BLOCKMAP="$(basename "$win_setup_blockmap")" \
           SETUP_PUBLIC="$setup_public" \

@@ -49,9 +49,10 @@
       if (release.available === true && /^https:\/\//.test(release.playUrl)) {
         document.querySelectorAll('[data-web-play-link]').forEach(link => { link.href = release.playUrl; link.hidden = false; });
         const names = { 'mac-arm64': /-arm64\.dmg$/, 'mac-x64': /-x64\.dmg$/,
-          'windows-setup': /\.Setup\.[\d.]+\.exe$/, 'windows-portable': /\.Shing\.[\d.]+\.exe$/ };
+          'windows-setup': /\.Setup\.[\d.]+\.exe$/, 'windows-portable': /\.Shing\.[\d.]+\.exe$/, android: /-android\.apk$/ };
+        const assets = [...(release.desktopAssets || []), ...(release.mobileAssets || [])];
         document.querySelectorAll('[data-download-link]').forEach(link => {
-          const filename = release.desktopAssets?.find(name => names[link.dataset.downloadLink]?.test(name));
+          const filename = assets.find(name => names[link.dataset.downloadLink]?.test(name));
           if (filename) link.href = `https://github.com/nortonyuen-oss/heung_shing_simulator/releases/download/v${release.version}/${encodeURIComponent(filename)}`;
         });
       }

@@ -1,0 +1,61 @@
+// 香城模擬器 for Android: a Trusted Web Activity - Chrome, full screen, on the browser version at
+// heung-shing-play.nortonyuen.workers.dev (android/README.md). The game itself is the web build, so a
+// release of the web version reaches the app without a new APK; the APK is rebuilt with each release
+// only to carry its version number.
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+def pkg = new JsonSlurper().parse(rootProject.file('../../package.json'))
+def (major, minor, patch) = pkg.version.tokenize('.').collect { it.toInteger() }
+def twaHost = 'heung-shing-play.nortonyuen.workers.dev'
+
+android {
+    namespace 'io.github.nortonyuen_oss.heungshing'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.nortonyuen_oss.heungshing'
+        minSdk 24
+        targetSdk 35
+        versionCode major * 10000 + minor * 100 + patch
+        versionName pkg.version
+        manifestPlaceholders = [
+            hostName  : twaHost,
+            defaultUrl: "https://${twaHost}/".toString(),
+        ]
+        resValue 'string', 'asset_statements',
+            "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://${twaHost}\"}}]".toString()
+    }
+
+    // The release key lives outside the repository (~/.heung-shing-android/keystore; CI: secrets).
+    signingConfigs {
+        release {
+            def keystore = System.getenv('ANDROID_KEYSTORE')
+            if (keystore) {
+                storeFile file(keystore)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'heungshing'
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('ANDROID_KEYSTORE')) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

@@ -23,7 +23,8 @@ let browser, server;
   await page.route('**/release-manifest.json', route => route.fulfill({ json: { available: true, version: '5.5.0',
     playUrl: 'https://play.example', statisticsUrl: 'https://statistics.example',
     desktopAssets: ['The.City.of.Heung.Shing-5.5.0-arm64.dmg', 'The.City.of.Heung.Shing-5.5.0-x64.dmg',
-      'The.City.of.Heung.Shing.Setup.5.5.0.exe', 'The.City.of.Heung.Shing.5.5.0.exe'] } }));
+      'The.City.of.Heung.Shing.Setup.5.5.0.exe', 'The.City.of.Heung.Shing.5.5.0.exe'],
+    mobileAssets: ['The.City.of.Heung.Shing-5.5.0-android.apk'] } }));
   await page.route('https://statistics.example/**', route => {
     if (route.request().method() === 'POST') playPosts += 1;
     return unavailable ? route.fulfill({ status: 503, headers: { 'Access-Control-Allow-Origin': '*' }, body: 'Unavailable' })
@@ -38,6 +39,7 @@ let browser, server;
     await page.waitForFunction(() => document.querySelector('[data-web-copy="play"]').textContent.length > 0);
     assert.equal(await page.locator('[data-web-play-link]').first().getAttribute('href'), 'https://play.example');
     assert.match(await page.locator('[data-download-link="mac-arm64"]').getAttribute('href'), /5\.5\.0-arm64\.dmg$/);
+    assert.match(await page.locator('[data-download-link="android"]').getAttribute('href'), /5\.5\.0-android\.apk$/);
   }
   unavailable = true;
   await page.reload();

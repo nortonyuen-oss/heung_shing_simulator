@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.nortonyuen_oss.heungshing",
+      "sha256_cert_fingerprints": [
+        "F0:F4:82:27:B3:30:D0:CF:14:EC:B0:A0:ED:A4:D0:BE:D8:50:E7:5B:07:A0:D6:EE:DC:36:16:4F:A4:CE:6A:E2"
+      ]
+    }
+  }
+]

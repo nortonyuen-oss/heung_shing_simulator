@@ -15,6 +15,8 @@ const manifest = { available: true, version, releaseTheme: pkg.releaseTheme, rel
   supportedSaveDataVersions: [14, 15], publishedAt: new Date().toISOString(),
   desktopAssets: [`The.City.of.Heung.Shing-${version}-arm64.dmg`, `The.City.of.Heung.Shing-${version}-x64.dmg`,
     `The.City.of.Heung.Shing.Setup.${version}.exe`, `The.City.of.Heung.Shing.${version}.exe`],
+  // 香城模擬器 for Android (android/README.md)
+  mobileAssets: [`The.City.of.Heung.Shing-${version}-android.apk`],
 };
 const reportPath = path.resolve('release/web/build-report.json');
 if (fs.existsSync(reportPath)) manifest.assetManifestHash = JSON.parse(fs.readFileSync(reportPath, 'utf8')).assetManifestHash;

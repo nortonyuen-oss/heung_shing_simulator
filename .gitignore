@@ -25,3 +25,9 @@ scripts/source-art/lightRail/squared/
 # Rebuilt from hk-terrain-tiles.js by npm run prepare:world-terrain.
 /data/world-terrain/
 /data/world-terrain.building-*/
+
+# Android TWA (android/twa): build outputs and the machine's SDK path
+android/twa/.gradle/
+android/twa/build/
+android/twa/app/build/
+android/twa/local.properties

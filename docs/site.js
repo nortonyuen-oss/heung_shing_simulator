@@ -6,6 +6,7 @@ const assetMatchers = {
   "mac-x64": (asset) => /^The\.City\.of\.Heung\.Shing-[\d.]+-x64\.dmg$/i.test(asset.name),
   "windows-setup": (asset) => /^The\.City\.of\.Heung\.Shing\.Setup\.[\d.]+\.exe$/i.test(asset.name),
   "windows-portable": (asset) => /^The\.City\.of\.Heung\.Shing\.[\d.]+\.exe$/i.test(asset.name),
+  android: (asset) => /^The\.City\.of\.Heung\.Shing-[\d.]+-android\.apk$/i.test(asset.name),
 };
 
 let cachedLatestRelease = null;

@@ -50,6 +50,9 @@ test('gallery, manual table/notes, feature list and download cards stay the same
   const context = loadSiteI18n();
   const SITE_LANGUAGES = vm.runInContext('SITE_LANGUAGES', context);
   const sourcesLength = vm.runInContext('SITE_GALLERY_SOURCES.length', context);
+  const downloadCardsInPage = (require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'index.html'), 'utf8')
+    .match(/data-render="download-card"/g) || []).length;
+  assert.equal(downloadCardsInPage, 5);
 
   SITE_LANGUAGES.forEach((lang) => {
     const galleryLength = vm.runInContext(`SITE_GALLERY['${lang}'].length`, context);
@@ -62,7 +65,8 @@ test('gallery, manual table/notes, feature list and download cards stay the same
     assert.equal(manualRowsLength, vm.runInContext("SITE_MANUAL_ROWS['zh-HK'].length", context), `${lang}: manual table row count`);
     assert.equal(manualNotesLength, vm.runInContext("SITE_MANUAL_NOTES['zh-HK'].length", context), `${lang}: manual notes count`);
     assert.equal(featureListLength, vm.runInContext("SITE_FEATURE_LIST['zh-HK'].length", context), `${lang}: feature list count`);
-    assert.equal(downloadCardsLength, 4, `${lang}: download cards count`);
+    // one text per card on the page (Mac x2, Windows x2, Android since 2026-11-21)
+    assert.equal(downloadCardsLength, downloadCardsInPage, `${lang}: download cards count`);
     const requirements = vm.runInContext(`SITE_TEXT['${lang}'].requirements`, context);
     assert.equal(requirements.headers.length, 3, `${lang}: requirements table has three columns`);
     assert.equal(requirements.rows.length, vm.runInContext("SITE_TEXT['zh-HK'].requirements.rows.length", context), `${lang}: requirements row count`);

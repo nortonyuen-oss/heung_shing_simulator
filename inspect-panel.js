@@ -165,6 +165,61 @@ function buildPublicMarketInspectHtml(row, col) {
   </div>`;
 }
 
+// 福利 (welfare.js): the city's welfare coverage and who each bill in force reaches, on a 社區中心
+function buildWelfareInspectHtml() {
+  if (typeof getWelfareState !== 'function') return '';
+  const state = getWelfareState();
+  const n = (value) => Math.round(value).toLocaleString();
+  const coverage = Math.round(state.coverage * 100);
+  const bills = WELFARE_POLICY_IDS.filter((id) => state.bills[id]?.active)
+    .map((id) => `<div class="insp-row insp-muted">${t('welfare.billLine', { name: getCouncilPolicyDisplayTitle(id), value: n(state.bills[id].beneficiaries) })}</div>`).join('');
+  return `<div class="insp-section">
+    <div class="insp-row ${coverage >= 60 ? 'insp-ok' : 'insp-warn'}">${t('welfare.coverage', { value: coverage, needy: n(state.needy), reached: n(state.reached) })}</div>
+    <div class="insp-row insp-muted">${t('welfare.centreReach', { value: n(state.centreReached || 0) })}</div>
+    ${bills || `<div class="insp-row insp-muted">${t('welfare.noBills')}</div>`}
+  </div>`;
+}
+
+// 舊樓 (welfare.js): a home's age and condition, and below the repair mark the two ways out
+function buildOldBuildingInspectHtml(id, record) {
+  if (typeof getOldBuildingCondition !== 'function' || typeof OLD_BUILDING_TUNING === 'undefined') return '';
+  const condition = getOldBuildingCondition(record);
+  const built = Number(record?.builtMonthIndex);
+  const now = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : built;
+  const years = Number.isFinite(built) ? Math.max(0, Math.floor((now - built) / 12)) : 0;
+  const dangerous = condition < OLD_BUILDING_TUNING.dangerousBelow;
+  const canRepair = condition < OLD_BUILDING_TUNING.repairTo;
+  const safeId = String(id).replace(/[^0-9:]/g, '');
+  return `<div class="insp-row ${dangerous ? 'insp-warn' : 'insp-muted'}">${t('oldBuilding.state', { years, condition: Math.round(condition) })}</div>
+    ${dangerous ? `<div class="insp-row insp-warn">${t('oldBuilding.dangerous')}</div>` : ''}
+    ${canRepair ? `<div class="insp-row">
+      <button class="insp-action-btn" type="button" onclick="repairOldBuilding('${safeId}')">${t('oldBuilding.repair', { cost: getOldBuildingRepairCost(record).toLocaleString() })}</button>
+      <button class="insp-action-btn" type="button" onclick="redevelopOldBuilding('${safeId}')">${t('oldBuilding.rebuild')}</button>
+    </div>` : ''}`;
+}
+
+// 貨櫃貨運 (port-freight.js): this port's cargo, where it comes from, and the trucks past homes
+function buildContainerPortInspectHtml(portId) {
+  if (typeof getPortFreightState !== 'function') return '';
+  const state = getPortFreightState();
+  const port = state.ports.find((entry) => entry.id === portId);
+  if (!port) return '';
+  const n = (value) => Math.round(value).toLocaleString();
+  const share = Math.round(state.residentialShare * 100);
+  if (!port.roadConnected) {
+    return `<div class="insp-section"><div class="insp-row insp-warn">${t('port.noRoad')}</div></div>`;
+  }
+  return `<div class="insp-section">
+    <div class="insp-row ${port.teu > 0 ? 'insp-ok' : 'insp-warn'}">${t('port.throughput', { teu: n(port.teu), capacity: n(port.capacity) })}</div>
+    <div class="insp-row">${t('port.sources', { local: n(port.local), transit: n(port.transit) })}</div>
+    ${port.source > port.capacity ? `<div class="insp-row insp-warn">${t('port.full', { source: n(port.source) })}</div>` : ''}
+    ${port.transit === 0 ? `<div class="insp-row insp-muted">${t('port.noTransit')}</div>` : ''}
+    <div class="insp-row ${share >= 30 ? 'insp-warn' : 'insp-muted'}">${t('port.trucks', { trucks: n(state.trucks), share })}</div>
+    <div class="insp-row insp-muted">${t('port.dues', { dues: n(state.dues), jobs: n(state.jobs) })}</div>
+    <button class="insp-action-btn" type="button" onclick="flashPortFreightRoutes()">${t('port.showRoutes')}</button>
+  </div>`;
+}
+
 function buildPublicMarketResidentialInspectHtml(row, col, record, districtTier = 'commoner') {
   if (typeof getPublicMarketResidentialEffect !== 'function') return '';
   const effect = getPublicMarketResidentialEffect(row, col,
@@ -263,6 +318,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     legislative_council: `🏛️ ${t('building.legislativeCouncil')}`,
     stock_exchange: `🏦 ${t('building.stockExchange')}`,
     public_market: `🛒 ${t('building.publicMarket')}`,
+    community_centre: `🤝 ${t('building.communityCentre')}`,
     event_ground: `▧ ${t('park.eventGround')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
     park_large: `🌲 ${t('building.largePark')}`,
@@ -281,6 +337,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     legislative_council: t('inspect.legislativeCouncil'),
     stock_exchange: t('inspect.stockExchange'),
     public_market: t('inspect.publicMarket', { upkeep: SPECIAL_BUILDING_EFFECTS.public_market.upkeep }),
+    community_centre: t('inspect.communityCentre', { radius: typeof WELFARE_TUNING !== 'undefined' ? WELFARE_TUNING.communityCentreRadius : 12, upkeep: SPECIAL_BUILDING_EFFECTS.community_centre.upkeep }),
     event_ground: t('inspect.eventGround', { upkeep: UPKEEP_EVENT_GROUND }),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
     park_large: t('inspect.parkRadius', { radius: LARGE_PARK_RADIUS, upkeep: UPKEEP_PARK_LARGE }),
@@ -299,6 +356,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     legislative_council:'#4d6bbf',
     stock_exchange:'#c39a2d',
     public_market:'#699e70',
+    community_centre:'#c27a3a',
     event_ground:'#d0bc94',
     park_small:'#58d66a',
     park_large:'#32b457',
@@ -315,7 +373,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
       coordTitle = customName;
     } else {
       const tl = getBuildingTypeLabel(bData.type);
-      const subLabelKey = bData.type === 'residential' ? (bData.wealthTier ?? 'L') : (bData.level ?? 1);
+      const subLabelKey = bData.type === 'residential' ? getResidentialSubLabelKey(bData) : (bData.level ?? 1);
       const sl = getBuildingSubLabel(bData.type, subLabelKey);
       coordTitle = sl ? `${tl} · ${sl}` : tl;
     }
@@ -362,6 +420,20 @@ function showInspectPanel(scene, row, col, pointer = null) {
         ${bData.type === 'legislative_council' ? `<button class="insp-action-btn" type="button" onclick="openLegislativeWindow()">${t('building.legislativeCouncil')}</button>` : ''}
         ${bData.type === 'stock_exchange' ? `<button class="insp-action-btn" type="button" onclick="openStockExchangeWindow()">${t('building.stockExchange')}</button>` : ''}
       </div>`;
+    // 貨櫃碼頭 (port-freight.js)
+    if (bData.type === 'container_port') {
+      html += buildContainerPortInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
+    }
+    // 航班 (airport-routes.js): the routes, their daily flights and the night curfew
+    if (bData.type === 'airport' && typeof buildAirportInspectHtml === 'function') html += buildAirportInspectHtml();
+    // 郵輪碼頭 (cruise-terminal.js): the month's calls, the passengers and how they get into town
+    if (bData.type === 'cruise_terminal' && typeof buildCruiseTerminalInspectHtml === 'function') {
+      html += buildCruiseTerminalInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`);
+    }
+    // 九龍城寨文化園區 (walled-city.js): its visitors, its fire cover and its films
+    if (bData.type === 'walled_city_park' && typeof buildWalledCityInspectHtml === 'function') html += buildWalledCityInspectHtml();
+    // 天壇大佛 (big-buddha.js): on a hill, by bus
+    if (bData.type === 'buddha_statue' && typeof buildBigBuddhaInspectHtml === 'function') html += buildBigBuddhaInspectHtml();
   }
 
   // Infrastructure building
@@ -393,6 +465,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData.type === 'public_market') {
       html += buildPublicMarketInspectHtml(inspectRecord.anchorRow, inspectRecord.anchorCol);
     }
+    if (bData.type === 'community_centre') html += buildWelfareInspectHtml();
   }
 
   // Zone / residential building
@@ -409,7 +482,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     // keep their existing level-keyed display untouched.
     const BLDG_DISPLAY = {
       residential: {
-        L: t('building.publicEstate'), M: t('building.privateResidence'), H: t('building.wealthyResidence'), UH: t('building.mansion'),
+        L: t('building.lowRentResidence'), M: t('building.privateResidence'), H: t('building.wealthyResidence'), UH: t('building.mansion'),
+        public: t('building.publicEstate'), hos: t('building.hosCourt'),
       },
       commercial:  { 1: t('building.smallShop'), 2: t('building.commercialBlockIcon'), 3: t('building.officeTowerIcon') },
       industrial:  { 1: t('building.smallFactory'), 2: t('building.industrialComplexIcon'), 3: t('building.heavyIndustryIcon') },
@@ -420,7 +494,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     if (bData && BLDG_DISPLAY[bData.type]) {
       const isResidentialBldg = bData.type === 'residential';
       const lvl      = bData.level ?? 1;
-      const dispKey  = isResidentialBldg ? (bData.wealthTier ?? 'L') : lvl;
+      const dispKey  = isResidentialBldg ? getResidentialSubLabelKey(bData) : lvl;
       const dispName = BLDG_DISPLAY[bData.type][dispKey] ?? `${getBuildingTypeLabel(bData.type)} ${dispKey}`;
       const popLabel = BLDG_POP_LABEL[bData.type] ?? t('inspect.residents');
       const avgEducation = typeof getAverageEducationForBuilding === 'function'
@@ -436,14 +510,18 @@ function showInspectPanel(scene, row, col, pointer = null) {
       bldgHtml = `
         <div class="insp-bldg-name" style="color:${zColor}">${dispName}</div>
         <div class="insp-row insp-muted">${populationRow}</div>
-        <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>`;
+        <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>
+        ${isResidentialBldg ? buildOldBuildingInspectHtml(`${inspectRecord.anchorRow}:${inspectRecord.anchorCol}`, bData) : ''}`;
     } else {
       bldgHtml = `<div class="insp-row insp-muted">${t('inspect.emptyLot')}</div>`;
+      // 公屋／居屋 come only as whole blocks (housing-types.js): a strip too narrow stays open
+      const lotHousingType = zone === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(row, col) : 'private';
+      if (lotHousingType !== 'private') bldgHtml += `<div class="insp-row insp-muted">${t(`zone.housingLotTip.${lotHousingType}`)}</div>`;
     }
 
     html += `
       <div class="insp-section">
-        <div class="insp-zone-name" style="color:${zColor}">${getZoneName(zone)} · ${getDensityLabel(density)}</div>
+        <div class="insp-zone-name" style="color:${zColor}">${getZoneName(zone, row, col)} · ${getDensityLabel(density)}</div>
         ${bldgHtml}
         <div class="insp-divider"></div>
         <div class="insp-row ${hasRoad  ? 'insp-ok' : 'insp-fail'}">${t('inspect.roadAccess', { status: hasRoad ? '✓' : t('inspect.needed') })}</div>

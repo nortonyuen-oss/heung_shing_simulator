@@ -20,6 +20,12 @@ const COUNCIL_POLICY_METADATA = Object.freeze({
   arcticPenguinReserve: { issues: { tourism: 1.5, environment: 0.5, science: -1, finance: -0.5 }, tags: ['photo_spot', 'penguin', 'energy_waste', 'scientific_nonsense'], leadOfficialIds: ['councillor_tourism', 'observatory_head'] },
   busSeatbeltMandate: { issues: { public_safety: 1.25, governance: -0.5, roads: -0.25 }, tags: ['regulation', 'public_transport', 'safety_belt', 'bureaucracy'], leadOfficialIds: ['police_head', 'treasury_head'] },
   transportOperatingSubsidy: { issues: { roads: 1.5, business: 0.5, finance: -1 }, tags: ['subsidy', 'public_transport'], leadOfficialIds: ['treasury_head', 'chief_executive'] },
+  // 福利法案 (welfare.js)
+  elderlyLivingAllowance: { issues: { health: 1, governance: 0.5, finance: -1 }, tags: ['elderly', 'welfare', 'subsidy'], leadOfficialIds: ['councillor_religion', 'treasury_head'] },
+  lowIncomeFamilySubsidy: { issues: { governance: 0.75, business: 0.5, finance: -1 }, tags: ['family', 'welfare', 'subsidy'], leadOfficialIds: ['councillor_democracy', 'treasury_head'] },
+  publicHousingRentSupport: { issues: { governance: 0.75, finance: -0.75 }, tags: ['welfare', 'subsidy', 'community'], leadOfficialIds: ['councillor_democracy', 'treasury_head'] },
+  communityHealthSubsidy: { issues: { health: 2, finance: -0.75 }, tags: ['healthcare', 'welfare', 'subsidy'], leadOfficialIds: ['councillor_religion', 'treasury_head'] },
+  youthEmploymentScheme: { issues: { business: 1, education: 0.5, finance: -0.5 }, tags: ['education', 'welfare', 'volunteer'], leadOfficialIds: ['councillor_liberty', 'treasury_head'] },
   nightBazaarWeekend: { issues: { tourism: 1.5, business: 1, parks_culture: 0.75, public_safety: -0.25, environment: -0.25 }, tags: ['food', 'night_view', 'festival', 'community', 'crowding'], leadOfficialIds: ['culture_head', 'treasury_head'] },
 });
 
@@ -65,6 +71,7 @@ function getCouncilPolicyEstimatedMonthlyCost(policyId) {
   if (policyId === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
   if (policyId === 'nightBazaarWeekend') cost += countNightBazaarGroundTiles() * 6;
   if (policyId === 'transportOperatingSubsidy' && typeof getTransportOperatingSubsidyDue === 'function') cost += getTransportOperatingSubsidyDue();
+  if (typeof isWelfarePolicy === 'function' && isWelfarePolicy(policyId)) cost += getWelfareMonthlyCost(policyId) - policy.monthlyBase;
   return Math.round(cost);
 }
 

@@ -25,7 +25,7 @@
   const MEDAL_TOURISM_LANDMARK_TYPES = Object.freeze([
     'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue', 'heritage_temple',
     'grand_temple', 'heritage_church', 'indoor_coliseum', 'murray_house', 'ocean_park',
-    'football_stadium', 'yacht_club', 'gold_coast_hotel', 'floating_restaurant',
+    'football_stadium', 'yacht_club', 'gold_coast_hotel', 'floating_restaurant', 'walled_city_park',
   ]);
   // B10 世界十大港口's waterfront tourist landmarks (待確認).
   const MEDAL_WATERFRONT_LANDMARK_TYPES = Object.freeze([
@@ -50,6 +50,10 @@
   const MEDAL_INDUSTRY_LEADER = Object.freeze({ commercial: 150, industrial: 40, unemploymentBelow: 0.08 });
   const MEDAL_FINANCIAL_CENTRE = Object.freeze({ gradeAOffices: 8, commercialTax: 10000 });
   const MEDAL_SURPLUS_STREAK_MONTHS = 12;
+  // 公屋／居屋 residents (housing-types.js)
+  const MEDAL_PUBLIC_HOUSING_RESIDENTS = 50000;
+  const MEDAL_AIRPORT_ROUTES = 5;
+  const MEDAL_HOS_RESIDENTS = 20000;
   // A12 (Norton 2026-11-17: 製作一個合理的投資獲利): the script's $2,000,000 was a coin flip after ten
   // game years of buying crashes with $10M; $1,000,000 is the game's own bar for a notable trading
   // profit (STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT) - about one good crash bought and sold.
@@ -100,7 +104,7 @@
       name: T('超級聯繫人', 'Super-Connector', 'スーパーコネクター'),
       desc: T('區外連線、貨櫃碼頭、機場（可跨存檔累積）', 'A region connection, a container port and an airport (may accumulate across saves)', '区外連絡道路・コンテナ港・空港（セーブ間で累積可）'),
       parts: [
-        { id: 'region', name: T('區外連線', 'Region connection', '区外連絡道路'), check: (s) => num(s.regionConnections) > 0 },
+        { id: 'region', name: T('區外連線', 'Region connection', '区外連絡道路'), check: (s) => num(s.regionConnections) > 0 || num(s.offMapLines) > 0 },
         { id: 'port', name: T('貨櫃碼頭', 'Container port', 'コンテナ港'), check: (s) => built(s, 'container_port') },
         { id: 'airport', name: T('機場', 'Airport', '空港'), check: (s) => built(s, 'airport') },
       ],
@@ -234,14 +238,16 @@
       live: (s) => num(s.population) >= 100000 && distinctBuilt(s, MEDAL_TOURISM_LANDMARK_TYPES) >= 5,
     },
     {
-      id: 'B03', series: 'B', tier: null, status: 'blocked',
+      id: 'B03', series: 'B', tier: null, status: 'active',
       name: T('公屋之父', 'Father of Public Housing', '公営住宅の父'),
       desc: T('公共房屋住戶人口至少 50,000', 'At least 50,000 public-housing residents', '公営住宅の住民が50,000人以上'),
+      live: (s) => num(s.publicHousingResidents) >= MEDAL_PUBLIC_HOUSING_RESIDENTS,
     },
     {
-      id: 'B04', series: 'B', tier: null, status: 'blocked',
+      id: 'B04', series: 'B', tier: null, status: 'active',
       name: T('居者有其屋', 'Home Ownership Scheme', '居者有其屋'),
       desc: T('居屋居住人口至少 20,000', 'At least 20,000 Home Ownership Scheme residents', '居屋（分譲公営住宅）の住民が20,000人以上'),
+      live: (s) => num(s.hosResidents) >= MEDAL_HOS_RESIDENTS,
     },
     {
       id: 'B05', series: 'B', tier: null, status: 'active',
@@ -256,9 +262,11 @@
       live: (s) => fact(s, 'transit:tram') || carried(s, 'tram'),
     },
     {
-      id: 'B07', series: 'B', tier: null, status: 'blocked',
+      id: 'B07', series: 'B', tier: null, status: 'active',
       name: T('衝上雲霄', 'Triumph in the Skies', '衝上雲霄'),
       desc: T('建成機場並開通至少 5 條國際航線', 'An airport with at least 5 international routes', '空港を建設し、国際線を5路線以上開設する'),
+      // routes with passengers on them (airport-routes.js)
+      live: (s) => built(s, 'airport') && num(s.airportRoutes) >= MEDAL_AIRPORT_ROUTES,
     },
     {
       id: 'B08', series: 'B', tier: null, status: 'active',

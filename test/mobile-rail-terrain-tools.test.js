@@ -99,7 +99,7 @@ test('C3 adds exactly eleven tools to the touch catalog', () => {
   const c = setup();
   assert.equal(vm.runInContext('TOUCH_RAIL_TOOLS.length', c), 6);
   assert.equal(vm.runInContext('TOUCH_TERRAIN_MARINE_TOOLS.length', c), 5);
-  assert.equal(vm.runInContext('new Set(TOUCH_SUPPORTED_TOOLS).size', c), 57);
+  assert.equal(vm.runInContext('new Set(TOUCH_SUPPORTED_TOOLS).size', c), 60, 'with the 社區中心 (welfare.js), the 郵輪碼頭 (cruise-terminal.js) and the 城寨園區 (walled-city.js)');
 });
 
 test('undersea tunnel: a drag across open sea prices both bores and the two portals, built once', () => {

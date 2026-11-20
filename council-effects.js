@@ -127,7 +127,9 @@ function updateCityAttractivenessMetrics() {
   const reputationPenalty = Math.max(0, ridicule - 65) * 0.25;
   const landmarkBonus = (typeof sumSpecialBuildingEffect === 'function' ? sumSpecialBuildingEffect('attractivenessBonus') : 0)
     // the 海鮮舫 moored in the typhoon shelters (typhoon-shelter-fishery.js)
-    + (typeof getTyphoonShelterAttractivenessBonus === 'function' ? getTyphoonShelterAttractivenessBonus() : 0);
+    + (typeof getTyphoonShelterAttractivenessBonus === 'function' ? getTyphoonShelterAttractivenessBonus() : 0)
+    // the 天壇大佛 on a hill (big-buddha.js)
+    + (typeof getBigBuddhaHillAppeal === 'function' ? getBigBuddhaHillAppeal() : 0);
 
   city.cityAttractiveness = councilEffectClamp(
     100 * (happiness * 0.25 + safety * 0.16 + environment * 0.17 + access * 0.12 + economy * 0.18 + culture * 0.12)
@@ -140,7 +142,9 @@ function updateCityAttractivenessMetrics() {
       + getCouncilTemporaryModifier('tourism')
       + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('tourism') : 0)
       + (isPolicyActive('tourismPromotion') ? 8 : 0)
-      + (isPolicyActive('arcticPenguinReserve') ? 7 : 0),
+      + (isPolicyActive('arcticPenguinReserve') ? 7 : 0)
+      // a film from the 城寨 park still showing (walled-city.js)
+      + (typeof getWalledCityFilmBuzz === 'function' ? getWalledCityFilmBuzz() : 0),
     0,
     100,
   );
@@ -151,8 +155,20 @@ function updateCityAttractivenessMetrics() {
     * (1 + Math.max(0, getCouncilTemporaryModifier('tourismCapacity')))
     * (1 + (typeof getRegionTourismCapacityBonus === 'function' ? getRegionTourismCapacityBonus() : 0))
     * (1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('tourismCapacity') : 0));
-  city.monthlyVisitors = Math.max(0, Math.round(capacity * (0.2 + city.tourismAppeal / 100)));
-  city.tourismRevenue = Math.max(0, Math.round(city.monthlyVisitors * (0.45 + city.tourismAppeal / 220)));
+  const visitors = Math.max(0, Math.round(capacity * (0.2 + city.tourismAppeal / 100)));
+  // (the city's own: what the flights' demand reads, so they never feed on their own visitors)
+  city.baseVisitors = visitors;
+  // and the cruise passengers, who spend by whether they get into town (cruise-terminal.js),
+  // the visitors who fly in (airport-routes.js), the 城寨 park's (walled-city.js: its tickets are its
+  // own takings) and the pilgrims up to the 天壇大佛 (big-buddha.js)
+  city.monthlyVisitors = visitors + (typeof getCruiseMonthlyVisitors === 'function' ? getCruiseMonthlyVisitors() : 0)
+    + (typeof getAirportMonthlyVisitors === 'function' ? getAirportMonthlyVisitors() : 0)
+    + (typeof getWalledCityMonthlyVisitors === 'function' ? getWalledCityMonthlyVisitors() : 0)
+    + (typeof getBigBuddhaMonthlyVisitors === 'function' ? getBigBuddhaMonthlyVisitors() : 0);
+  city.tourismRevenue = Math.max(0, Math.round(visitors * (0.45 + city.tourismAppeal / 220)))
+    + (typeof getCruiseTourismRevenue === 'function' ? getCruiseTourismRevenue() : 0)
+    + (typeof getAirportTourismRevenue === 'function' ? getAirportTourismRevenue() : 0)
+    + (typeof getBigBuddhaTourismRevenue === 'function' ? getBigBuddhaTourismRevenue() : 0);
 }
 
 // A bill costs a floor plus N months of the city's monthly income, so the

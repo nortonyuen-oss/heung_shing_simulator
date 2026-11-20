@@ -3,7 +3,9 @@ function setupLandingScreen() {
   const menu      = document.getElementById('landing-menu');
   const setup     = document.getElementById('landing-setup');
   const btnNew    = document.getElementById('btn-new-game');
-  const btnTerrainCreator = document.getElementById('btn-terrain-creator');
+  // The Map Editor sits under 附加功能 on the New City screen, not on the title menu.
+  const btnExtras = document.getElementById('btn-setup-extras');
+  const extrasMenu = document.getElementById('setup-extras-menu');
   const btnCont   = document.getElementById('btn-continue');
   const btnStart  = document.getElementById('btn-start-city');
   const btnBack   = document.getElementById('btn-back');
@@ -50,7 +52,14 @@ function setupLandingScreen() {
   let previewToken = 0;
 
 
+  function setExtrasOpen(open) {
+    if (!extrasMenu) return;
+    extrasMenu.hidden = !open;
+    btnExtras?.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function setLandingState(state) {
+    setExtrasOpen(false);
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
     setup.style.display = state === 'setup' ? 'flex' : 'none';
     screen.classList.toggle('is-setup', state === 'setup');
@@ -447,6 +456,7 @@ function setupLandingScreen() {
   }
 
   function openSetup(mode) {
+    setExtrasOpen(false);
     setSetupMode(mode);
     setLandingState('setup');
     if (mode === 'newCity') {
@@ -542,7 +552,19 @@ function setupLandingScreen() {
   });
 
   btnNew.addEventListener('click', () => openSetup('newCity'));
-  btnTerrainCreator?.addEventListener('click', () => openSetup('editor'));
+  btnExtras?.addEventListener('click', () => setExtrasOpen(extrasMenu?.hidden !== false));
+  extrasMenu?.addEventListener('click', (event) => {
+    const item = event.target.closest('[data-setup-extra]');
+    if (!item || item.disabled) return;
+    // the same screen in editor mode; a map the editor cannot open falls back to the first one
+    if (item.dataset.setupExtra === 'editor') openSetup('editor');
+  });
+  document.addEventListener('click', (event) => {
+    if (extrasMenu && !extrasMenu.hidden && !event.target.closest('.setup-extras')) setExtrasOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && extrasMenu && !extrasMenu.hidden) setExtrasOpen(false);
+  });
 
   btnCont.addEventListener('click', () => {
     openSaveListModal();
@@ -550,6 +572,8 @@ function setupLandingScreen() {
 
   btnStart.addEventListener('click', confirmSetup);
   btnBack.addEventListener('click', () => {
+    // the editor is reached from New City's 附加功能, so it steps back there
+    if (setupMode === 'editor') { openSetup('newCity'); return; }
     setLandingState('menu');
   });
 
@@ -860,6 +884,10 @@ async function startNewGame(cityName, options = {}) {
   city.districtProfileId = options.districtProfileId || '';
   city.regionNeighbours = typeof computeRegionNeighbours === 'function'
     ? computeRegionNeighbours({ districtId: city.districtProfileId, features: terrain?.features })
+    : null;
+  // 區外交通: where lines may run off the map (a 香港實景 window's sides only make sense now)
+  city.regionDestinations = typeof computeRegionDestinations === 'function'
+    ? computeRegionDestinations({ districtId: city.districtProfileId, features: terrain?.features })
     : null;
   if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns();
   if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();

@@ -125,6 +125,22 @@ const city = {
   // 區外連線: each side's neighbouring district id (null = a neutral 鄰區) and last month's flows
   regionNeighbours: null,
   regionFlows: null,
+  // 貨櫃貨運 (port-freight.js): this month's rates (derived) and the months' record (saved)
+  portFreight: null,
+  portFreightHistory: [],
+  cruiseTerminal: null,
+  cruiseHistory: [],
+  airportRoutes: null,
+  airportHistory: [],
+  // 九龍城寨文化園區 (walled-city.js): the film shooting, the films made
+  walledCity: null,
+  // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
+  housingZones: {},
+  // 舊樓 (welfare.js): homes repaired and blocks redeveloped, all time
+  buildingRepairs: 0,
+  buildingRebuilds: 0,
+  // 區外交通: each side's districts a line can run off the map to, nearest first ({ id, km })
+  regionDestinations: null,
   // 海底隧道 (undersea-tunnel.js): its two portals (tiles, direction, approach roads) and the sea tiles it runs under
   underseaTunnels: [],
   budget: STARTING_BUDGET,
@@ -158,6 +174,11 @@ const city = {
     busSeatbeltMandate: false,
     nightBazaarWeekend: false,
     transportOperatingSubsidy: false,
+    elderlyLivingAllowance: false,
+    lowIncomeFamilySubsidy: false,
+    publicHousingRentSupport: false,
+    communityHealthSubsidy: false,
+    youthEmploymentScheme: false,
   },
   council: createDefaultCouncilState(),
   loans: [],
@@ -265,6 +286,8 @@ const city = {
   loversStories: { seen: {} },
   // 洋紫荊勳章 (medals.js): this city's absurd events by game year, for 國際笑話中心
   medalLog: { absurd: [] },
+  // 《玩轉18區》 (campaign.js): the chapter this city is a run of, or null
+  campaign: null,
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
   typhoonShelters: { version: 1, nextId: 1, shelters: [] },
   // 海濱步道 built from the parks menu (promenade.js): its tiles and their public piers
@@ -355,6 +378,11 @@ function resetGameState() {
     busSeatbeltMandate: false,
     nightBazaarWeekend: false,
     transportOperatingSubsidy: false,
+    elderlyLivingAllowance: false,
+    lowIncomeFamilySubsidy: false,
+    publicHousingRentSupport: false,
+    communityHealthSubsidy: false,
+    youthEmploymentScheme: false,
   };
   city.council = createDefaultCouncilState(city.activePolicies);
   city.loans = [];
@@ -464,9 +492,21 @@ function resetGameState() {
   city.lastCaacaantengAdMonthIndex = -1;
   city.loversStories = { seen: {} };
   city.medalLog = { absurd: [] };
+  city.campaign = null;
   city.districtProfileId = '';
   city.regionNeighbours = null;
   city.regionFlows = null;
+  city.portFreight = null;
+  city.portFreightHistory = [];
+  city.cruiseTerminal = null;
+  city.cruiseHistory = [];
+  city.airportRoutes = null;
+  city.airportHistory = [];
+  city.walledCity = null;
+  city.housingZones = {};
+  city.buildingRepairs = 0;
+  city.buildingRebuilds = 0;
+  city.regionDestinations = null;
   city.underseaTunnels = [];
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
   city.promenade = { version: 1, tiles: {} };
@@ -503,6 +543,8 @@ const CITY_STATE_POLICY_IDS = Object.freeze([
   'tourismPromotion', 'foreignInvestmentIncentive', 'districtCouncilElection',
   'icac', 'legislativeCouncilElection', 'stockExchangeAct', 'elderlyTwoDollarFare',
   'arcticPenguinReserve', 'busSeatbeltMandate', 'nightBazaarWeekend', 'transportOperatingSubsidy',
+  'elderlyLivingAllowance', 'lowIncomeFamilySubsidy', 'publicHousingRentSupport', 'communityHealthSubsidy',
+  'youthEmploymentScheme',
 ]);
 
 function isNormalizedCityStateObject(value) {
@@ -1050,6 +1092,18 @@ function computeLandmarkFinancials() {
     upkeep += count * (effects.upkeep || 0);
   });
   if (typeof getPublicMarketMonthlyRevenue === 'function') revenue += getPublicMarketMonthlyRevenue();
+  // the container ports' dues on what they carried, on top of their flat lease (port-freight.js)
+  if (typeof getPortFreightMonthlyDues === 'function') revenue += getPortFreightMonthlyDues();
+  // and the cruise terminals' passenger dues (cruise-terminal.js)
+  if (typeof getCruiseMonthlyDues === 'function') revenue += getCruiseMonthlyDues();
+  // the 城寨 park's tickets (walled-city.js)
+  if (typeof getWalledCityMonthlyTakings === 'function') revenue += getWalledCityMonthlyTakings();
+  // the airport's charges on its passengers, and what its daily flights cost (airport-routes.js)
+  if (typeof getAirportRouteFinancials === 'function') {
+    const flights = getAirportRouteFinancials();
+    revenue += flights.revenue;
+    upkeep += flights.upkeep;
+  }
   return { revenue, upkeep };
 }
 
@@ -1518,6 +1572,8 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
     if (policy.id === 'nightBazaarWeekend') cost += countNightBazaarGroundTiles() * 6;
     if (policy.id === 'transportOperatingSubsidy' && typeof getTransportOperatingSubsidyDue === 'function') cost += getTransportOperatingSubsidyDue();
+    // 福利法案 (welfare.js): so much more per thousand people reached
+    if (typeof isWelfarePolicy === 'function' && isWelfarePolicy(policy.id)) cost += getWelfareMonthlyCost(policy.id) - policy.monthlyBase;
   });
   return Math.round(cost);
 }

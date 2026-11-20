@@ -224,6 +224,9 @@ function handleMenuAction(action) {
     case 'open-forum-history':
       if (typeof openForumHistory === 'function') openForumHistory();
       break;
+    case 'open-campaign':
+      if (typeof openCampaignSelect === 'function') openCampaignSelect();
+      break;
     case 'open-medal-cabinet':
       if (typeof openMedalCabinet === 'function') openMedalCabinet();
       break;

@@ -115,7 +115,7 @@
 .ui-profile-setting { display: flex; gap: 8px; align-items: center; justify-content: center; font: 13px system-ui, sans-serif; }
 .ui-profile-setting select { min-height: 36px; max-width: 210px; font: inherit; }
 [data-ui-profile="touch"] .ui-profile-setting { color: #fff; }
-[data-ui-profile="touch"] #btn-terrain-creator { display: none; }
+[data-ui-profile="touch"] .setup-extras { display: none; }
 @media (orientation: portrait) {
   [data-ui-profile="touch"] { --mobile-confirm: 116px; --mobile-inspect-bottom: var(--mobile-nav); }
   [data-ui-profile="touch"] .m-nav { display: grid; }
@@ -221,4 +221,5 @@
 [data-ui-profile="touch"] #mobile-build-funding { display: block; line-height: 14px; color: #155f86; }
 [data-ui-profile="touch"] #mobile-stop-options { display: inline-flex; flex-shrink: 0; gap: 4px; }
 [data-ui-profile="touch"] #mobile-recreation-select { min-width: 0; max-width: min(280px, 55vw); }
+[data-ui-profile="touch"] #mobile-housing-select { min-width: 0; max-width: min(160px, 38vw); flex-shrink: 0; }
 [data-ui-profile="touch"] #mobile-ui.is-district-sign #mobile-build-status { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }

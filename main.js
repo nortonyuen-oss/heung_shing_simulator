@@ -210,6 +210,8 @@ let currentTerrainMetadata = null;
 
 // Zone density state (per zone type; values = DENSITY_LOW|MED|HIGH = 1|2|3)
 let selectedZoneDensity = { res: 1, com: 1, ind: 1 };
+// 私人／公屋／居屋 for the residential zone tool (housing-types.js)
+let selectedHousingType = 'private';
 let zonePressTimers = {};
 let didLongPressZone = {};
 
@@ -344,6 +346,8 @@ function updateGameFrame(time, delta) {
   // 避風塘 boats: their positions follow the environment clock (typhoon-shelter-fleet.js)
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
   if (typeof updateFerries === 'function') updateFerries(this);
+  // 郵輪碼頭: the terminals turned to the sea, and the cruise ships on their timetable (cruise-terminal.js)
+  if (typeof updateCruiseShips === 'function') updateCruiseShips(this);
   // 地鐵 lines, stations and trains drawn over the map in Transport Mode (metro.js)
   if (typeof updateMetroOverlay === 'function') updateMetroOverlay(this);
   // and the trains on the surface track (metro-surface-lines.js)
@@ -635,7 +639,17 @@ function getTerrainName(tileType) {
   }[tileType] ?? 'terrain.unknown');
 }
 
-function getZoneName(zone) {
+// the residential sub-label of a record: 公屋／居屋 by its art (housing-types.js), else its wealth tier
+function getResidentialSubLabelKey(record) {
+  const housingType = typeof getBuildingHousingType === 'function' ? getBuildingHousingType(record) : null;
+  return housingType === 'public' || housingType === 'hos' ? housingType : (record?.wealthTier ?? 'L');
+}
+
+function getZoneName(zone, row = null, col = null) {
+  if (zone === ZONE_RES && row !== null && typeof getHousingZoneType === 'function') {
+    const housingType = getHousingZoneType(row, col);
+    if (housingType !== 'private') return t(`zone.housing.${housingType}`);
+  }
   if (zone === ZONE_RES) return t('zone.residential');
   if (zone === ZONE_COM) return t('zone.commercial');
   if (zone === ZONE_IND) return t('zone.industrial');
@@ -643,7 +657,7 @@ function getZoneName(zone) {
 }
 
 function getBuildingTypeLabel(type) {
-  return t({
+  const key = {
     residential: 'building.residential',
     commercial: 'building.commercial',
     industrial: 'building.industrial',
@@ -661,6 +675,9 @@ function getBuildingTypeLabel(type) {
     legislative_council: 'building.legislativeCouncil',
     stock_exchange: 'building.stockExchange',
     public_market: 'building.publicMarket',
+    community_centre: 'building.communityCentre',
+    cruise_terminal: 'building.cruiseTerminal',
+    walled_city_park: 'building.walledCityPark',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',
@@ -673,7 +690,12 @@ function getBuildingTypeLabel(type) {
     grand_temple: 'building.grandTemple',
     heritage_church: 'building.heritageChurch',
     indoor_coliseum: 'building.indoorColiseum',
-  }[type] ?? type);
+  }[type];
+  if (key) return t(key);
+  // the landmarks with no name of their own (大佛, 文化中心...) go by their tool's
+  const toolKey = `toolRow.${String(type).replace(/_([a-z])/g, (_, ch) => ch.toUpperCase())}`;
+  const toolName = t(toolKey);
+  return toolName && toolName !== toolKey ? toolName : type;
 }
 
 // Residential is keyed by wealthTier (L/M/H/UH) - see sim-wealth-districts.js
@@ -681,7 +703,9 @@ function getBuildingTypeLabel(type) {
 function getBuildingSubLabel(type, levelOrWealthTier) {
   const keys = {
     residential: {
-      L: 'building.publicEstate', M: 'building.privateResidence', H: 'building.wealthyResidence', UH: 'building.mansion',
+      L: 'building.lowRentResidence', M: 'building.privateResidence', H: 'building.wealthyResidence', UH: 'building.mansion',
+      // 公屋／居屋 art (housing-types.js), whatever its wealth tier
+      public: 'building.publicEstate', hos: 'building.hosCourt',
     },
     commercial: { 1: 'building.shop', 2: 'building.commercialBlock', 3: 'building.officeTower' },
     industrial: { 1: 'building.factory', 2: 'building.industrialComplex', 3: 'building.heavyIndustry' },
@@ -750,6 +774,8 @@ function preload() {
   const initialHouseModels = dedupeZoneModelsByKey([
     ...selectInitialZoneModelsForPreload(allHouseModels),
     ...(globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? [] : selectForcedWealthTierModels(allHouseModels, ['H', 'UH'])),
+    // 公屋區／居屋區 grow only from these, so they must be selectable from the start
+    ...allHouseModels.filter((model) => model.housingType === 'public' || model.housingType === 'hos'),
   ]);
   const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
   const initialIndustrialModels = selectInitialZoneModelsForPreload(industrialBuildingModels);
@@ -3382,6 +3408,13 @@ function preGenerateZoneTextures(scene) {
     { key: 'zone_overlay_res_1', color: 0x9de07a },
     { key: 'zone_overlay_res_2', color: 0x3da832 },
     { key: 'zone_overlay_res_3', color: 0x1a7020 },
+    // 公屋區 teal, 居屋區 violet (housing-types.js); R1 only where a district caps the height
+    { key: 'zone_overlay_pub_1', color: 0x7fd8cc },
+    { key: 'zone_overlay_pub_2', color: 0x2aa898 },
+    { key: 'zone_overlay_pub_3', color: 0x116e64 },
+    { key: 'zone_overlay_hos_1', color: 0xc9a6e8 },
+    { key: 'zone_overlay_hos_2', color: 0x9566c4 },
+    { key: 'zone_overlay_hos_3', color: 0x5e3590 },
     { key: 'zone_overlay_com_1', color: 0x99c0ff },
     { key: 'zone_overlay_com_2', color: 0x3366dd },
     { key: 'zone_overlay_com_3', color: 0x0d2d8a },

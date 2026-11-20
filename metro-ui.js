@@ -76,12 +76,13 @@ function renderMetroLineCard(line, state) {
     <article class="transport-route" style="--route-color:${metroUiEscape(line.color)}">
       <div class="transport-route-head">
         <div>
-          <div class="transport-route-name">🚇 ${metroUiEscape(line.name)} · ${metroUiEscape(s.stations.map((st) => st.name).join(' – '))}</div>
+          <div class="transport-route-name">🚇 ${metroUiEscape(line.name)} · ${metroUiEscape([...s.stations.map((st) => st.name), ...(line.offMap && typeof getMetroOffMapName === 'function' ? [getMetroOffMapName(line.offMap)] : [])].join(' – '))}</div>
           <button class="transport-route-fleet-toggle${expanded ? ' is-open' : ''}" type="button" data-transport-action="metro-toggle-stations" data-line-id="${id}">${s.stations.length} Ⓜ · ${s.trains.length} 🚇 ${expanded ? '▴' : '▾'}</button>
         </div>
         ${typeof renderTransportSparkline === 'function' ? renderTransportSparkline(line.history, line.color) : ''}
         <span class="transport-status" data-status="${statusKey}">${metroUiEscape(typeof t === 'function' ? t(`transport.status.${statusKey}`) : statusKey)}</span>
       </div>
+      ${renderMetroOffMapPicker(line)}
       ${stations}
       ${typeof renderTransportIssue !== 'function' ? '' : suspended
         ? renderTransportIssue(metroT('metro.issue.suspended', '地鐵綫暫停中，列車唔會開出。'), `<button class="transport-btn" type="button" data-transport-action="metro-toggle" data-line-id="${id}">${metroUiEscape(t('transport.resume'))}</button>`)
@@ -99,6 +100,26 @@ function renderMetroLineCard(line, state) {
         <button class="transport-btn danger" type="button" data-transport-action="metro-delete" data-line-id="${id}">${metroUiEscape(typeof t === 'function' ? t('transport.delete') : 'Delete')}</button>
       </div>
     </article>`;
+}
+
+// 區外站: the district the line runs on to, from those off that side of the map, and the leg out there.
+function renderMetroOffMapPicker(line) {
+  if (!line.offMap || typeof getRegionDestinations !== 'function') return '';
+  const options = getRegionDestinations()[line.offMap.side].map((destination) => `
+    <option value="${metroUiEscape(destination.id)}" ${destination.id === line.offMap.destination ? 'selected' : ''}>${metroUiEscape(getRegionDestinationName(destination.id))}${destination.km > 0 ? ` · ${destination.km} km` : ''}</option>`).join('');
+  return `
+      <div class="transport-offmap-picker">
+        <label>${metroUiEscape(metroT('transport.offMap.destination', '目的地'))} <select data-metro-offmap-line="${metroUiEscape(line.id)}">${options}</select></label>
+        <small>${metroUiEscape(metroT('transport.offMap.leg', '區外一程：每程 {tiles} 格', { tiles: getMetroOffMapLegTiles(line.offMap) }))}</small>
+      </div>`;
+}
+
+// The routes window's change events for the metro (a line's district off the map).
+function handleMetroUiChange(event) {
+  const select = event.target?.closest?.('[data-metro-offmap-line]');
+  if (!select) return false;
+  setMetroLineOffMapDestination(select.dataset.metroOffmapLine, select.value);
+  return true;
 }
 
 // The routes tab's metro section.
@@ -180,8 +201,9 @@ function handleMetroUiAction(action, button) {
   } else if (action === 'metro-extend' && line) {
     pickMetroTool('metro-line');
     const ends = getMetroLineStations(line, state);
-    const last = ends.at(-1);
-    metroLineDraft = { lineId: line.id };
+    // (a line off the map carries on from its first station, at the front)
+    const last = line.offMap ? ends[0] : ends.at(-1);
+    metroLineDraft = line.offMap ? { lineId: line.id, prepend: true } : { lineId: line.id };
     metroUiToast(metroT('metro.line.extend', '延長「{line}」：撳下一個站；再撳「{name}」完成。', { line: line.name, name: last?.name || '' }), 'info');
     return true;
   } else if (action === 'metro-rename' && line) {

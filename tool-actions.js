@@ -43,6 +43,12 @@ function getTouchToolOptions(tool) {
   const type = TOUCH_BUILDING_TYPES[tool];
   const model = type === HARBOR_BUILDING_TYPE ? HARBOR_MODELS[Object.keys(HARBOR_MODELS)[0]]
     : type ? selectInfraPlacementModel(type) : null;
+  // 公屋／居屋 (housing-types.js): the residential tool starts on the type last picked, at the density it allows
+  if (tool === 'zone-res') {
+    const housingType = typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+    const density = typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(DENSITY_LOW, housingType) : DENSITY_LOW;
+    return { density, housingType, range: true, model: null };
+  }
   return { density: DENSITY_LOW, range: tool !== 'bulldoze', model: model ? { ...model } : null };
 }
 
@@ -324,7 +330,7 @@ function previewTouchToolAction(scene, draft) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
     const tiles = touchRectTiles(draft.start, draft.end);
     plan.tiles = tiles.filter((tile) => {
-      const quote = getZonePlacementQuote(tile.row, tile.col, zone, draft.options.density);
+      const quote = getZonePlacementQuote(tile.row, tile.col, zone, draft.options.density, draft.options.housingType);
       plan.cost += quote.cost;
       return quote.ok && !quote.noop;
     });
@@ -415,7 +421,7 @@ function commitTouchToolAction(scene, draft, plan) {
     commitRoadDrag(scene, draft.start, draft.end);
   } else if (draft.tool.startsWith('zone-')) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
-    for (const { row, col } of plan.tiles) ok = placeZone(scene, row, col, zone, draft.options.density) && ok;
+    for (const { row, col } of plan.tiles) ok = placeZone(scene, row, col, zone, draft.options.density, draft.options.housingType) && ok;
   } else if (draft.tool === 'bulldoze') {
     const previous = selectedTool;
     selectedTool = 'bulldoze';

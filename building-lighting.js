@@ -172,7 +172,7 @@ const BUILDING_NIGHT_VARIANTS = Object.freeze(['night', 'half', 'deep', 'lamps']
 const BUILDING_NIGHT_LANDMARK_TYPES = new Set([
   'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
   'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
-  'murray_house', 'ocean_park', 'football_stadium', 'airport',
+  'murray_house', 'ocean_park', 'football_stadium', 'airport', 'walled_city_park',
 ]);
 const BUILDING_NIGHT_INDUSTRIAL_TYPES = new Set([
   'industrial', 'power_plant_coal', 'power_plant_solar', 'power_plant_nuclear',
@@ -494,6 +494,8 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.392, y: 0.788, r: 0.038 }, { x: 0.334, y: 0.735, r: 0.038 }, { x: 0.629, y: 0.522, r: 0.038 }, { x: 0.7, y: 0.366, r: 0.038 }, { x: 0.272, y: 0.396, r: 0.029 }, { x: 0.492, y: 0.153, r: 0.029 }],
   }),
+  // the 社區中心 stands on the library's art (welfare.js) and lights up as it does
+  get community_centre_2x2() { return BUILDING_LIGHT_HERO_PROFILES.library_2x2; },
   library_2x2: makeBuildingLightProfile({
     class: 'off', service: true,
     panels: [

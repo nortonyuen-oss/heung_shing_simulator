@@ -39,10 +39,14 @@ function preview(c, tool, start, end = start, options = {}) {
   return c.previewTouchToolAction(c.scene, { tool, start, end, options });
 }
 
-test('Phase B covers exactly the approved 32 buildings and six other tools; legacy house stays desktop-only', () => {
+test('Phase B covers exactly the approved 35 buildings and six other tools; legacy house stays desktop-only', () => {
   const c = setup();
-  assert.equal(vm.runInContext('Object.keys(TOUCH_BUILDING_TYPES).length', c), 32);
-  assert.equal(vm.runInContext('TOUCH_PHASE_B_TOOLS.length', c), 38);
+  // 35 with the 社區中心 (welfare.js, P4), the 郵輪碼頭 (cruise-terminal.js, P4) and the 城寨園區 (walled-city.js, P4)
+  assert.equal(vm.runInContext('Object.keys(TOUCH_BUILDING_TYPES).length', c), 35);
+  assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['community-centre']", c), 'community_centre');
+  assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['cruise-terminal']", c), 'cruise_terminal');
+  assert.equal(vm.runInContext("TOUCH_BUILDING_TYPES['walled-city-park']", c), 'walled_city_park');
+  assert.equal(vm.runInContext('TOUCH_PHASE_B_TOOLS.length', c), 41);
   assert.equal(vm.runInContext("TOUCH_PHASE_B_TOOLS.includes('house')", c), false);
 });
 
@@ -107,4 +111,25 @@ test('replacing a demolition target with an identical model still invalidates th
   c.buildingData['2:2'] = { ...c.buildingData['2:2'] };
   const next = preview(c, 'bulldoze', { row: 2, col: 2 }, undefined, {});
   assert.notEqual(first.signature, next.signature, 'a different building is a different demolition approval');
+});
+
+test('公屋／居屋 on touch: the residential tool keeps the housing type picked, quoted at medium density at least', () => {
+  const c = setup();
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'housing-types.js'), 'utf8'), c);
+  c.selectedHousingType = 'private';
+  assert.deepEqual(plain(c.getTouchToolOptions('zone-res')), { density: 1, housingType: 'private', range: true, model: null });
+  c.selectedHousingType = 'public';
+  assert.equal(c.getTouchToolOptions('zone-res').density, 2, '公屋 starts at medium density');
+  const low = preview(c, 'zone-res', { row: 4, col: 4 }, { row: 4, col: 4 }, { density: 1, housingType: 'public' });
+  assert.equal(low.cost, 98, '50 × 1.5 medium × 1.3 district: low density is not offered');
+  // the same land zoned private already is a change of type, not a no-op
+  c.zoneMap[6][6] = 1; c.zoneDensityMap[6][6] = 2;
+  assert.equal(preview(c, 'zone-res', { row: 6, col: 6 }, { row: 6, col: 6 }, { density: 2, housingType: 'private' }).ok, false, 'unchanged');
+  assert.equal(preview(c, 'zone-res', { row: 6, col: 6 }, { row: 6, col: 6 }, { density: 2, housingType: 'hos' }).ok, true, 'repainted as 居屋');
+  // a height-capped district zones 公屋 at its cap
+  c.densityCap = 1;
+  assert.equal(c.getTouchToolOptions('zone-res').density, 1);
+  const mobile = fs.readFileSync(path.join(ROOT, 'mobile-ui.js'), 'utf8');
+  assert.match(mobile, /id="mobile-housing-select" hidden/);
+  assert.match(mobile, /event\.target\.id === 'mobile-housing-select'/);
 });

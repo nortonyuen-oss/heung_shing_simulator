@@ -70,7 +70,9 @@ function resolveFerryTrackerTarget(scene, id) {
   const pierName = (i) => (typeof getFerryPierById === 'function' ? getFerryPierById(route?.pierIds?.[i], state)?.name : '') || '';
   const where = !point ? '—' : point.state === 'alongside'
     ? transitTrackerT('ferry.vessel.alongside', '泊喺「{pier}」', { pier: pierName(point.pier) })
-    : transitTrackerT('ferry.vessel.sailing', '航行中');
+    // off the map on a 區外航線
+    : point.state === 'offMap' && typeof getFerryRouteEndName === 'function' ? getFerryRouteEndName(route, 1, state)
+      : transitTrackerT('ferry.vessel.sailing', '航行中');
   // its picture where it is drawn (drawn only from a zoom up); else the water it is on
   const rec = scene?.ferrySprites?.get(`ferry|${v.id}`);
   const drawn = rec?.sprite && rec.sprite.active !== false && rec.sprite.visible && Number.isFinite(rec.sprite.x);
@@ -269,7 +271,8 @@ function resolveMetroTrackerTarget(scene, id) {
   const v = state.trains.find((x) => String(x.id) === String(id));
   if (!v) return null;
   const line = state.lines.find((l) => l.id === v.lineId);
-  const stations = line ? getMetroLineStations(line, state) : [];
+  // (with a line's far end off the map, named "往金鐘（區外）")
+  const stations = line ? (typeof getMetroLineStops === 'function' ? getMetroLineStops(line, state) : getMetroLineStations(line, state)) : [];
   const schedule = line ? getMetroLineSchedule(line, state) : null;
   const sky = transitSkyClock();
   const running = typeof isMetroRunning === 'function' ? isMetroRunning(sky) : true;

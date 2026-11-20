@@ -563,6 +563,17 @@ function updateTrafficMap() {
     });
   }
 
+  // 貨櫃車 (port-freight.js): the trucks load each road they take, no spreading
+  if (typeof addPortFreightTrafficLoad === 'function') {
+    addPortFreightTrafficLoad((row, col, load) => {
+      if (trafficMap[row]) trafficMap[row][col] += load;
+    });
+  }
+
+  // 郵輪碼頭 (cruise-terminal.js): with a ship alongside the roads near the terminal carry twice their
+  // traffic and its coaches and taxis; the call-day peak is worked out either way
+  if (typeof applyCruiseTerminalTrafficPeak === 'function') applyCruiseTerminalTrafficPeak(trafficMap, roadTiles, TRAFFIC_ROAD_CAP);
+
   // Normalise only the cells known to be roads and compute the city-wide index.
   let totalLoad = 0;
   const weatherMultiplier = typeof getWeatherTrafficMultiplier === 'function'

@@ -20,7 +20,7 @@ const judge = (snapshot, profile = medals.createEmptyMedalProfile()) => {
 const earns = (snapshot, id) => judge(snapshot).newlyEarned.includes(id);
 const completeDiary = () => ({ seen: Object.fromEntries(LOVERS_STORY_DEFS.map((def, i) => [def.id, 100 + i * 3])) });
 
-test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 32 judged now', () => {
+test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 35 judged now', () => {
   assert.equal(medals.MEDAL_DEFS.length, 36);
   assert.equal(new Set(medals.MEDAL_DEFS.map((def) => def.id)).size, 36);
   const bySeries = (series) => medals.MEDAL_DEFS.filter((def) => def.series === series).map((def) => def.id);
@@ -29,8 +29,8 @@ test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 32 ju
   assert.deepEqual(bySeries('S'), ['C01', 'D01', 'E01']);
   const byStatus = (status) => medals.MEDAL_DEFS.filter((def) => def.status === status).map((def) => def.id);
   assert.deepEqual(byStatus('locked'), [], 'A15-A19 set 2026-11-17');
-  assert.deepEqual(byStatus('blocked'), ['B03', 'B04', 'B07', 'E01'], '公屋/居屋, routes, the campaign');
-  assert.equal(byStatus('active').length, 32);
+  assert.deepEqual(byStatus('blocked'), ['E01'], 'the campaign (公屋/居屋 and the routes live since P4, Claire with the lovers stories)');
+  assert.equal(byStatus('active').length, 35);
   medals.MEDAL_DEFS.forEach((def) => {
     ['zhHant', 'en', 'ja'].forEach((language) => {
       assert.ok(def.name[language], `${def.id} name in ${language}`);
@@ -107,6 +107,12 @@ test('A15-A19 as set on the real saves (docs/medals-design.md §5)', () => {
   assert.equal(earns({ gradeAOffices: 8, commercialTax: 3072 }, 'A18'), false, '香港: towers but not the tax');
   assert.equal(earns({ surplusStreak: 11 }, 'A19'), false);
   assert.equal(earns({ surplusStreak: 12 }, 'A19'), true);
+});
+
+test('超級聯繫人: a line off the map is a connection to the neighbours too (區外交通)', () => {
+  const profile = medals.createEmptyMedalProfile();
+  medals.evaluateMedals({ buildings: {}, regionConnections: 0, offMapLines: 1 }, profile, stamp('荃灣'));
+  assert.ok(profile.parts.A03.region);
 });
 
 test('parts build up across cities (C.7 跨存檔): 超級聯繫人 from two saves', () => {
@@ -467,9 +473,10 @@ test('wiring: scripts, menu, storage routes and the game\'s hooks', () => {
   });
 
   assert.match(source('db.js'), /CREATE TABLE IF NOT EXISTS player_profile/);
-  assert.match(source('server.js'), /app\.get\('\/api\/player-profile\/medals'/);
-  assert.match(source('server.js'), /app\.put\('\/api\/player-profile\/medals'/);
-  assert.match(source('game-storage.js'), /\/api\\\/player-profile\\\/\(medals\)/);
+  assert.match(source('server.js'), /app\.get\('\/api\/player-profile\/:key'/);
+  assert.match(source('server.js'), /app\.put\('\/api\/player-profile\/:key'/);
+  assert.match(source('server.js'), /PLAYER_PROFILE_KEYS = new Set\(\['medals', 'campaign'\]\)/);
+  assert.match(source('game-storage.js'), /\/api\\\/player-profile\\\/\(medals\|campaign\)/);
 
   assert.match(source('council-voting.js'), /noteMedalPolicyEnacted\(session\.itemId\)/);
   assert.match(source('council-voting.js'), /noteMedalResolutionOutcome\(session\.itemId, resolutionResult\.outcome\)/);
@@ -492,4 +499,12 @@ test('the player profile store round-trips through SQLite', () => {
   assert.throws(() => store.putPlayerProfile('../x', {}), /invalid/);
   store.close?.();
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('B03 公屋之父 and B04 居者有其屋 count the residents of each housing type', () => {
+  assert.equal(earns({ publicHousingResidents: 49999 }, 'B03'), false);
+  assert.equal(earns({ publicHousingResidents: 50000 }, 'B03'), true);
+  assert.equal(earns({ hosResidents: 19999 }, 'B04'), false);
+  assert.equal(earns({ hosResidents: 20000 }, 'B04'), true);
+  assert.equal(earns({ privateResidents: 90000 }, 'B03'), false, 'private homes are not public housing');
 });

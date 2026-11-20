@@ -177,6 +177,7 @@ const TRANSPORT_DESTINATION_UNITS = Object.freeze({
   legislative_council: 90,
   stock_exchange: 160,
   public_market: 90,
+  community_centre: 40,
   park_small: 25,
   park_large: 80,
   park_flagship: 160,
@@ -195,6 +196,8 @@ const TRANSPORT_DESTINATION_UNITS = Object.freeze({
   football_stadium: 220,
   airport: 260,
   container_port: 180,
+  cruise_terminal: 220,
+  walled_city_park: 160,
 });
 
 const GAME_EXPANSION_REGISTRY = Object.freeze({
@@ -449,6 +452,9 @@ function normalizeTransportStop(raw, fallbackIndex) {
     ),
     stormBacklog: transportClamp(Number(raw.stormBacklog) || 0, 0, TRANSPORT_STOP_WAITING_CAP),
   };
+  // 區外站 (docs/region-transit-design.md): a stop off the map, through the exit at (row, col)
+  const offMap = normalizeTransportOffMap(raw.offMap);
+  if (offMap) stop.offMap = offMap;
   // Saves created before persistent queues existed have no queue value to
   // restore. Preserve that distinction as a non-enumerable migration marker;
   // it never leaks into save JSON and is removed after the initial seed.
@@ -461,6 +467,14 @@ function normalizeTransportStop(raw, fallbackIndex) {
     });
   }
   return stop;
+}
+
+const TRANSPORT_OFF_MAP_SIDES = Object.freeze(['n', 'e', 's', 'w']);
+function normalizeTransportOffMap(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const side = TRANSPORT_OFF_MAP_SIDES.includes(raw.side) ? raw.side : null;
+  const destination = String(raw.destination || '').slice(0, 40);
+  return side && destination ? { side, destination } : null;
 }
 
 function normalizeTransportStats(raw) {
@@ -479,6 +493,8 @@ function normalizeTransportStats(raw) {
     net: Math.round(Number(source.net) || 0),
     quality: transportClamp(source.quality, 0, 1),
     effectiveBuses: Math.max(0, Math.floor(Number(source.effectiveBuses) || 0)),
+    // 區外交通: of the month's riders, those getting on or off at the 區外站
+    offMapPassengers: transportRoundMoney(source.offMapPassengers),
   };
 }
 
@@ -499,6 +515,7 @@ function normalizeTransportRoute(raw, fallbackIndex) {
       cost: transportRoundMoney(entry.cost),
       net: Math.round(Number(entry.net) || 0),
       reliability: transportClamp(entry.reliability, 0, 1),
+      offMapPassengers: transportRoundMoney(entry.offMapPassengers),
     }));
   const vehicleClassId = String(
     raw.vehicleClassId || raw.servicePlan?.vehicleClassId || 'standard_double_decker',
@@ -536,6 +553,7 @@ function normalizeTransportRoute(raw, fallbackIndex) {
     monthToDatePassengers: transportRoundMoney(raw.monthToDatePassengers),
     monthToDateRevenue: transportRoundMoney(raw.monthToDateRevenue),
     monthToDatePassengerTiles: Math.max(0, Number(raw.monthToDatePassengerTiles) || 0),
+    monthToDateOffMapPassengers: transportRoundMoney(raw.monthToDateOffMapPassengers),
   };
 }
 
@@ -910,7 +928,9 @@ function getTransportStopKey(row, col) {
 
 function syncTransportStops() {
   const state = getTransportExpansionState();
-  const byLocation = new Map(state.stops.map((stop) => [getTransportStopKey(stop.row, stop.col), stop]));
+  // (a 區外站 shares its edge tile with no bus stop: it is not one)
+  const byLocation = new Map(state.stops.filter((stop) => !stop.offMap)
+    .map((stop) => [getTransportStopKey(stop.row, stop.col), stop]));
   if (typeof busStopMap !== 'undefined' && busStopMap instanceof Map) {
     // busStopMap keys are already "row:col", the same shape getTransportStopKey produces.
     busStopMap.forEach((sides, key) => {
@@ -940,7 +960,7 @@ function getTransportStopById(id) {
 function getTransportStopAt(row, col, options = {}) {
   if (transportRuntime.dirtyStops) syncTransportStops();
   const stop = getTransportExpansionState().stops.find((entry) => (
-    entry.row === row && entry.col === col
+    !entry.offMap && entry.row === row && entry.col === col
   )) ?? null;
   if (!stop || options.presentOnly !== true) return stop;
   return isTransportStopPresent(stop) ? stop : null;
@@ -948,6 +968,8 @@ function getTransportStopAt(row, col, options = {}) {
 
 function isTransportStopPresent(stop) {
   if (!stop) return false;
+  // a 區外站 stands while its road still leaves the map
+  if (stop.offMap) return getTransportOffMapStopTiles(stop).length > 0;
   const sides = typeof getBusStopSides === 'function' ? getBusStopSides(stop.row, stop.col) : null;
   return Array.isArray(sides) && sides.length > 0;
 }
@@ -998,6 +1020,10 @@ function getTransportStopAutoName(stop) {
 }
 
 function getTransportStopDisplayName(stop, index = 0) {
+  if (stop?.offMap) {
+    const place = typeof getRegionDestinationName === 'function' ? getRegionDestinationName(stop.offMap.destination) : stop.offMap.destination;
+    return typeof t === 'function' ? t('transport.offMap.stopName', { place }) : `To ${place}`;
+  }
   if (stop?.name) return stop.name;
   const auto = getTransportStopAutoName(stop);
   if (auto) {
@@ -1017,6 +1043,7 @@ function renameTransportStop(stopId, name) {
 function listTransportStopSites(options = {}) {
   if (transportRuntime.dirtyStops) syncTransportStops();
   return getTransportExpansionState().stops.filter((stop) => {
+    if (stop.offMap) return false; // not a bus stop on the map
     if (options.presentOnly === false) return true;
     return isTransportStopPresent(stop);
   });
@@ -1037,7 +1064,7 @@ function isTransportStopPaired(stop) {
 function getTransportStopPairingCost(stopIds) {
   return Array.from(new Set(stopIds || [])).reduce((sum, id) => {
     const stop = getTransportStopById(id);
-    if (!stop) return sum;
+    if (!stop || stop.offMap) return sum;
     const sides = typeof getBusStopSides === 'function' ? getBusStopSides(stop.row, stop.col) : null;
     const eligible = typeof getBusStopEligibleSides === 'function'
       ? getBusStopEligibleSides(stop.row, stop.col)
@@ -1049,7 +1076,8 @@ function getTransportStopPairingCost(stopIds) {
 }
 
 function ensureTransportStopPairs(stopIds, scene = (typeof activeScene === 'undefined' ? null : activeScene)) {
-  const uniqueIds = Array.from(new Set(stopIds || []));
+  // a 區外站 has no shelters to pair
+  const uniqueIds = Array.from(new Set(stopIds || [])).filter((id) => !getTransportStopById(id)?.offMap);
   const stops = uniqueIds.map(getTransportStopById).filter(Boolean);
   if (stops.length !== uniqueIds.length) return false;
   if (stops.some((stop) => !isTransportStopPresent(stop))) return false;
@@ -1069,6 +1097,152 @@ function ensureTransportStopPairs(stopIds, scene = (typeof activeScene === 'unde
   }
   markTransportStopsDirty(stops);
   return true;
+}
+
+// ── 區外站 (docs/region-transit-design.md) ───────────────────────────────────
+// A route may end at one stop off the map: buses leave through a region connection's edge road,
+// run the off-map leg out and back while out of sight, and return. The stop sits on the exit tile
+// it was picked at; a dual carriageway's lanes are its other tiles, so a bus can leave on one lane
+// and come back on the other.
+
+const TRANSPORT_OFF_MAP_FADE_TILES = 2;
+
+function getTransportOffMapStopTiles(stop) {
+  if (!stop?.offMap) return [];
+  return typeof getRegionTransitExitTiles === 'function'
+    ? getRegionTransitExitTiles(stop.row, stop.col, stop.offMap.side)
+    : [];
+}
+
+function isTransportStopOnTile(stop, tile) {
+  if (!stop || !tile) return false;
+  if (!stop.offMap) return stop.row === tile.row && stop.col === tile.col;
+  return getTransportOffMapStopTiles(stop).some((entry) => entry.row === tile.row && entry.col === tile.col);
+}
+
+// the off-map leg one way, in tiles (12-60, from the destination's distance)
+function getTransportOffMapLegTiles(stop) {
+  if (!stop?.offMap) return 0;
+  const destination = typeof getRegionDestination === 'function'
+    ? getRegionDestination(stop.offMap.side, stop.offMap.destination) : null;
+  return typeof getRegionTransitLegTiles === 'function' ? getRegionTransitLegTiles(destination?.km ?? 0) : 12;
+}
+
+function getTransportRouteOffMapStop(route) {
+  if (!route?.stopIds?.length) return null;
+  const ends = [route.stopIds[0], route.stopIds[route.stopIds.length - 1]].map(getTransportStopById);
+  return ends.find((stop) => stop?.offMap) ?? null;
+}
+
+// The 區外站 for an exit and a destination: one per pair, shared by every route that uses it.
+function getOrCreateTransportOffMapStop({ row, col, side, destination } = {}) {
+  const offMap = normalizeTransportOffMap({ side, destination });
+  if (!offMap || !Number.isFinite(Number(row)) || !Number.isFinite(Number(col))) return null;
+  const state = getTransportExpansionState();
+  const tiles = typeof getRegionTransitExitTiles === 'function' ? getRegionTransitExitTiles(row, col, side) : [];
+  const existing = state.stops.find((stop) => stop.offMap
+    && stop.offMap.side === offMap.side && stop.offMap.destination === offMap.destination
+    && tiles.some((tile) => tile.row === stop.row && tile.col === stop.col));
+  if (existing) return existing;
+  const stop = {
+    id: `stop-${state.nextStopId++}`,
+    row: Math.floor(Number(row)),
+    col: Math.floor(Number(col)),
+    name: '',
+    createdTick: Math.max(0, Number(typeof city === 'undefined' ? 0 : city.tick) || 0),
+    waitingPassengers: 0,
+    stormBacklog: 0,
+    offMap,
+  };
+  state.stops.push(stop);
+  return stop;
+}
+
+// 區外站 no route uses any more go (they are not on the map to see)
+function pruneTransportOffMapStops() {
+  const state = getTransportExpansionState();
+  const used = new Set(state.routes.flatMap((route) => route.stopIds));
+  for (let index = state.stops.length - 1; index >= 0; index--) {
+    if (state.stops[index].offMap && !used.has(state.stops[index].id)) state.stops.splice(index, 1);
+  }
+}
+
+// Riders at a 區外站, in the units every stop's catchment counts (getTransportStopCatchmentUnits):
+// - getting off: a share (more to a district with more jobs) of all trips along its routes, so
+//   its draw beside the route's other stops comes to that share;
+// - the evening back: those same residents coming home;
+// - the morning in: outsiders riding to the jobs and sights along the routes.
+function getTransportOffMapStopUnits(stop) {
+  const shares = typeof getRegionTransitRiderShares === 'function'
+    ? getRegionTransitRiderShares(stop.offMap.destination) : { out: 0.25, in: 0.15 };
+  const state = getTransportExpansionState();
+  const along = new Map();
+  for (const route of state.routes) {
+    if (route.status === 'suspended' || !route.stopIds.includes(stop.id)) continue;
+    for (const id of route.stopIds) {
+      const other = getTransportStopById(id);
+      if (other && !other.offMap) along.set(other.id, other);
+    }
+  }
+  let origin = 0;
+  let destination = 0;
+  along.forEach((other) => {
+    const units = getTransportStopCatchmentUnits(other);
+    origin += units.originUnits;
+    destination += units.destinationUnits;
+  });
+  const out = transportClamp(shares.out, 0, 0.9);
+  const draw = (origin + destination) * out / (1 - out);
+  const originUnits = destination * TRANSPORT_RIDER_SHARE * Math.max(0, shares.in);
+  return {
+    originUnits,
+    destinationUnits: Math.max(0, draw - originUnits),
+    returnUnits: origin * out,
+    residents: 0,
+  };
+}
+
+// The bus routes off the map, for the region flows (region-connections.js): last month's riders
+// at their 區外站 by destination, and what their buses can carry in a month.
+function getTransportOffMapSummary() {
+  const summary = { mode: 'bus', lines: 0, riders: 0, capacity: 0, byDestination: {} };
+  if (!isTransportExpansionActive()) return summary;
+  ensureTransportRouteRuntime();
+  for (const route of getTransportExpansionState().routes) {
+    const stop = getTransportRouteOffMapStop(route);
+    const runtime = transportRuntime.routeRuntime.get(route.id);
+    if (!stop || runtime?.status !== 'active') continue;
+    const riders = Math.max(0, Number(route.history.at(-1)?.offMapPassengers) || 0);
+    const vehicleClass = getTransportVehicleClass(route.vehicleClassId);
+    summary.lines += 1;
+    summary.riders += riders;
+    summary.capacity += Math.max(0, runtime.effectiveBuses || 0) * vehicleClass.monthlyRidershipCap;
+    summary.byDestination[stop.offMap.destination] = (summary.byDestination[stop.offMap.destination] || 0) + riders;
+  }
+  return summary;
+}
+
+// How much of a bus shows as it nears the 區外站: fading out over the last two tiles, gone while
+// off the map, back in over the first two (1 = all of it).
+function getTransportVehicleOffMapAlpha(vehicle, route = null, runtime = null) {
+  const assignedRoute = route || getTransportExpansionState().routes.find((entry) => entry.id === vehicle?.routeId);
+  if (!vehicle || !getTransportRouteOffMapStop(assignedRoute)) return 1;
+  const routeRuntime = runtime || transportRuntime.routeRuntime.get(assignedRoute.id);
+  const position = getTransportVehiclePathPosition(vehicle, assignedRoute, routeRuntime);
+  if (!position) return 1;
+  const cycleStops = getTransportRouteCycleStops(assignedRoute);
+  const indices = getTransportRouteCycleStopPathIndices(assignedRoute, routeRuntime);
+  const length = position.path.length;
+  const at = position.currentIndex + position.progress;
+  let nearest = Infinity;
+  cycleStops.forEach((stop, order) => {
+    if (!stop.offMap) return;
+    const index = indices[order];
+    const ahead = ((index - at) % length + length) % length;
+    const behind = ((at - index) % length + length) % length;
+    nearest = Math.min(nearest, ahead, behind);
+  });
+  return transportClamp(nearest / TRANSPORT_OFF_MAP_FADE_TILES, 0, 1);
 }
 
 function getTransportDepotFrontageTiles(anchorId, record) {
@@ -1405,7 +1579,8 @@ function getTransportRouteFareDistanceCap(route) {
   if (!route) return 1;
   ensureTransportRouteRuntime();
   const runtime = transportRuntime.routeRuntime.get(route.id);
-  return Math.max(1, (runtime?.path?.length || 2) - 1);
+  // a route off the map charges for its leg out there too
+  return Math.max(1, (runtime?.path?.length || 2) - 1) + getTransportOffMapLegTiles(getTransportRouteOffMapStop(route));
 }
 
 function calculateTransportFareRevenue(passengers, farePerTile, distanceTiles) {
@@ -1424,6 +1599,11 @@ function dwellTransportVehicleAtStop(vehicle, route, stop) {
   vehicle.tripRevenueAccrued = 0;
   vehicle.tripRevenueSerial = (Math.max(0, Math.floor(Number(vehicle.tripRevenueSerial) || 0))) + 1;
 
+  const legTiles = getTransportOffMapLegTiles(stop);
+  if (legTiles > 0 && vehicle.passengersAboard > 0) {
+    vehicle.passengerDistanceTiles = Math.max(0, Number(vehicle.passengerDistanceTiles) || 0)
+      + vehicle.passengersAboard * legTiles;
+  }
   if (vehicle.passengersAboard > 0) {
     const stops = route.stopIds.map(getTransportStopById).filter(Boolean);
     let totalDestinationUnits = 0;
@@ -1464,6 +1644,7 @@ function dwellTransportVehicleAtStop(vehicle, route, stop) {
       route.monthToDateRevenue += revenue;
       route.monthToDatePassengerTiles = Math.max(0, Number(route.monthToDatePassengerTiles) || 0)
         + alighting * chargeableDistanceTiles;
+      if (stop.offMap) route.monthToDateOffMapPassengers = (Number(route.monthToDateOffMapPassengers) || 0) + alighting;
     }
   }
 
@@ -1481,6 +1662,10 @@ function dwellTransportVehicleAtStop(vehicle, route, stop) {
     vehicle.passengersAboard += boarding;
     vehicle.boardingsThisMonth = Math.max(0, Math.floor(Number(vehicle.boardingsThisMonth) || 0)) + boarding;
     setTransportStopWaitingCount(stop, waitingPool - boarding);
+    if (legTiles > 0) {
+      vehicle.passengerDistanceTiles = Math.max(0, Number(vehicle.passengerDistanceTiles) || 0) + boarding * legTiles;
+      route.monthToDateOffMapPassengers = (Number(route.monthToDateOffMapPassengers) || 0) + boarding;
+    }
   }
 }
 
@@ -1731,8 +1916,20 @@ function buildTransportRoutePathResult(stopIds, getNeighbours = (
   const stops = (stopIds || []).map(getTransportStopById).filter(Boolean);
   if (stops.length < 2 || typeof getNeighbours !== 'function') return { path: null, brokenPoint: null };
   const combined = [];
+  // a 區外站 is reached at whichever lane of its exit has a way (a carriageway's lanes are one-way)
+  const tilesOf = (stop) => (stop.offMap ? getTransportOffMapStopTiles(stop) : [stop]);
+  const shortest = (from, to) => {
+    let best = null;
+    for (const a of tilesOf(from)) {
+      for (const b of tilesOf(to)) {
+        const found = findTransportPath(a, b, getNeighbours);
+        if (found && found.length >= 2 && (!best || found.length < best.length)) best = found;
+      }
+    }
+    return best;
+  };
   for (let index = 0; index < stops.length - 1; index++) {
-    const segment = findTransportPath(stops[index], stops[index + 1], getNeighbours);
+    const segment = shortest(stops[index], stops[index + 1]);
     if (!segment || segment.length < 2) {
       return {
         path: null,
@@ -1767,6 +1964,10 @@ function validateTransportRouteDraft(draft) {
   const stops = stopIds.map(getTransportStopById);
   if (stops.some((stop) => !stop)) throw createTransportError('missingStop');
   if (stops.some((stop) => !isTransportStopPresent(stop))) throw createTransportError('missingStop');
+  // 區外站 (Norton 2026-11-19): one at most, and only at an end of the route
+  const offMapAt = stops.map((stop, index) => (stop.offMap ? index : -1)).filter((index) => index >= 0);
+  if (offMapAt.length > 1) throw createTransportError('offMapOne');
+  if (offMapAt.length === 1 && offMapAt[0] !== 0 && offMapAt[0] !== stops.length - 1) throw createTransportError('offMapEnds');
   // A stop with only one road-shoulder shelter built is still a valid,
   // one-sided stop - the pathfinder only needs to reach its tile, it never
   // reasons about which curb a shelter sits on. Requiring both sides here
@@ -1803,6 +2004,7 @@ function createTransportRoute(draft = {}) {
     servicePlan: draft.servicePlan,
   }, state.routes.length);
   state.routes.push(route);
+  pruneTransportOffMapStops();
   markTransportRouteDirty(route.id);
   updateTransportSimulation();
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
@@ -1819,6 +2021,7 @@ function updateTransportRoute(routeId, draft = {}) {
   route.stopIds = valid.stopIds;
   route.fare = valid.fare;
   route.pickupPassthroughStops = valid.pickupPassthroughStops;
+  pruneTransportOffMapStops();
   markTransportRouteDirty(route.id);
   updateTransportSimulation();
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
@@ -1847,6 +2050,7 @@ function deleteTransportRoute(routeId) {
     if (vehicle.status === 'active') vehicle.status = 'delivering_to_depot';
   }
   transportRuntime.routeRuntime.delete(routeId);
+  pruneTransportOffMapStops();
   markTransportRouteDirty(routeId);
   updateTransportSimulation();
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
@@ -2008,10 +2212,17 @@ function getTransportCatchmentIndex(now = Date.now()) {
 }
 
 function getTransportStopCatchmentUnits(stop) {
+  // a stand-in stop whose riders are worked out elsewhere (a ferry route's far end off the map)
+  if (stop?.fixedUnits) return stop.fixedUnits;
   if (!stop || typeof buildingData === 'undefined') {
     return { originUnits: 0, destinationUnits: 0, returnUnits: 0, residents: 0 };
   }
   const index = getTransportCatchmentIndex();
+  if (stop.offMap) {
+    const key = `offmap:${stop.id}`;
+    if (!index.stops.has(key)) index.stops.set(key, getTransportOffMapStopUnits(stop));
+    return index.stops.get(key);
+  }
   // (a stop may reach further than a bus stop's: a ferry pier's riders walk to it - ferry.js)
   const radius = Number(stop.radius) > 0 ? Number(stop.radius) : TRANSPORT_STOP_CATCHMENT_RADIUS;
   // (and only some of the tiles in reach: a pier counts its own shore, not the far one - ferry.js)
@@ -2068,7 +2279,7 @@ function getTransportRouteCycleStopPathIndices(route, runtime) {
   for (const stop of cycleStops) {
     let found = -1;
     for (let index = searchFrom; index < path.length; index++) {
-      if (path[index].row === stop.row && path[index].col === stop.col) {
+      if (isTransportStopOnTile(stop, path[index])) {
         found = index;
         break;
       }
@@ -2169,6 +2380,12 @@ function advanceTransportVehiclesByDisplayMinutes(displayMinutes, scene = null) 
     const arriveAt = (stop) => {
       dwellTransportVehicleAtStop(vehicle, route, stop);
       vehicle.dwellMinutesRemaining = TRANSPORT_MINUTES_PER_STOP;
+      // 區外站: the leg out and back, run off the map at the bus's own pace
+      const legTiles = getTransportOffMapLegTiles(stop);
+      if (legTiles > 0) {
+        vehicle.dwellMinutesRemaining += legTiles * 2 * minutesPerTile;
+        travelled += legTiles * 2;
+      }
     };
     while (minutesRemaining > 0.000001 && transitions < 1000) {
       // still standing at the last stop
@@ -2763,6 +2980,7 @@ function settleTransportMonth() {
       cost: routeCost,
       net: Math.round(route.monthToDateRevenue - routeCost),
       reliability: route.lastStats.reliability,
+      offMapPassengers: transportRoundMoney(route.monthToDateOffMapPassengers),
     });
     if (route.history.length > TRANSPORT_HISTORY_LIMIT) {
       route.history.splice(0, route.history.length - TRANSPORT_HISTORY_LIMIT);
@@ -2770,6 +2988,7 @@ function settleTransportMonth() {
     route.monthToDatePassengers = 0;
     route.monthToDateRevenue = 0;
     route.monthToDatePassengerTiles = 0;
+    route.monthToDateOffMapPassengers = 0;
   }
   for (const vehicle of state.vehicles) {
     vehicle.tilesThisMonth = 0;

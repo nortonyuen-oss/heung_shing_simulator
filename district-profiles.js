@@ -55,6 +55,9 @@ const DISTRICT_PROFILES = Object.freeze({
   'yuen-long': { demandR: 1, demandC: -1, traffic: 1, cost: -2, heightCap: 'medium' },
   'tin-shui-wai': { demandR: 2, demandC: -1, demandI: -1, wealth: -2, jobs: -1, cost: -2, environment: 1, heightCap: 'high' },
   lantau: { demandI: -1, traffic: -1, tourism: 2, cost: 1, environment: 2, heightCap: 'medium' },
+  // the airport: the world's gateway and its cargo, the noise of the flights, and the height limits
+  // under the approach
+  'chek-lap-kok': { demandC: 1, demandI: 1, traffic: 1, tourism: 2, jobs: 1, cost: 1, environment: -1, heightCap: 'medium' },
   lamma: { demandC: -1, demandI: -2, traffic: -2, tourism: 1, environment: 2, heightCap: 'low' },
   'tuen-mun': { demandR: 1, demandI: 1, traffic: 1, wealth: -1, cost: -1, environment: -1, heightCap: 'high' },
   'tsing-yi': { demandI: 2, taxI: 1, traffic: 1, wealth: -1, jobs: 1, environment: -2, heightCap: 'high' },

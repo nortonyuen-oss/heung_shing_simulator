@@ -147,6 +147,22 @@ function createGameApp(options = {}) {
     res.json({ path: path.relative(rootDir, target), bytes: Buffer.byteLength(json) });
   });
 
+  // Development only: a 《玩轉18區》 chapter's start city (campaign.js exportCampaignStart).
+  app.post('/api/dev/campaign-start/:chapter', (req, res) => {
+    if (!options.allowDevExports) return res.status(404).json({ error: 'not available' });
+    const chapter = String(req.params.chapter || '');
+    const body = req.body;
+    if (!/^ch(0[1-9]|1[0-8])$/.test(chapter) || !body || body.format !== 'heung-shing-campaign-start'
+      || body.chapterId !== chapter || !body.save_data || typeof body.save_data !== 'object') {
+      return res.status(400).json({ error: 'expected a campaign start payload' });
+    }
+    const target = path.join(rootDir, 'UI', 'campaign', `${chapter}.json`);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    const json = JSON.stringify(body);
+    fs.writeFileSync(target, json);
+    res.json({ path: path.relative(rootDir, target), bytes: Buffer.byteLength(json) });
+  });
+
   // Development only: the 海上燈光校正 tool (sea-light-calibrator.js) edits the sea light profiles
   // in the checked-in file scripts/bake-typhoon-shelter-textures.js bakes from, so calibrating and
   // baking need no copy-paste step. It reads the raw baked day textures through its own route: in
@@ -649,20 +665,24 @@ function createGameApp(options = {}) {
   }
   });
 
-  // 洋紫荊勳章 (medals.js): the player's medal cabinet, shared by every city save.
-  app.get('/api/player-profile/medals', (_req, res) => {
+  // The player's own records, shared by every city save: 洋紫荊勳章 (medals.js) and 《玩轉18區》
+  // progress (campaign.js).
+  const PLAYER_PROFILE_KEYS = new Set(['medals', 'campaign']);
+  app.get('/api/player-profile/:key', (req, res) => {
+    if (!PLAYER_PROFILE_KEYS.has(req.params.key)) return res.status(404).json({ error: 'unknown profile' });
     try {
-      res.json({ data: store.getPlayerProfile('medals') });
+      res.json({ data: store.getPlayerProfile(req.params.key) });
     } catch (e) {
-      sendStoreError(res, e, 'GET /api/player-profile/medals');
+      sendStoreError(res, e, 'GET /api/player-profile/:key');
     }
   });
 
-  app.put('/api/player-profile/medals', (req, res) => {
+  app.put('/api/player-profile/:key', (req, res) => {
+    if (!PLAYER_PROFILE_KEYS.has(req.params.key)) return res.status(404).json({ error: 'unknown profile' });
     try {
-      res.json(store.putPlayerProfile('medals', req.body?.data));
+      res.json(store.putPlayerProfile(req.params.key, req.body?.data));
     } catch (e) {
-      sendStoreError(res, e, 'PUT /api/player-profile/medals');
+      sendStoreError(res, e, 'PUT /api/player-profile/:key');
     }
   });
 

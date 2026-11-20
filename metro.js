@@ -102,7 +102,9 @@ function normalizeMetroState(raw) {
   const stationIds = new Set(stations.map((s) => s.id));
   const lines = (Array.isArray(src.lines) ? src.lines : []).map((l, i) => {
     const ids = (Array.isArray(l?.stationIds) ? l.stationIds : []).map(String).filter((id) => stationIds.has(id));
-    if (!l?.id || ids.length < 2) return null;
+    // 區外站 (docs/region-transit-design.md): an underground line's far end off the map, past its last station
+    const offMap = l?.surface === true ? null : normalizeMetroOffMap(l?.offMap, queues);
+    if (!l?.id || ids.length < (offMap ? 1 : 2)) return null;
     return {
       id: String(l.id).slice(0, 40),
       name: String(l.name || '').slice(0, 40),
@@ -111,6 +113,7 @@ function normalizeMetroState(raw) {
       status: l.status === 'suspended' ? 'suspended' : 'active',
       // 第三期: runs on the surface track between surface stations (metro-surface-lines.js)
       ...(l.surface === true ? { surface: true } : {}),
+      ...(offMap ? { offMap } : {}),
       // its trains' livery (Norton, 2026-11-06): 'm' the urban lines' M-Train, 'k' the 東鐵 黃頭
       livery: l.livery === 'k' ? 'k' : 'm',
       // its opening news (香城討論區) still to come - only a line drawn since that began; older ones
@@ -120,10 +123,12 @@ function normalizeMetroState(raw) {
       monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
       // of the riders boarding, those changing from another line at a 轉車站
       monthToDateTransfers: Math.max(0, num(l.monthToDateTransfers)),
+      monthToDateOffMapPassengers: Math.max(0, num(l.monthToDateOffMapPassengers)),
       history: (Array.isArray(l.history) ? l.history : []).slice(-24).map((h) => ({
         year: Math.floor(num(h?.year)), month: Math.floor(num(h?.month)),
         passengers: Math.max(0, Math.floor(num(h?.passengers))),
         transfers: Math.max(0, Math.floor(num(h?.transfers))),
+        offMapPassengers: Math.max(0, Math.floor(num(h?.offMapPassengers))),
         revenue: num(h?.revenue), cost: num(h?.cost), net: num(h?.net),
       })),
     };
@@ -177,6 +182,16 @@ function normalizeMetroState(raw) {
     trackElev: Object.fromEntries(Object.entries(src.trackElev && typeof src.trackElev === 'object' && !Array.isArray(src.trackElev) ? src.trackElev : {})
       .filter(([k, v]) => /^\d+:\d+$/.test(k) && typeof v === 'string' && /^(d\d?|[1-5][nesw]|u|p[1-4][nesw]|t\d|T\d[nesw])$/.test(v))),
   };
+}
+
+// A line's far end off the map: the district, the map edge it leaves by and the edge tile there,
+// and the riders waiting out there (as a station's queues).
+function normalizeMetroOffMap(raw, queues = (x) => ({ ...(x || {}) })) {
+  if (!raw || typeof raw !== 'object' || !METRO_DIRS[raw.side]) return null;
+  const destination = String(raw.destination || '').slice(0, 40);
+  const row = Math.floor(Number(raw.row)); const col = Math.floor(Number(raw.col));
+  if (!destination || !Number.isFinite(row) || !Number.isFinite(col)) return null;
+  return { side: raw.side, destination, row, col, waitingByLine: queues(raw.waitingByLine), transferByLine: queues(raw.transferByLine) };
 }
 
 function getMetroState() {
@@ -291,6 +306,95 @@ function getMetroStationLine(station, state = getMetroState()) {
 
 function getMetroLineStations(line, state = getMetroState()) {
   return line.stationIds.map((id) => getMetroStationById(id, state)).filter(Boolean);
+}
+
+// ── 區外站 (docs/region-transit-design.md) ─────────────────────────────────────
+// A line's far end off the map stands as a stop past its last station: straight on through the
+// edge tile it leaves by, as far again out there as the leg off the map (4 tiles a km, 12-60) - so
+// the timetable, the fares by the tile and the trains' places come from the stops as they are.
+
+const METRO_OFF_MAP_FADE_TILES = 2;
+
+function getMetroOffMapLegTiles(offMap) {
+  const destination = typeof getRegionDestination === 'function' ? getRegionDestination(offMap.side, offMap.destination) : null;
+  return typeof getRegionTransitLegTiles === 'function' ? getRegionTransitLegTiles(destination?.km ?? 0) : 12;
+}
+
+function getMetroOffMapName(offMap) {
+  const place = typeof getRegionDestinationName === 'function' ? getRegionDestinationName(offMap.destination) : offMap.destination;
+  return metroT('transport.offMap.stopName', '往{place}（區外）', { place });
+}
+
+// The far end as a stop: past the edge, in line with the last station. Pure but for the names.
+function metroOffMapStop(line, last, legTiles) {
+  const { offMap } = line;
+  const dr = offMap.row - last.row; const dc = offMap.col - last.col;
+  const length = Math.hypot(dr, dc);
+  const [ur, uc] = length > 1e-6 ? [dr / length, dc / length] : METRO_DIRS[offMap.side];
+  return {
+    id: `offmap-${line.id}`, offMap: true, name: getMetroOffMapName(offMap),
+    row: offMap.row + ur * legTiles, col: offMap.col + uc * legTiles,
+    edgeRow: offMap.row, edgeCol: offMap.col,
+    waitingByLine: offMap.waitingByLine, transferByLine: offMap.transferByLine,
+  };
+}
+
+// The stops a line's trains call at, in order: its stations, then the far end off the map.
+function getMetroLineStops(line, state = getMetroState()) {
+  const stations = getMetroLineStations(line, state);
+  if (!line?.offMap || !stations.length) return stations;
+  return [...stations, metroOffMapStop(line, stations[stations.length - 1], getMetroOffMapLegTiles(line.offMap))];
+}
+
+// The edge tile a click near the map edge means (within `reach`), and that edge's side; null when none.
+function getMetroEdgeExitNear(row, col, reach = 3) {
+  if (typeof MAP_WIDTH === 'undefined') return null;
+  let best = null;
+  const consider = (side, r, c) => {
+    if (Math.max(Math.abs(r - row), Math.abs(c - col)) > reach) return;
+    const distance = Math.hypot(r - row, c - col);
+    if (!best || distance < best.distance) best = { side, row: r, col: c, distance };
+  };
+  for (let i = 0; i < MAP_WIDTH; i++) { consider('n', 0, i); consider('s', MAP_HEIGHT - 1, i); }
+  for (let i = 0; i < MAP_HEIGHT; i++) { consider('w', i, 0); consider('e', i, MAP_WIDTH - 1); }
+  return best;
+}
+
+// How much of a train dot shows near the edge it leaves by (1 = all; 0 off the map).
+function getMetroOffMapAlpha(point, side) {
+  const distance = { n: point.r + 0.5, s: MAP_HEIGHT - 0.5 - point.r, w: point.c + 0.5, e: MAP_WIDTH - 0.5 - point.c }[side];
+  return Math.max(0, Math.min(1, distance / METRO_OFF_MAP_FADE_TILES));
+}
+
+// The lines off the map, for the region flows (region-connections.js): last month's riders off and
+// on at the far end, by destination, and what the trains can carry a month.
+function getMetroOffMapSummary() {
+  const summary = { mode: 'metro', lines: 0, riders: 0, capacity: 0, byDestination: {} };
+  if (typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()) return summary;
+  const state = getMetroState();
+  state.lines.forEach((line) => {
+    if (!line.offMap || line.status !== 'active') return;
+    const schedule = getMetroLineSchedule(line, state);
+    if (!schedule) return;
+    const riders = Math.max(0, Number(line.history?.at(-1)?.offMapPassengers) || 0);
+    const trains = getMetroLineTrains(line, state).length;
+    summary.lines += 1;
+    summary.riders += riders;
+    // round trips in the nineteen running hours of a month's sky-day, a load each way
+    summary.capacity += Math.round(trains * METRO.trainCapacity * 2 * ((19 * 60) / schedule.cycle));
+    summary.byDestination[line.offMap.destination] = (summary.byDestination[line.offMap.destination] || 0) + riders;
+  });
+  return summary;
+}
+
+// The district a line off the map runs to (the routes window's list).
+function setMetroLineOffMapDestination(lineId, destination) {
+  const line = getMetroState().lines.find((l) => l.id === lineId);
+  if (!line?.offMap || !destination) return false;
+  line.offMap.destination = String(destination).slice(0, 40);
+  metroNetworkRevision += 1;
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return true;
 }
 
 function getMetroLineTrains(line, state = getMetroState()) {
@@ -469,15 +573,26 @@ let metroLineDraft = null;   // { lineId } of the line being drawn, { firstStati
 function handleMetroLineClick(scene, row, col) {
   const say = (key, fallback, vars = {}, kind = 'info') => { if (typeof showToast === 'function') showToast(metroT(key, fallback, vars), kind); return kind !== 'warning'; };
   const station = getMetroStationAt(row, col);
-  if (!station) return say('metro.line.pickStation', '撳一個地鐵站。', {}, 'warning');
   const state = getMetroState();
   const draftLine = metroLineDraft?.lineId ? state.lines.find((l) => l.id === metroLineDraft.lineId) : null;
   const pending = metroLineDraft?.firstStationId && !draftLine ? getMetroStationById(metroLineDraft.firstStationId, state) : null;
+  if (!station) {
+    // 區外站: while a line is being drawn, the map edge carries it on off the map
+    const exit = draftLine || pending ? getMetroEdgeExitNear(row, col) : null;
+    if (exit) return addMetroOffMapEnd(exit, draftLine, pending, say);
+    return say('metro.line.pickStation', '撳一個地鐵站。', {}, 'warning');
+  }
 
   // nothing being drawn: carry on a line that ends here, or start a new line here
   if (!draftLine && !pending) {
+    // (a line off the map ends past its last station: only its first is free)
     const ending = metroLineDraft?.forceNew ? null
-      : getMetroStationLines(station, state).find((l) => l.stationIds[0] === station.id || l.stationIds.at(-1) === station.id);
+      : getMetroStationLines(station, state).find((l) => l.stationIds[0] === station.id || (!l.offMap && l.stationIds.at(-1) === station.id));
+    if (ending?.offMap) {
+      // carry on from its first station, adding stations at the front
+      metroLineDraft = { lineId: ending.id, prepend: true };
+      return say('metro.line.extend', '延長「{line}」：撳下一個站；再撳「{name}」完成。', { line: ending.name, name: station.name });
+    }
     if (ending) {
       // carry on from this end: make it the last station
       if (ending.stationIds[0] === station.id && ending.stationIds.length > 1) ending.stationIds.reverse();
@@ -487,10 +602,11 @@ function handleMetroLineClick(scene, row, col) {
     }
     if (state.lines.length >= METRO.maxLines) { metroLineDraft = null; return say('metro.line.max', '地鐵綫數目已經到上限。', {}, 'warning'); }
     metroLineDraft = { firstStationId: station.id };
-    return say('metro.line.pickSecond', '由「{name}」開出：撳下一個站。', { name: station.name });
+    return say('metro.line.pickSecond', '由「{name}」開出：撳下一個站，或者地圖邊（開去區外）。', { name: station.name });
   }
 
-  const last = draftLine ? getMetroStationById(draftLine.stationIds.at(-1), state) : pending;
+  const prepend = !!(draftLine && metroLineDraft?.prepend);
+  const last = draftLine ? getMetroStationById(prepend ? draftLine.stationIds[0] : draftLine.stationIds.at(-1), state) : pending;
   if (last.id === station.id) { metroLineDraft = null; if (draftLine) announceMetroLineOpened(draftLine); return say('metro.line.done', '完成。'); }
   if (draftLine?.stationIds.includes(station.id)) {
     return say('metro.line.again', '「{line}」已經經過「{name}」：一條綫唔可以經同一個站兩次。', { line: draftLine.name, name: station.name }, 'warning');
@@ -514,7 +630,8 @@ function handleMetroLineClick(scene, row, col) {
   const interchange = getMetroStationLines(station, state).length > 0;
   if (interchange) say('metro.line.interchange', '「{name}」變成轉車站：乘客可以喺度轉綫。', { name: station.name }, 'success');
   if (draftLine) {
-    draftLine.stationIds.push(station.id);
+    if (prepend) draftLine.stationIds.unshift(station.id);
+    else draftLine.stationIds.push(station.id);
     metroNetworkRevision += 1;
     if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
     if (station.surface) return say('metro.line.extendedSurface', '「{line}」延長到「{name}」（沿路軌）。撳下一個站，或者再撳「{name}」完成。', { line: draftLine.name, name: station.name }, 'success');
@@ -541,6 +658,46 @@ function handleMetroLineClick(scene, row, col) {
     : say('metro.line.openedNoTrain', '「{line}」開咗，但公司資金唔夠買列車（${price}）：喺運輸公司路線表加車。', { line: line.name, price: METRO.trainPrice.toLocaleString() }, 'warning');
 }
 
+// The line being drawn carries on off the map, through the edge tile picked, to the nearest
+// district that way (picked again on the line's card): the drawing ends there. Underground lines
+// only (a surface line's track would have to reach the edge - later). The tunnel to the edge and on
+// out there is paid for as any.
+function addMetroOffMapEnd(exit, draftLine, pending, say) {
+  const state = getMetroState();
+  const last = draftLine ? getMetroStationById(draftLine.stationIds.at(-1), state) : pending;
+  if (!last) return false;
+  if (last.surface || draftLine?.surface) return say('metro.line.offMapSurface', '地面綫暫時未可以開出區外：請用地底站。', {}, 'warning');
+  if (draftLine?.offMap || metroLineDraft?.prepend) return say('metro.line.offMapOne', '「{line}」已經開出區外：一條綫只可以有一個區外站。', { line: draftLine?.name || '' }, 'warning');
+  if (!draftLine && state.lines.length >= METRO.maxLines) { metroLineDraft = null; return say('metro.line.max', '地鐵綫數目已經到上限。', {}, 'warning'); }
+  const destination = typeof getRegionDestinations === 'function' ? getRegionDestinations()[exit.side]?.[0]?.id || 'generic' : 'generic';
+  const offMap = normalizeMetroOffMap({ side: exit.side, destination, row: exit.row, col: exit.col });
+  const legTiles = getMetroOffMapLegTiles(offMap);
+  const tunnel = metroTunnelBetween(last, exit, metroIsSea);
+  const cost = tunnel.cost + Math.round(legTiles * METRO.tunnelCostPerLandTile);
+  if (!spendMetroFunds(cost)) return say('metro.line.funds', '公司資金唔夠掘隧道（要 ${cost}）。', { cost: cost.toLocaleString() }, 'warning');
+  const place = getMetroOffMapName(offMap);
+  let line = draftLine;
+  if (!line) {
+    const index = state.lines.length;
+    line = {
+      id: `line-${state.nextId++}`,
+      name: metroT(`metro.line.defaultName${index % 8}`, ['荃灣綫', '港島綫', '觀塘綫', '東涌綫', '將軍澳綫', '南港島綫', '屯馬綫', '東鐵綫'][index % 8]),
+      color: METRO_LINE_COLORS[state.lines.length % METRO_LINE_COLORS.length],
+      stationIds: [pending.id],
+      status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, monthToDateTransfers: 0, history: [],
+      newsPending: true,
+    };
+    state.lines.push(line);
+  }
+  line.offMap = offMap;
+  metroLineDraft = null;
+  metroNetworkRevision += 1;
+  if (!draftLine) buyMetroTrain(line.id);
+  announceMetroLineOpened(line, state);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return say('metro.line.offMapAdded', '「{line}」開出區外：{place}（隧道 ${cost}）。目的地可以喺路線表改。', { line: line.name, place, cost: cost.toLocaleString() }, 'success');
+}
+
 function cancelMetroLineDraft() {
   const draftLine = metroLineDraft?.lineId ? getMetroState().lines.find((l) => l.id === metroLineDraft.lineId) : null;
   metroLineDraft = null;
@@ -555,12 +712,12 @@ function announceMetroLineOpened(line, state = getMetroState()) {
   if (metroLineDraft?.lineId === line.id) return false;
   delete line.newsPending;
   if (typeof addForumPost !== 'function') return false;
-  const stations = getMetroLineStations(line, state);
+  const stations = getMetroLineStops(line, state);
   if (stations.length < 2) return false;
   const cityName = String(city.name || '').trim() || '香城';
   const lineName = String(line.name || '').trim() || '新地鐵綫';
   const from = stations[0].name, to = stations.at(-1).name;
-  const kinds = new Set(stations.map((s) => (s.elevated ? '高架' : s.surface && !s.underground ? '地面' : '地底')));
+  const kinds = new Set(stations.filter((s) => !s.offMap).map((s) => (s.elevated ? '高架' : s.surface && !s.underground ? '地面' : '地底')));
   const kindText = kinds.size > 1 ? `${[...kinds].join('、')}站都有` : `全部係${[...kinds][0]}站`;
   const headline = `【${lineName}通車】「${lineName.replace(/綫$|線$/, '')}開通真的很興奮」　鐵路迷小朋友受訪即場獻唱爆紅`;
   if (typeof addCityNews === 'function') addCityNews(headline);
@@ -568,7 +725,7 @@ function announceMetroLineOpened(line, state = getMetroState()) {
     headline,
     image: 'UI/news/metroOpens.webp',
     body: [
-      `${cityName}${lineName}今日正式通車，由「${from}」開往「${to}」，全綫 ${stations.length} 個站，${kindText}。頭班車未開，月台已經企滿專登嚟搭頭班車嘅市民同鐵路迷。`,
+      `${cityName}${lineName}今日正式通車，由「${from}」開往「${to}」，全綫 ${stations.filter((s) => !s.offMap).length} 個站，${kindText}。頭班車未開，月台已經企滿專登嚟搭頭班車嘅市民同鐵路迷。`,
       `電視台記者喺月台訪問一位揹住相機嘅鐵路迷小朋友，佢一開口就興奮到唱起上嚟：「${lineName.replace(/綫$|線$/, '')}開通真的很興奮！」片段喺網上瘋傳，一日內轉載過萬次，成為全城熱話。`,
       '運輸公司表示，新綫車費按距離計，車站附近嘅樓價預計都會升；有街坊話以後返工終於唔使再喺巴士站企成個鐘。',
     ],
@@ -683,7 +840,8 @@ let metroNetworkRevision = 0;
 const metroScheduleCache = new Map();
 
 function getMetroLineSchedule(line, state = getMetroState()) {
-  const stations = getMetroLineStations(line, state);
+  // (a line off the map runs on to its far end, past the edge)
+  const stations = getMetroLineStops(line, state);
   if (stations.length < 2) return null;
   const key = `${metroNetworkRevision}|${line.id}|${stations.map((s) => `${s.row},${s.col}`).join(';')}|${line.surface ? (typeof metroTrackRevisionKey === 'function' ? metroTrackRevisionKey() : '') : ''}`;
   if (metroScheduleCache.has(key)) return metroScheduleCache.get(key);
@@ -805,6 +963,24 @@ function accrueMetroStationsForHour(state, envHour) {
       station.waitingByLine[lineId] = Math.min(99999, (station.waitingByLine[lineId] || 0) + riders * (n / total));
     });
   });
+  // 區外站: in the morning outsiders riding in to the jobs along the line, in the evening its
+  // residents coming home - a stand-in stop with its units fixed (as a ferry's far end)
+  active.forEach((line) => {
+    if (!line.offMap) return;
+    const end = line.offMap;
+    if (hour === resetHour) { end.waitingByLine = {}; end.transferByLine = {}; }
+    let origin = 0; let jobs = 0;
+    getMetroLineStations(line, state).forEach((station) => {
+      const units = typeof getTransportStopCatchmentUnits === 'function' ? getTransportStopCatchmentUnits(metroStationCatchmentPoint(station)) : null;
+      origin += units?.originUnits || 0;
+      jobs += units?.destinationUnits || 0;
+    });
+    const shares = typeof getRegionTransitRiderShares === 'function' ? getRegionTransitRiderShares(end.destination) : { out: 0.25, in: 0.15 };
+    const riderShare = typeof TRANSPORT_RIDER_SHARE === 'number' ? TRANSPORT_RIDER_SHARE : 0.18;
+    const point = { id: `metro-offmap-${line.id}`, row: end.row, col: end.col,
+      fixedUnits: { originUnits: jobs * riderShare * Math.max(0, shares.in), destinationUnits: 0, returnUnits: origin * Math.max(0, shares.out), residents: 0 } };
+    end.waitingByLine[line.id] = Math.min(99999, (end.waitingByLine[line.id] || 0) + getTransportStopRidersForHour(point, hour, share));
+  });
 }
 
 // Every call at a station in environment minutes (from, to]: riders off and paying, some of them
@@ -817,7 +993,7 @@ function callMetroTrains(state, fromMinutes, toMinutes) {
     const fleet = getMetroLineTrains(line, state);
     const schedule = getMetroLineSchedule(line, state);
     if (!fleet.length || !schedule) return;
-    const stations = getMetroLineStations(line, state);
+    const stations = getMetroLineStops(line, state);
     const n = stations.length;
     metroArrivalsAt(schedule, metroSkyMinutes(fromMinutes), metroSkyMinutes(toMinutes), fleet.map((v) => v.phase)).forEach(({ t, train, leg }) => {
       if (!isMetroRunning(t)) return;
@@ -859,6 +1035,8 @@ function callMetroTrains(state, fromMinutes, toMinutes) {
       }
       line.monthToDatePassengers += call.boarding;
       if (waiting > 0) line.monthToDateTransfers += call.boarding * (transfers / waiting);
+      // 區外站: riders off and on out there
+      if (station.offMap) line.monthToDateOffMapPassengers = (line.monthToDateOffMapPassengers || 0) + call.alighting + call.boarding;
     });
   });
 }
@@ -904,6 +1082,7 @@ function settleMetroMonth(ended = null) {
       year: ended ? ended.year : (typeof city !== 'undefined' ? city.year : 0),
       month: ended ? ended.month : (typeof city !== 'undefined' ? city.month : 0),
       passengers: line.monthToDatePassengers, transfers: Math.round(line.monthToDateTransfers || 0),
+      offMapPassengers: Math.round(line.monthToDateOffMapPassengers || 0),
       revenue: Math.round(line.monthToDateRevenue * 100) / 100,
       cost: Math.round(cost * 100) / 100, net: Math.round((line.monthToDateRevenue - cost) * 100) / 100,
     });
@@ -911,6 +1090,7 @@ function settleMetroMonth(ended = null) {
     line.monthToDateRevenue = 0;
     line.monthToDatePassengers = 0;
     line.monthToDateTransfers = 0;
+    line.monthToDateOffMapPassengers = 0;
   });
   state.trains.forEach((v) => {
     v.lastMonthRevenue = v.monthToDateRevenue;
@@ -1235,9 +1415,11 @@ function updateMetroOverlay(scene) {
       g.strokePath();
       return;
     }
-    for (let i = 1; i < stations.length; i++) {
-      const a = at(stations[i - 1].row, stations[i - 1].col);
-      const b = at(stations[i].row, stations[i].col);
+    // (and on from the last station to the edge it leaves the map by)
+    const drawn = line.offMap && stations.length ? [...stations, { row: line.offMap.row, col: line.offMap.col }] : stations;
+    for (let i = 1; i < drawn.length; i++) {
+      const a = at(drawn[i - 1].row, drawn[i - 1].col);
+      const b = at(drawn[i].row, drawn[i].col);
       const length = Math.hypot(b.x - a.x, b.y - a.y);
       const dash = 14 / zoom;
       g.lineStyle(width, color, line.status === 'active' ? 0.95 : 0.4);
@@ -1251,9 +1433,12 @@ function updateMetroOverlay(scene) {
       getMetroLineTrains(line, state).forEach((v) => {
         const p = metroTrainPointAt(schedule, sky, v.phase);
         if (!p) return;
+        // off the map: out of sight, fading at the edge
+        const alpha = line.offMap ? getMetroOffMapAlpha(p, line.offMap.side) : 1;
+        if (alpha <= 0.02) return;
         const s = at(p.r, p.c);
-        g.fillStyle(0xffffff, 1); g.fillCircle(s.x, s.y, 6 / zoom);
-        g.fillStyle(color, 1); g.fillCircle(s.x, s.y, 4 / zoom);
+        g.fillStyle(0xffffff, alpha); g.fillCircle(s.x, s.y, 6 / zoom);
+        g.fillStyle(color, alpha); g.fillCircle(s.x, s.y, 4 / zoom);
       });
     }
   });

@@ -2657,6 +2657,8 @@
     }
 
     .popup-button:hover  { background: #f8f0d2; }
+    /* a density the district's height cap or a 公屋／居屋 zone rules out */
+    .popup-button:disabled { opacity: 0.45; cursor: not-allowed; background: #ece7d4; }
     .popup-button.is-active {
       background: #f1c65d;
       box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
@@ -2688,6 +2690,17 @@
     .zone-block.res { background: #2e9e3e; }
     .zone-block.com { background: #2255cc; }
     .zone-block.ind { background: #c8a800; }
+    /* 公屋區 / 居屋區 (housing-types.js), the colours of their zone overlays */
+    .zone-block.pub { background: #1d8c7f; }
+    .zone-block.hos { background: #7a4cae; }
+    .popup-section-label {
+      font-size: 11px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #4b473e;
+      padding: 2px 2px 0;
+      border-top: 1px solid #a7a08d;
+      margin-top: 2px;
+    }
 
     .popup-button .park-popup-icon {
       width: 22px;
@@ -5459,6 +5472,30 @@
       font-weight: 700;
     }
 
+    /* 區外交通: the lines off the map under the edge roads */
+    .budget-region-body .region-subhead {
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    .transport-offmap-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .transport-offmap-picker select {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .transport-offmap-picker label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .setup-controls {
       display: flex;
       flex-direction: column;
@@ -5793,6 +5830,60 @@
       padding: 12px 22px;
       border-top: 1px solid var(--setup-line);
       background: var(--setup-paper-deep);
+    }
+
+    .setup-footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setup-extras {
+      position: relative;
+    }
+
+    .setup-extras-menu {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 8px);
+      z-index: 5;
+      min-width: 260px;
+      padding: 6px;
+      border: 1.5px solid #9aa39d;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .setup-extras-menu[hidden] {
+      display: none;
+    }
+
+    .setup-extras-menu button {
+      display: grid;
+      gap: 2px;
+      width: 100%;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--setup-ink);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .setup-extras-menu button:hover,
+    .setup-extras-menu button:focus-visible {
+      background: #eef3ef;
+    }
+
+    .setup-extras-name {
+      font: 700 14px/1.3 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+    }
+
+    .setup-extras-hint {
+      font: 12px/1.4 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      color: var(--setup-muted);
     }
 
     .setup-button {
@@ -6756,6 +6847,7 @@
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="load-game"><span data-i18n="menu.loadGame">📂 Load Game…</span><span class="menu-shortcut">Ctrl+O</span></button>
           <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="open-campaign" data-i18n="menu.campaign">🗺 The 18 Districts…</button>
           <button class="menu-drop-item" data-menu-action="open-medal-cabinet" data-i18n="menu.medalCabinet">🏵 Bauhinia Medals…</button>
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="main-menu" data-i18n="menu.mainMenu">🏠 Return to Main Menu</button>
@@ -7088,8 +7180,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <h1 class="landing-title" data-i18n="app.name">The City of Heung Shing</h1>
         <p class="landing-tagline" data-i18n="landing.tagline">Start from one tile, raise a city.</p>
         <div class="landing-actions">
+          <button id="btn-campaign" class="landing-btn primary" data-i18n-html="landing.campaign"><span class="landing-btn-main">The 18 Districts</span><span class="landing-btn-sub">Story Campaign</span></button>
           <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame"><span class="landing-btn-main">New City</span><span class="landing-btn-sub">Start Fresh</span></button>
-          <button id="btn-terrain-creator" class="landing-btn primary" data-i18n-html="landing.terrainCreator"><span class="landing-btn-main">Map Editor</span><span class="landing-btn-sub">Design Terrain</span></button>
           <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved"><span class="landing-btn-main">Load Save</span><span class="landing-btn-sub">Continue City</span></button>
           <button id="btn-import-city" class="landing-btn secondary" data-i18n-html="landing.importCity"><span class="landing-btn-main">Import City</span><span class="landing-btn-sub">Restore Backup</span></button>
         </div>
@@ -7190,7 +7282,19 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
 
         <footer class="setup-footer">
           <button id="btn-back" type="button" class="setup-button" data-i18n="landing.back">← Back</button>
-          <button id="btn-start-city" type="button" class="setup-button setup-primary" data-i18n="landing.foundCity">Found City</button>
+          <div class="setup-footer-actions">
+            <!-- 附加功能: tools most players never need, out of the title menu (the Map Editor) -->
+            <div class="setup-extras" data-setup-only="newCity">
+              <button id="btn-setup-extras" type="button" class="setup-button" aria-haspopup="menu" aria-expanded="false" aria-controls="setup-extras-menu" data-i18n="landing.extras">Extras ▴</button>
+              <div id="setup-extras-menu" class="setup-extras-menu" role="menu" hidden>
+                <button type="button" role="menuitem" data-setup-extra="editor">
+                  <span class="setup-extras-name" data-i18n="landing.extras.mapEditor">🗺 Map Editor</span>
+                  <span class="setup-extras-hint" data-i18n="landing.extras.mapEditorHint">Reshape the land and keep it under My Maps</span>
+                </button>
+              </div>
+            </div>
+            <button id="btn-start-city" type="button" class="setup-button setup-primary" data-i18n="landing.foundCity">Found City</button>
+          </div>
         </footer>
       </section>
 
@@ -7573,6 +7677,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button class="tool-row" type="button" data-tool="fire-station"><span class="tool-row-icon">🚒</span><span class="tool-row-text" data-i18n="toolRow.fireStation">Fire Station</span><span class="tool-row-cost">$1000</span></button>
         <button class="tool-row" type="button" data-tool="police-station"><span class="tool-row-icon">👮</span><span class="tool-row-text" data-i18n="toolRow.policeStation">Police Station</span><span class="tool-row-cost">$800</span></button>
         <button class="tool-row" type="button" data-tool="hospital"><span class="tool-row-icon">🏥</span><span class="tool-row-text" data-i18n="toolRow.hospital">Hospital</span><span class="tool-row-cost">$7200</span></button>
+        <button class="tool-row" type="button" data-tool="community-centre"><span class="tool-row-icon">🤝</span><span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.communityCentre">Community Centre</span><span class="tool-row-desc" data-i18n="toolRow.communityCentreDesc">Social workers reach the people in need nearby</span></span><span class="tool-row-cost">$1800</span></button>
       </div>
       <button class="tool-row tool-group-row" type="button" data-tool-group="education">
         <span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolGroup.education">Education</span><span class="tool-group-chevron">▶</span>
@@ -7596,6 +7701,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </button>
       <div class="tool-group-items" data-tool-group-items="transport-gateways" hidden>
         <button class="tool-row" type="button" data-tool="harbor"><span class="tool-row-icon">🚢</span><span class="tool-row-text" data-i18n="toolRow.harbor">Container Port</span><span class="tool-row-cost">$12000</span></button>
+        <button class="tool-row" type="button" data-tool="cruise-terminal"><span class="tool-row-icon">🛳</span><span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.cruiseTerminal">Cruise Terminal</span><span class="tool-row-desc" data-i18n="toolRow.cruiseTerminalDesc">Cruise ships call and land visitors - on the shore, with transport nearby</span></span><span class="tool-row-cost">$40000</span></button>
         <button class="tool-row" type="button" data-tool="airport" hidden><span class="tool-row-icon">✈️</span><span class="tool-row-text" data-i18n="toolRow.airport">Airport</span><span class="tool-row-cost">$150000</span></button>
       </div>
     </section>
@@ -7637,6 +7743,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <button class="tool-row tool-group-row" type="button" data-tool-group="heritage-sites"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolGroup.heritageSites">Heritage Sites</span><span class="tool-group-chevron">▶</span></button>
       <div class="tool-group-items" data-tool-group-items="heritage-sites" hidden>
         <button class="tool-row" type="button" data-tool="buddha-statue"><span class="tool-row-icon">🗿</span><span class="tool-row-text" data-i18n="toolRow.buddhaStatue">Big Buddha</span><span class="tool-row-cost">$4200</span></button>
+        <button class="tool-row" type="button" data-tool="walled-city-park"><span class="tool-row-icon">🏯</span><span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.walledCityPark">Walled City Park</span><span class="tool-row-desc" data-i18n="toolRow.walledCityParkDesc">The walled city rebuilt: a heritage park and film base where nobody lives</span></span><span class="tool-row-cost">$30000</span></button>
         <button class="tool-row" type="button" data-tool="murray-house"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolRow.murrayHouse">Murray House</span><span class="tool-row-cost">$1800</span></button>
       </div>
       <button class="tool-row tool-group-row" type="button" data-tool-group="tourism-attractions"><span class="tool-row-icon">🎡</span><span class="tool-row-text" data-i18n="toolGroup.tourismAttractions">Tourism & Attractions</span><span class="tool-group-chevron">▶</span></button>
@@ -8453,6 +8560,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="sim-news-events.js"></script>
   <script src="ai-news-service.js"></script>
   <script src="model-catalog.js"></script>
+  <script src="housing-types.js"></script>
   <script src="map-utils.js"></script>
   <script src="simulation.js"></script>
   <script src="traffic-demand.js"></script>
@@ -8594,10 +8702,18 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="city-minimap.js"></script>
   <script src="map-edge-skirt.js"></script>
   <script src="region-connections.js"></script>
+  <script src="port-freight.js"></script>
+  <script src="welfare.js"></script>
+  <script src="cruise-terminal.js"></script>
+  <script src="airport-routes.js"></script>
+  <script src="walled-city.js"></script>
+  <script src="big-buddha.js"></script>
   <script src="undersea-tunnel.js"></script>
   <script src="medal-art.js"></script>
   <script src="medal-definitions.js"></script>
   <script src="medals.js"></script>
+  <script src="campaign-chapters.js"></script>
+  <script src="campaign.js"></script>
   <script src="inspect-panel.js"></script>
   <script src="hk-district-maps.js"></script>
   <script src="hk-district-info.js"></script>

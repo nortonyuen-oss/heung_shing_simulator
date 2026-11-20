@@ -32,10 +32,10 @@ function getRegionNeighbours() {
   return Object.fromEntries(REGION_SIDES.map((side) => [side, typeof stored?.[side] === 'string' ? stored[side] : null]));
 }
 
-// The four sides' neighbouring districts for a new city: the nearest Hong Kong district map
-// centre in each direction (within 9 km and 50 degrees of it), or null for a neutral 鄰區.
-// For a 香港實景 window the sides are turned and mirrored with the window.
-function computeRegionNeighbours({ districtId = '', features = [] } = {}) {
+// Where the map sits in Hong Kong: its centre (HK1980 metres) and the outward direction of each
+// side - a district map's own centre, or a 香港實景 window's (turned and mirrored with it); null
+// for a map that is not Hong Kong.
+function getRegionMapFrame({ districtId = '', features = [] } = {}) {
   const maps = typeof HK_DISTRICT_MAPS !== 'undefined' ? HK_DISTRICT_MAPS : [];
   let centre = null;
   let sideVector = (side) => ({ n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] })[side];
@@ -70,8 +70,18 @@ function computeRegionNeighbours({ districtId = '', features = [] } = {}) {
       };
     }
   }
+  return centre ? { centre, sideVector } : null;
+}
+
+// The four sides' neighbouring districts for a new city: the nearest Hong Kong district map
+// centre in each direction (within 9 km and 50 degrees of it), or null for a neutral 鄰區.
+// For a 香港實景 window the sides are turned and mirrored with the window.
+function computeRegionNeighbours({ districtId = '', features = [] } = {}) {
+  const maps = typeof HK_DISTRICT_MAPS !== 'undefined' ? HK_DISTRICT_MAPS : [];
+  const frame = getRegionMapFrame({ districtId, features });
   const result = { n: null, e: null, s: null, w: null };
-  if (!centre) return result;
+  if (!frame) return result;
+  const { centre, sideVector } = frame;
   REGION_SIDES.forEach((side) => {
     const [vx, vy] = sideVector(side);
     let best = null;
@@ -97,6 +107,172 @@ function getRegionNeighbourName(districtId, language = typeof currentLanguage !=
   // a neutral 鄰區, in the language asked for (the sign's English line asks for 'en')
   const generic = typeof I18N !== 'undefined' ? I18N[language]?.['region.generic'] : null;
   return generic ?? t('region.generic');
+}
+
+// ── 區外交通 (docs/region-transit-design.md) ─────────────────────────────────
+// A bus route (later a ferry route or metro line) may end at a 區外站: a stop off the map, reached
+// through an exit on the map edge, standing for a district the player picks (Norton 2026-11-19).
+
+const REGION_TRANSIT_TUNING = Object.freeze({
+  tilesPerKm: 4,          // the off-map leg, compressed (Norton: 可以加速) - real distances would
+  minTiles: 12,           // keep a bus away for a whole month, as a month is one sky-day
+  maxTiles: 60,
+  maxDestinations: 6,     // offered at each side, nearest first
+  outShare: 0.25,         // of a line's riders who head off the map, at a neutral district's pull
+  outShareMin: 0.1,
+  outShareMax: 0.45,
+  inShare: 0.15,          // outsiders riding in to the jobs along the line, at a neutral pull
+  inShareMin: 0.05,
+  inShareMax: 0.4,
+  // A month's rider at a 區外站, in cross-district commuters: a resident counts as 0.18 x 0.75
+  // boardings each way a month at a bus stop (TRANSPORT_RIDER_SHARE, ..._DAILY_BOARDING_SHARE),
+  // so one rider stands for about 1 / 0.27 people on the move.
+  commutersPerRider: 3.7,
+});
+const REGION_TILE_METRES = 20;
+const REGION_GENERIC_DESTINATION = 'generic';
+// The sign says where the line goes: a place, where the district's own name is a region
+const REGION_TRANSIT_PLACE_NAMES = Object.freeze({
+  'central-western': { zhHant: '中環', en: 'Central', ja: '中環' },
+  'wan-chai': { zhHant: '灣仔', en: 'Wan Chai', ja: '湾仔' },
+  'yau-tsim-mong': { zhHant: '尖沙咀', en: 'Tsim Sha Tsui', ja: '尖沙咀' },
+  aberdeen: { zhHant: '香港仔', en: 'Aberdeen', ja: '香港仔' },
+  lantau: { zhHant: '東涌', en: 'Tung Chung', ja: '東涌' },
+  'chek-lap-kok': { zhHant: '機場', en: 'Airport', ja: '空港' },
+});
+
+// Each side's districts a line can run to: those whose centre lies that way (within 50 degrees,
+// as the neighbours, but at any distance), nearest first, with the km from that side's edge.
+// 維港兩岸 overlaps 中西區, 灣仔 and 油尖旺, so it is never a destination. Not Hong Kong: none.
+function computeRegionDestinations({ districtId = '', features = [] } = {}) {
+  const result = { n: [], e: [], s: [], w: [] };
+  const frame = getRegionMapFrame({ districtId, features });
+  if (!frame) return result;
+  const maps = typeof HK_DISTRICT_MAPS !== 'undefined' ? HK_DISTRICT_MAPS : [];
+  const half = (MAP_WIDTH / 2) * REGION_TILE_METRES;
+  REGION_SIDES.forEach((side) => {
+    const [vx, vy] = frame.sideVector(side);
+    const edge = { e: frame.centre.e + vx * half, n: frame.centre.n + vy * half };
+    const list = [];
+    maps.forEach((entry) => {
+      if (entry.id === districtId || entry.id === 'victoria-harbour') return;
+      const dx = entry.centre.e - frame.centre.e;
+      const dy = entry.centre.n - frame.centre.n;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 1500 || (dx * vx + dy * vy) / distance < Math.cos((50 * Math.PI) / 180)) return;
+      const km = Math.hypot(entry.centre.e - edge.e, entry.centre.n - edge.n) / 1000;
+      list.push({ id: entry.id, km: Math.round(km * 10) / 10 });
+    });
+    list.sort((a, b) => a.km - b.km);
+    result[side] = list.slice(0, REGION_TRANSIT_TUNING.maxDestinations);
+  });
+  return result;
+}
+
+// The city's destinations, side by side: stored at founding (city.regionDestinations), worked out
+// for a district map that has none yet (an older save, a campaign start), else a neutral 鄰區 on
+// every side. A Hong Kong side with no district that way gets the 鄰區 too.
+function getRegionDestinations() {
+  const stored = typeof city !== 'undefined' ? city.regionDestinations : null;
+  let lists = stored && typeof stored === 'object' ? stored : null;
+  if (!lists && typeof city !== 'undefined' && city.districtProfileId) {
+    lists = computeRegionDestinations({ districtId: city.districtProfileId });
+    city.regionDestinations = lists;
+  }
+  return Object.fromEntries(REGION_SIDES.map((side) => {
+    const list = (Array.isArray(lists?.[side]) ? lists[side] : [])
+      .filter((entry) => entry && typeof entry.id === 'string')
+      .map((entry) => ({ id: entry.id, km: Math.max(0, Number(entry.km) || 0) }));
+    return [side, list.length ? list : [{ id: REGION_GENERIC_DESTINATION, km: 0 }]];
+  }));
+}
+
+function getRegionDestination(side, destinationId) {
+  return getRegionDestinations()[side]?.find((entry) => entry.id === destinationId) ?? null;
+}
+
+function getRegionDestinationName(destinationId, language = typeof currentLanguage !== 'undefined' ? currentLanguage : 'en') {
+  const place = REGION_TRANSIT_PLACE_NAMES[destinationId];
+  if (place) return place[language] ?? place.en;
+  return getRegionNeighbourName(destinationId === REGION_GENERIC_DESTINATION ? null : destinationId, language);
+}
+
+// The off-map leg in tiles: 4 a km from the exit's side to the district's centre, 12 to 60.
+function getRegionTransitLegTiles(km) {
+  const tiles = Math.round((Math.max(0, Number(km) || 0)) * REGION_TRANSIT_TUNING.tilesPerKm);
+  return Math.max(REGION_TRANSIT_TUNING.minTiles, Math.min(REGION_TRANSIT_TUNING.maxTiles, tiles));
+}
+
+// How strongly one district pulls workers and sends people and visitors, from its 地區特色
+// (as getRegionNeighbourPull does for the connected sides); a neutral 鄰區 is 1.
+function getRegionDistrictPull(destinationId) {
+  const profile = destinationId && destinationId !== REGION_GENERIC_DESTINATION && typeof getDistrictProfile === 'function'
+    ? getDistrictProfile(destinationId) : null;
+  const step = (axis) => (profile && typeof getDistrictProfileStep === 'function' ? getDistrictProfileStep(axis, profile) : 0);
+  return {
+    jobs: 1 + 0.12 * (step('demandC') + step('demandI') + step('jobs')),
+    residents: 1 + 0.12 * (step('demandR') + step('density')),
+    tourism: 1 + 0.15 * (step('tourism') + step('environment')),
+  };
+}
+
+// The shares a 區外站 puts on its line: `out` of the riders along it head for that district
+// (more to a district with more jobs), and outsiders come in to `inShare` of the line's jobs
+// (more from a populous district, and with the visitors the city draws).
+function getRegionTransitRiderShares(destinationId) {
+  const T = REGION_TRANSIT_TUNING;
+  const pull = getRegionDistrictPull(destinationId);
+  const visitors = Math.max(0, Number(typeof city !== 'undefined' ? city.regionFlows?.visitors : 0) || 0);
+  return {
+    out: Math.max(T.outShareMin, Math.min(T.outShareMax, T.outShare * pull.jobs)),
+    in: Math.max(T.inShareMin, Math.min(T.inShareMax, T.inShare * pull.residents + visitors)),
+  };
+}
+
+// The exit a click near the map edge means: the road tiles, on one side, of the region
+// connection within `reach` tiles of it, and the one nearest the click.
+function getRegionTransitExitNear(row, col, reach = 3) {
+  let best = null;
+  detectRegionConnections().forEach((connection) => {
+    connection.tiles.forEach(([r, c]) => {
+      const distance = Math.max(Math.abs(r - row), Math.abs(c - col));
+      if (distance > reach || (best && distance >= best.distance)) return;
+      best = { side: connection.side, row: r, col: c, tiles: connection.tiles.map(([tr, tc]) => ({ row: tr, col: tc })), distance };
+    });
+  });
+  return best;
+}
+
+// The edge road tiles of the connection an exit at (row, col) on `side` belongs to, or [] once it
+// no longer leaves the map (the road was cut).
+function getRegionTransitExitTiles(row, col, side) {
+  const connection = detectRegionConnections().find((entry) => entry.side === side
+    && entry.tiles.some(([r, c]) => r === row && c === col));
+  return connection ? connection.tiles.map(([r, c]) => ({ row: r, col: c })) : [];
+}
+
+// Every mode's lines off the map together - buses, ferries and the metro:
+// riders last month, by destination and mode, and the riders a month they can carry.
+function getRegionTransitSummary() {
+  const summary = { lines: 0, riders: 0, capacity: 0, byDestination: {}, byMode: {}, byModeDestination: {}, destinations: [] };
+  const parts = [
+    typeof getTransportOffMapSummary === 'function' ? getTransportOffMapSummary() : null,
+    typeof getFerryOffMapSummary === 'function' ? getFerryOffMapSummary() : null,
+    typeof getMetroOffMapSummary === 'function' ? getMetroOffMapSummary() : null,
+  ];
+  parts.filter((part) => part?.lines > 0).forEach((part) => {
+    summary.lines += part.lines;
+    summary.riders += part.riders;
+    summary.capacity += part.capacity;
+    summary.byMode[part.mode] = (summary.byMode[part.mode] || 0) + part.riders;
+    Object.entries(part.byDestination).forEach(([id, riders]) => {
+      summary.byDestination[id] = (summary.byDestination[id] || 0) + riders;
+      const key = `${part.mode}:${id}`;
+      summary.byModeDestination[key] = (summary.byModeDestination[key] || 0) + riders;
+    });
+  });
+  summary.destinations = Object.keys(summary.byDestination);
+  return summary;
 }
 
 // Edge roads that leave the map and join the city's network, one connection per run of adjacent
@@ -184,7 +360,14 @@ function computeRegionFlows({ labourForce = 0, jobs = 0, industrialCount = 0 } =
   const neighbours = getRegionNeighbours();
   const pull = getRegionNeighbourPull(connections, neighbours);
   const lanes = connections.reduce((sum, connection) => sum + connection.lanes, 0);
-  const capacity = lanes * REGION_TUNING.laneCapacity;
+  const roadCapacity = lanes * REGION_TUNING.laneCapacity;
+  // 區外交通: the lines off the map carry commuters too - more capacity, and the ones they carry
+  // are off the edge roads (docs/region-transit-design.md §6)
+  // (what they carried last month, not what their buses could: commuters without a seat drive)
+  const transit = getRegionTransitSummary();
+  const perRider = REGION_TRANSIT_TUNING.commutersPerRider;
+  const transitCarries = Math.round(transit.riders * perRider);
+  const capacity = roadCapacity + transitCarries;
   const clampShare = (value) => Math.max(0, Math.min(1, value));
 
   const unemployed = Math.max(0, labourForce - jobs);
@@ -194,15 +377,30 @@ function computeRegionFlows({ labourForce = 0, jobs = 0, industrialCount = 0 } =
   const hasPort = typeof hasBuildingType === 'function' && hasBuildingType('container_port');
   const hasAirport = typeof hasBuildingType === 'function' && hasBuildingType('airport');
   const goodsRoute = connections.length > 0 ? 'road' : hasPort ? 'port' : 'none';
-  const visitors = Math.min(REGION_TUNING.visitorsMax, connections.length * REGION_TUNING.visitorsPerConnection * Math.max(0.4, pull.tourism))
+  // each district a line runs to brings visitors as a road connection does
+  const links = connections.length + transit.destinations.length;
+  const visitors = Math.min(REGION_TUNING.visitorsMax, links * REGION_TUNING.visitorsPerConnection * Math.max(0.4, pull.tourism))
     + (hasAirport ? REGION_TUNING.airportVisitors : 0);
+  const transitCarried = Math.min(out + into, transitCarries);
 
   return {
     connections: connections.map(({ side, lanes: n, row, col }) => ({ side, lanes: n, row, col, neighbour: neighbours[side] })),
     capacity,
     out,
     into,
-    utilisation: capacity > 0 ? clampShare((out + into) / capacity) : 0,
+    // the edge roads' share of the load: what the lines off the map did not carry
+    utilisation: roadCapacity > 0 ? clampShare((out + into - transitCarried) / roadCapacity) : 0,
+    transit: {
+      lines: transit.lines,
+      riders: transit.riders,
+      carried: transitCarried,
+      capacity: Math.round(transit.capacity * perRider),
+      byDestination: transit.byDestination,
+      byMode: transit.byMode,
+      byModeDestination: transit.byModeDestination,
+    },
+    // 跨區公共交通分擔率 (第 07 章): the cross-district commuters the lines off the map carried
+    transitShare: out + into > 0 ? clampShare(transitCarried / (out + into)) : 0,
     goodsRoute: hasPort && goodsRoute === 'road' ? 'road+port' : goodsRoute,
     visitors,
     // demand effects, applied by updateDemand
@@ -355,12 +553,22 @@ function updateRegionConnectionPanel() {
     body.appendChild(element);
   };
   const connections = flows?.connections ?? [];
-  if (!connections.length) line(t('region.none'), 'region-hint');
+  const transit = flows?.transit;
+  if (!connections.length && !transit?.lines) line(t('region.none'), 'region-hint');
   connections.forEach((connection) => {
     line(`${t(`region.side.${connection.side}`)} · ${t('region.to', { name: getRegionNeighbourName(connection.neighbour) })} · ${t('region.lanes', { count: connection.lanes })}`);
   });
-  if (connections.length) {
+  if (connections.length || transit?.lines) {
     line(`${t('region.commuteOut', { count: (flows.out ?? 0).toLocaleString() })} · ${t('region.commuteIn', { count: (flows.into ?? 0).toLocaleString() })} · ${t('region.usage', { pct: Math.round((flows.utilisation ?? 0) * 100) })}`);
+  }
+  // 區外交通: the lines off the map, by destination, and the commuters they took off the roads
+  if (transit?.lines) {
+    line(t('region.transit.title'), 'region-subhead');
+    Object.entries(transit.byModeDestination || {}).forEach(([key, count]) => {
+      const [mode, id] = key.split(':');
+      line(t('region.transit.line', { mode: t(`region.transit.mode.${mode}`), place: getRegionDestinationName(id), count: Math.round(count).toLocaleString() }));
+    });
+    line(t('region.transit.carried', { count: (transit.carried ?? 0).toLocaleString(), pct: Math.round((flows.transitShare ?? 0) * 100) }));
   }
   if (flows?.visitors > 0) line(t('region.visitors', { pct: Math.round(flows.visitors * 100) }));
   line(t(`region.goods.${flows?.goodsRoute === 'road+port' ? 'road' : flows?.goodsRoute ?? 'none'}`), flows?.goodsRoute === 'none' ? 'region-warning' : '');

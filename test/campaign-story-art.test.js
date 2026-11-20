@@ -100,3 +100,19 @@ test('story art: the tutorial speaks to a phone, and lights the phone\'s own but
   assert.ok(runtime.includes('touch && step.touchText ? step.touchText : step.text'));
   assert.match(runtime, /#campaign-panel\.is-touch \{ top: calc\(var\(--mobile-top, 44px\) \+ var\(--mobile-ticker, 24px\)/);
 });
+
+// v6.0.3 on a phone held upright (Norton: 完成一個chapter，然後按不下去): the portrait layout's
+// display: grid !important beat the inline display: none, so the box stayed up after its last line
+// (any dialogue not ending on a card: the outros, the events, the failure), its listener gone and
+// the game running again. The box is hidden by the hidden attribute too, and !important skips it.
+test('story art: a dialogue box closes on a phone held upright', () => {
+  const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
+  assert.match(runtime, /function showDialogueBox\(box, shown\) \{\s*box\.hidden = !shown;\s*box\.style\.display = shown \? 'flex' : 'none';/);
+  assert.doesNotMatch(runtime, /box\.style\.display = '(none|flex)'/, 'every show and hide goes through showDialogueBox');
+  assert.ok(runtime.includes("box.removeEventListener('click', next);\n        showDialogueBox(box, false);"));
+  assert.ok(runtime.includes('#campaign-dialogue[hidden] { display: none !important; }'));
+  // every !important display rule on the box leaves a hidden box alone
+  (runtime.match(/#campaign-dialogue[^{]*\{[^}]*display:\s*[a-z-]+\s*!important/g) || [])
+    .filter((rule) => !rule.startsWith('#campaign-dialogue[hidden]'))
+    .forEach((rule) => assert.match(rule, /:not\(\[hidden\]\)/, rule));
+});

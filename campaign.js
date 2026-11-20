@@ -586,13 +586,22 @@
 
   // ── Dialogue ──────────────────────────────────────────────────────────────
 
+  // Shown and hidden by the `hidden` attribute as well as the inline display: a phone held upright lays
+  // the box out as a grid with !important (it has to beat the inline display: flex), which an inline
+  // display: none cannot beat - so the box stayed on screen after the last line, its listener gone and
+  // the game running again (v6.0.3, Norton: 完成一個chapter，然後按不下去). The !important rules skip [hidden].
+  function showDialogueBox(box, shown) {
+    box.hidden = !shown;
+    box.style.display = shown ? 'flex' : 'none';
+  }
+
   function ensureDialogueBox() {
     let box = document.getElementById('campaign-dialogue');
     if (box) return box;
     box = document.createElement('div');
     box.id = 'campaign-dialogue';
     box.setAttribute('role', 'dialog');
-    box.style.display = 'none';
+    showDialogueBox(box, false);
     document.body.appendChild(box);
     return box;
   }
@@ -685,7 +694,7 @@
         if (revealed) return;
         revealed = true;
         clearTimeout(revealTimer);
-        box.style.display = 'flex';
+        showDialogueBox(box, true);
         box.classList.add('is-revealing');
         setTimeout(() => box.classList.remove('is-revealing'), 400);
       };
@@ -700,7 +709,7 @@
         index += 1;
         if (index < list.length) { show(); return; }
         box.removeEventListener('click', next);
-        box.style.display = 'none';
+        showDialogueBox(box, false);
         if (backdrop) { backdrop.style.display = 'none'; backdrop.onclick = null; }
         runtime.dialogueOpen = false;
         if (previousSpeed !== null && typeof setGameSpeed === 'function') setGameSpeed(previousSpeed);
@@ -709,8 +718,8 @@
       if (options.backdrop) backdrop = showDialogueBackdrop(options.backdrop, next, options.backdropPosition);
       box.addEventListener('click', next);
       show();
-      if (revealed) box.style.display = 'flex';
-      else { box.style.display = 'none'; revealTimer = setTimeout(reveal, CAMPAIGN_SCENE_REVEAL_MS); }
+      if (revealed) showDialogueBox(box, true);
+      else { showDialogueBox(box, false); revealTimer = setTimeout(reveal, CAMPAIGN_SCENE_REVEAL_MS); }
     }));
     return runtime.dialogue;
   }
@@ -1416,6 +1425,8 @@
       #campaign-dialogue.is-royal { box-shadow: 0 0 0 5px #5b1240, 0 0 0 7px #c9a227, 0 18px 42px rgba(0,0,0,0.55), inset 0 0 28px rgba(140,96,36,0.22); }
       #campaign-dialogue.is-royal .cd-name { background: linear-gradient(180deg, #8e1b5b, #5b1240); }
       #campaign-dialogue.is-revealing { animation: campaign-rise 0.35s ease-out; }
+      /* hidden means hidden, whatever a layout rule says (showDialogueBox) */
+      #campaign-dialogue[hidden] { display: none !important; }
       @keyframes campaign-rise { from { opacity: 0; transform: translate(-50%, 24px); } to { opacity: 1; transform: translate(-50%, 0); } }
       /* phones, and any short screen (a phone held sideways) */
       @media (max-width: 700px), (max-height: 520px) {
@@ -1435,8 +1446,8 @@
       /* a phone held upright: the portrait and the name plate on one row, the words the full width below
          (the board still fills the screen: Norton 2026-11-20, 我比較鍾意放大左既轉場圖) */
       @media (max-width: 560px) and (orientation: portrait) {
-        /* (!important: the box is shown by an inline display: flex) */
-        #campaign-dialogue:not(.is-card) { display: grid !important; grid-template-columns: 76px 1fr; column-gap: 12px; row-gap: 6px; align-items: center; }
+        /* (!important: the box is shown by an inline display: flex - and never while [hidden]) */
+        #campaign-dialogue:not(.is-card):not([hidden]) { display: grid !important; grid-template-columns: 76px 1fr; column-gap: 12px; row-gap: 6px; align-items: center; }
         #campaign-dialogue:not(.is-card) .cd-body { display: contents; }
         #campaign-dialogue .cd-portrait { grid-column: 1; grid-row: 1; width: 76px; height: 76px; }
         #campaign-dialogue .cd-glyph { font-size: 38px; }

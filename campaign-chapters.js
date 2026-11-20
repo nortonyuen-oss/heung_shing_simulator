@@ -92,6 +92,54 @@
     filmStar: { name: T('古大樂', 'Koo Dai-lok', '古大楽'), portrait: 'UI/campaign/portraits/filmStar.webp', glyph: '🎬' },
   });
 
+  // 市長登記 (Norton 2026-11-20, after 大航海時代4's opening): before the story the player gives the
+  // mayor a name, a birthday - its month is 市長日, fireworks over every city (festival-fireworks.js) -
+  // and a face from Heung Shing's people, any but Her Majesty's. Kept in the player profile, so every
+  // chapter and city has the same mayor; `portrait` is a face's id (getCampaignMayorFaces), never a
+  // path - the web build serves the pictures under hashed names.
+  const CAMPAIGN_MAYOR_NAME_MAX = 12;
+  const CAMPAIGN_MAYOR_DAYS_IN_MONTH = Object.freeze([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
+  const CAMPAIGN_MAYOR_DEFAULT_FACE = 'mayor';
+
+  function normalizeCampaignMayorName(value) {
+    // line breaks and tabs become a space; other control characters go
+    const text = String(value ?? '').replace(/\s+/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '').trim();
+    return Array.from(text).slice(0, CAMPAIGN_MAYOR_NAME_MAX).join('').trim();
+  }
+
+  /** The mayor as the profile keeps them, or null when the record is not a whole one. */
+  function normalizeCampaignMayor(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const name = normalizeCampaignMayorName(raw.name);
+    const birthMonth = Math.floor(num(raw.birthMonth));
+    const birthDay = Math.floor(num(raw.birthDay));
+    if (!name || birthMonth < 1 || birthMonth > 12) return null;
+    if (birthDay < 1 || birthDay > CAMPAIGN_MAYOR_DAYS_IN_MONTH[birthMonth - 1]) return null;
+    const portrait = /^[a-zA-Z0-9_:-]{1,60}$/.test(String(raw.portrait || '')) ? String(raw.portrait) : CAMPAIGN_MAYOR_DEFAULT_FACE;
+    return { name, birthMonth, birthDay, portrait };
+  }
+
+  // The faces the mayor may take: every speaker with a portrait but Her Majesty (the default mayor's
+  // first), then the council's officials (council-definitions.js COUNCIL_OFFICIAL_DEFS: id, portrait,
+  // nameKey) not already among them - one entry a picture.
+  function getCampaignMayorFaces(officials = []) {
+    const faces = [];
+    const seen = new Set();
+    const add = (face) => {
+      if (!face.portrait || seen.has(face.portrait)) return;
+      seen.add(face.portrait);
+      faces.push(Object.freeze(face));
+    };
+    Object.entries(CAMPAIGN_SPEAKERS).forEach(([id, speaker]) => {
+      if (id === 'queen') return;
+      add({ id, portrait: speaker.portrait, name: id === CAMPAIGN_MAYOR_DEFAULT_FACE ? T('預設市長', 'Default Mayor', '標準の市長') : speaker.name });
+    });
+    (officials || []).forEach((official) => {
+      if (official?.id && official.portrait) add({ id: `official:${official.id}`, portrait: official.portrait, nameKey: official.nameKey });
+    });
+    return faces;
+  }
+
   // The 18 chapters (劇本 目錄). mapId is the district map (hk-district-maps.js) the chapter is
   // built on; only chapters with a spec below are playable yet.
   const CAMPAIGN_CHAPTERS = Object.freeze([
@@ -2311,13 +2359,15 @@
 
   function createEmptyCampaignProfile() {
     // tutorials: the shared ones (a chapter's tutorialId) the player has been through
-    return { schemaVersion: CAMPAIGN_SCHEMA_VERSION, prologueSeen: false, chapters: {}, tutorials: {} };
+    // mayor: the 市長登記 (normalizeCampaignMayor), null until the player has filled it in
+    return { schemaVersion: CAMPAIGN_SCHEMA_VERSION, prologueSeen: false, chapters: {}, tutorials: {}, mayor: null };
   }
 
   function normalizeCampaignProfile(raw) {
     const profile = createEmptyCampaignProfile();
     if (!raw || typeof raw !== 'object') return profile;
     profile.prologueSeen = !!raw.prologueSeen;
+    profile.mayor = normalizeCampaignMayor(raw.mayor);
     Object.keys(raw.tutorials || {}).forEach((id) => { if (/^[a-zA-Z0-9_-]{1,40}$/.test(id) && raw.tutorials[id]) profile.tutorials[id] = true; });
     Object.entries(raw.chapters || {}).forEach(([id, entry]) => {
       if (!CAMPAIGN_CHAPTERS_BY_ID[id] || !entry || typeof entry !== 'object') return;
@@ -2412,6 +2462,8 @@
     advanceCampaignRun, getCampaignMonthsLeft, createEmptyCampaignProfile, normalizeCampaignProfile,
     getCampaignTutorialStep, advanceCampaignTutorial, acknowledgeCampaignTutorialStep, skipCampaignTutorial,
     recordCampaignStars, isCampaignChapterUnlocked, getCampaignText, getCampaignChapterScene,
+    CAMPAIGN_MAYOR_NAME_MAX, CAMPAIGN_MAYOR_DAYS_IN_MONTH, CAMPAIGN_MAYOR_DEFAULT_FACE,
+    normalizeCampaignMayor, getCampaignMayorFaces,
   };
   Object.assign(root, api);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

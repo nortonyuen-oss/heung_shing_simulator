@@ -399,6 +399,8 @@ function updateGameFrame(time, delta) {
   if (typeof updateMidAutumn === 'function') updateMidAutumn(this, time);
   // 年初二煙花匯演 (festival-fireworks.js)
   if (typeof updateLnyFireworks === 'function') updateLnyFireworks(this, time);
+  // 市長日: the mayor's birthday month, fireworks at eight (festival-fireworks.js)
+  if (typeof updateMayorDay === 'function') updateMayorDay(this, time);
   // 盂蘭: fire light, smoke, the green ghost lights (festival-yulan.js)
   if (typeof updateYulan === 'function') updateYulan(this, time);
   if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);

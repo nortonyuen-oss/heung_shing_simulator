@@ -90,6 +90,7 @@
           if ((stored.chapters[id]?.stars || 0) < entry.stars) stored.chapters[id] = entry;
         });
         stored.prologueSeen = stored.prologueSeen || runtime.profile.prologueSeen;
+        stored.mayor = stored.mayor || runtime.profile.mayor;
         runtime.profile = stored;
         runtime.loaded = true;
       } catch (error) {
@@ -596,8 +597,30 @@
     return box;
   }
 
-  function renderSpeaker(id) {
+  // The faces the 市長登記 offers: the speakers and the council's officials (getCampaignMayorFaces).
+  function getMayorFaces() {
+    return getCampaignMayorFaces(typeof COUNCIL_OFFICIAL_DEFS !== 'undefined' ? COUNCIL_OFFICIAL_DEFS : []);
+  }
+
+  function getMayorFace(id) {
+    const faces = getMayorFaces();
+    return faces.find((face) => face.id === id) || faces.find((face) => face.id === CAMPAIGN_MAYOR_DEFAULT_FACE);
+  }
+
+  function faceName(face) {
+    return face?.nameKey && typeof t === 'function' ? t(face.nameKey) : say(face?.name);
+  }
+
+  // The mayor is the player: the name and the face of the 市長登記, once it is filled in.
+  function getSpeaker(id) {
     const speaker = CAMPAIGN_SPEAKERS[id] || {};
+    const mayor = id === 'mayor' ? runtime.profile.mayor : null;
+    if (!mayor) return speaker;
+    return { ...speaker, name: mayor.name, portrait: getMayorFace(mayor.portrait)?.portrait || speaker.portrait };
+  }
+
+  function renderSpeaker(id) {
+    const speaker = getSpeaker(id);
     const face = speaker.portrait
       ? `<img class="cd-portrait" src="${escapeHtml(campaignImageSrc(speaker.portrait))}" alt="">`
       : `<div class="cd-portrait cd-glyph" aria-hidden="true">${escapeHtml(speaker.glyph || '💬')}</div>`;
@@ -1074,8 +1097,13 @@
     }[state.key];
     const total = CAMPAIGN_CHAPTERS.reduce((sum, entry) => sum + (runtime.profile.chapters[entry.id]?.stars || 0), 0);
     const cleared = CAMPAIGN_CHAPTERS.filter((entry) => (runtime.profile.chapters[entry.id]?.stars || 0) > 0).length;
+    const mayor = runtime.profile.mayor;
+    const mayorRow = mayor ? `<button type="button" class="cs-mayor" data-cs-action="mayor" title="${escapeHtml(say(L('改市長資料', 'Change the mayor', '市長情報を変更')))}">
+        <img src="${escapeHtml(campaignImageSrc(getMayorFace(mayor.portrait)?.portrait || ''))}" alt="">
+        <span><strong>${escapeHtml(say(L(`${mayor.name} 市長`, `Mayor ${mayor.name}`, `${mayor.name} 市長`)))}</strong>
+        <small>${escapeHtml(say(L(`生日 ${mayor.birthMonth} 月 ${mayor.birthDay} 日・改資料 ✎`, `Birthday ${MONTHS_EN[mayor.birthMonth - 1]} ${mayor.birthDay} · edit ✎`, `誕生日 ${mayor.birthMonth}月${mayor.birthDay}日・変更 ✎`)))}</small></span></button>` : '';
     dialog.querySelector('[data-cs-body]').innerHTML = `
-      <div class="cs-summary">${escapeHtml(say(L(`主線 ${cleared}／18 區・星數 ${total}／54`, `Main story ${cleared}/18 districts · ${total}/54 stars`, `メイン ${cleared}／18区・星 ${total}／54`)))}</div>
+      <div class="cs-top">${mayorRow}<div class="cs-summary">${escapeHtml(say(L(`主線 ${cleared}／18 區・星數 ${total}／54`, `Main story ${cleared}/18 districts · ${total}/54 stars`, `メイン ${cleared}／18区・星 ${total}／54`)))}</div></div>
       <div class="cs-map"><img src="UI/hk-district-overview.webp" alt="">${pins}</div>
       <div class="cs-detail">
         <div class="cs-detail-title">${escapeHtml(say(L(`第 ${String(chapter.number).padStart(2, '0')} 章・`, `Chapter ${chapter.number} · `, `第${chapter.number}章・`)))}${escapeHtml(say(chapter.district))}《${escapeHtml(say(chapter.title))}》</div>
@@ -1085,6 +1113,137 @@
           <button type="button" class="dialog-ok-btn" data-cs-action="start" ${state.key === 'open' || state.key === 'cleared' ? '' : 'disabled'}>${escapeHtml(say(L('開始', 'Start', '開始')))}</button>
         </div>
       </div>`;
+  }
+
+  // ── 市長登記 ──────────────────────────────────────────────────────────────
+  // (Norton 2026-11-20: 參考大航海時代4) a parchment sheet in the dialogue's maroon and gold: first the
+  // name and the birthday beside the chosen face, then the faces of Heung Shing to pick from. Resolves
+  // true once it is filled in and kept, false when it is closed.
+
+  const MONTHS_EN = Object.freeze(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+
+  function openCampaignMayorPanel({ first = false } = {}) {
+    if (typeof document === 'undefined') return Promise.resolve(false);
+    document.getElementById('campaign-mayor')?.remove();
+    const saved = runtime.profile.mayor;
+    const draft = saved ? { ...saved } : { name: '', birthMonth: 1, birthDay: 1, portrait: CAMPAIGN_MAYOR_DEFAULT_FACE };
+    let step = 'form';
+    let error = '';
+    const layer = document.createElement('div');
+    layer.id = 'campaign-mayor';
+    layer.setAttribute('role', 'dialog');
+    layer.setAttribute('aria-modal', 'true');
+    document.body.appendChild(layer);
+
+    const preview = () => {
+      const face = getMayorFace(draft.portrait);
+      return `<div class="cm-face"><div class="cm-frame"><img src="${escapeHtml(campaignImageSrc(face?.portrait || ''))}" alt=""></div>
+        <div class="cm-plate">${escapeHtml(draft.name || say(L('無名氏', 'Nameless', '名無し')))}</div>
+        <div class="cm-face-caption">${escapeHtml(faceName(face))}</div></div>`;
+    };
+    const render = () => {
+      const days = CAMPAIGN_MAYOR_DAYS_IN_MONTH[draft.birthMonth - 1];
+      if (draft.birthDay > days) draft.birthDay = days;
+      const monthOption = (m) => say(L(`${m} 月`, MONTHS_EN[m - 1], `${m}月`));
+      const dayOption = (d) => say(L(`${d} 日`, String(d), `${d}日`));
+      const body = step === 'form' ? `
+        <div class="cm-title">${escapeHtml(say(L('香城市長登記', 'Mayor of Heung Shing: Registration', '香城市長 登録')))}</div>
+        <div class="cm-lede">${escapeHtml(say(first
+          ? L('女皇陛下嘅密令到之前，請先報上名來。', 'Before Her Majesty\'s secret order arrives, tell us who you are.', '女王陛下の密令が届く前に、名を名乗りたまえ。')
+          : L('改市長嘅名、生日同樣貌。', 'Change the mayor\'s name, birthday and face.', '市長の名前・誕生日・顔を変更します。')))}</div>
+        <div class="cm-body">${preview()}
+          <div class="cm-form">
+            <label class="cm-field"><span>${escapeHtml(say(L('姓名', 'Name', '名前')))}</span>
+              <input type="text" data-cm-name maxlength="${CAMPAIGN_MAYOR_NAME_MAX * 2}" autocomplete="off" value="${escapeHtml(draft.name)}"
+                placeholder="${escapeHtml(say(L('例如：陳大文', 'e.g. Chan Tai-man', '例：陳大文')))}"></label>
+            <div class="cm-field"><span>${escapeHtml(say(L('生日', 'Birthday', '誕生日')))}</span>
+              <div class="cm-date">
+                <select data-cm-month aria-label="${escapeHtml(say(L('月', 'Month', '月')))}">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${draft.birthMonth === i + 1 ? 'selected' : ''}>${escapeHtml(monthOption(i + 1))}</option>`).join('')}</select>
+                <select data-cm-day aria-label="${escapeHtml(say(L('日', 'Day', '日')))}">${Array.from({ length: days }, (_, i) => `<option value="${i + 1}" ${draft.birthDay === i + 1 ? 'selected' : ''}>${escapeHtml(dayOption(i + 1))}</option>`).join('')}</select>
+              </div></div>
+            <p class="cm-note">🎆 ${escapeHtml(say(L('每年生日嗰個月嘅晚上八點係「市長日」，全城會為你放煙花。', 'Every year, at eight on the evening of your birthday month, it is Mayor\'s Day: fireworks over the whole city.', '毎年、誕生月の夜8時は「市長の日」。街じゅうで花火が上がります。')))}</p>
+            ${error ? `<p class="cm-error" role="alert">${escapeHtml(error)}</p>` : ''}
+          </div></div>
+        <div class="cm-actions">
+          <button type="button" class="cm-btn" data-cm-action="close">${escapeHtml(say(L('取消', 'Cancel', 'キャンセル')))}</button>
+          <button type="button" class="cm-btn is-primary" data-cm-action="faces">${escapeHtml(say(L('揀樣貌 ▶', 'Choose a face ▶', '顔を選ぶ ▶')))}</button>
+        </div>` : `
+        <div class="cm-title">${escapeHtml(say(L('揀選市長嘅樣貌', 'Choose the mayor\'s face', '市長の顔を選ぶ')))}</div>
+        <div class="cm-body is-faces">${preview()}
+          <div class="cm-grid" role="listbox" aria-label="${escapeHtml(say(L('香城人物', 'The people of Heung Shing', '香城の人々')))}">${getMayorFaces().map((face) => `
+            <button type="button" class="cm-pick${face.id === draft.portrait ? ' is-on' : ''}" role="option" aria-selected="${face.id === draft.portrait}"
+              data-cm-face="${escapeHtml(face.id)}" title="${escapeHtml(faceName(face))}"><img src="${escapeHtml(campaignImageSrc(face.portrait))}" alt="${escapeHtml(faceName(face))}" loading="lazy"></button>`).join('')}
+          </div></div>
+        <div class="cm-actions">
+          <button type="button" class="cm-btn" data-cm-action="back">${escapeHtml(say(L('◀ 返回', '◀ Back', '◀ 戻る')))}</button>
+          <button type="button" class="cm-btn is-primary" data-cm-action="done">${escapeHtml(say(L('就係佢！', 'That\'s me!', 'これで決まり！')))}</button>
+        </div>`;
+      layer.innerHTML = `<div class="cm-sheet">${body}</div>`;
+    };
+
+    return new Promise((resolve) => {
+      const finish = (kept) => {
+        layer.remove();
+        document.removeEventListener('keydown', onKey, true);
+        resolve(kept);
+      };
+      const toFaces = () => {
+        draft.name = String(layer.querySelector('[data-cm-name]')?.value ?? draft.name);
+        const mayor = normalizeCampaignMayor(draft);
+        if (!mayor) {
+          error = say(L('請先填市長姓名。', 'Please enter the mayor\'s name.', '市長の名前を入力してください。'));
+          render();
+          layer.querySelector('[data-cm-name]')?.focus();
+          return;
+        }
+        Object.assign(draft, mayor);
+        error = '';
+        step = 'faces';
+        render();
+        layer.querySelector('.cm-pick.is-on')?.scrollIntoView?.({ block: 'nearest' });
+      };
+      const done = () => {
+        const mayor = normalizeCampaignMayor(draft);
+        if (!mayor) { step = 'form'; render(); return; }
+        runtime.profile.mayor = mayor;
+        scheduleCampaignProfileSave();
+        if (typeof showToast === 'function') showToast(say(L(`歡迎上任，${mayor.name}市長！`, `Welcome to office, Mayor ${mayor.name}!`, `ようこそ、${mayor.name}市長！`)), 'success');
+        finish(true);
+      };
+      const onKey = (event) => {
+        if (event.key === 'Escape') { event.stopPropagation(); finish(false); }
+        else if (event.key === 'Enter' && event.target.matches?.('[data-cm-name]')) { event.preventDefault(); toFaces(); }
+      };
+      document.addEventListener('keydown', onKey, true);
+      layer.addEventListener('input', (event) => {
+        if (!event.target.matches('[data-cm-name]')) return;
+        draft.name = event.target.value;
+        // typing answers the "enter a name" note
+        if (error) { error = ''; layer.querySelector('.cm-error')?.remove(); }
+        const plate = layer.querySelector('.cm-plate');
+        if (plate) plate.textContent = normalizeCampaignMayor({ ...draft, name: draft.name })?.name || say(L('無名氏', 'Nameless', '名無し'));
+      });
+      layer.addEventListener('change', (event) => {
+        if (event.target.matches('[data-cm-month]')) { draft.birthMonth = Number(event.target.value); render(); }
+        else if (event.target.matches('[data-cm-day]')) draft.birthDay = Number(event.target.value);
+      });
+      layer.addEventListener('click', (event) => {
+        const pick = event.target.closest('[data-cm-face]');
+        if (pick) {
+          draft.portrait = pick.dataset.cmFace;
+          layer.querySelectorAll('.cm-pick').forEach((el) => { el.classList.toggle('is-on', el === pick); el.setAttribute('aria-selected', String(el === pick)); });
+          layer.querySelector('.cm-face')?.replaceWith(document.createRange().createContextualFragment(preview()));
+          return;
+        }
+        const action = event.target.closest('[data-cm-action]')?.dataset.cmAction;
+        if (action === 'close') finish(false);
+        else if (action === 'faces') toFaces();
+        else if (action === 'back') { step = 'form'; render(); }
+        else if (action === 'done') done();
+      });
+      render();
+      if (!saved) layer.querySelector('[data-cm-name]')?.focus();
+    });
   }
 
   function ensureCampaignSelect() {
@@ -1111,11 +1270,17 @@
       const action = event.target.closest('[data-cs-action]')?.dataset.csAction;
       if (action === 'start') startCampaignChapter(runtime.selectedChapterId);
       else if (action === 'prologue') { closeCampaignSelect(); playCampaignPrologue(); }
+      else if (action === 'mayor') openCampaignMayorPanel().then(renderCampaignSelect);
     });
     return dialog;
   }
 
   async function openCampaignSelect() {
+    // the 市長登記 before anything else (a player from before it too); an unread profile asks nothing
+    if (!runtime.profile.mayor) {
+      await loadCampaignProfile();
+      if (runtime.loaded && !runtime.profile.mayor && !(await openCampaignMayorPanel({ first: true }))) return;
+    }
     const dialog = ensureCampaignSelect();
     dialog.style.display = 'flex';
     renderCampaignSelect();
@@ -1265,6 +1430,7 @@
       /* the touch UI's bars (mobile-ui.css, z-index 1100) stay under a dialogue and a cut-scene: the clock
          is stopped while one is open */
       [data-ui-profile="touch"] #campaign-backdrop { z-index: 2000; }
+      [data-ui-profile="touch"] #campaign-mayor { z-index: 2020; }
       [data-ui-profile="touch"] #campaign-dialogue, [data-ui-profile="touch"] #campaign-dialogue.is-scene { z-index: 2010; bottom: calc(12px + env(safe-area-inset-bottom)); }
       /* a phone held upright: the portrait and the name plate on one row, the words the full width below
          (the board still fills the screen: Norton 2026-11-20, 我比較鍾意放大左既轉場圖) */
@@ -1300,6 +1466,79 @@
       #campaign-select-dialog .cs-detail-title { font-size: 15px; font-weight: 700; }
       #campaign-select-dialog .cs-detail-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
       #campaign-select-dialog .cs-detail-actions button[disabled] { opacity: 0.45; cursor: default; }
+      #campaign-select-dialog .cs-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+      #campaign-select-dialog .cs-top .cs-summary { margin: 0; }
+      #campaign-select-dialog .cs-mayor { display: flex; align-items: center; gap: 8px; padding: 3px 10px 3px 3px; border: 2px solid #c9a227; border-radius: 4px;
+        background: linear-gradient(180deg, #fcf5e1, #f2e4bf); color: #3b2414; font: inherit; text-align: left; cursor: pointer; }
+      #campaign-select-dialog .cs-mayor img { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; border: 1px solid #6e1a1a; background: #4a2a18; }
+      #campaign-select-dialog .cs-mayor strong, #campaign-select-dialog .cs-mayor small { display: block; }
+      #campaign-select-dialog .cs-mayor small { color: #7a1f1f; font-size: 11px; }
+      /* 市長登記: the dialogue's parchment, maroon and gold (大航海時代4) - over the title screen and the
+         chapter map; a phone stacks it and scrolls inside it */
+      #campaign-mayor { position: fixed; inset: 0; z-index: 600; display: grid; place-items: center; padding: 12px;
+        background: rgba(8,12,18,0.72); font: 16px/1.5 "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; color: #3b2414; }
+      #campaign-mayor .cm-sheet { position: relative; box-sizing: border-box; width: min(820px, 100%); max-height: calc(100dvh - 24px); overflow-y: auto;
+        padding: 18px 24px 16px; background: linear-gradient(180deg, #fcf5e1 0%, #f2e4bf 100%); border: 3px solid #c9a227; border-radius: 6px;
+        box-shadow: 0 0 0 5px #6e1a1a, 0 0 0 7px #c9a227, 0 18px 42px rgba(0,0,0,0.6), inset 0 0 28px rgba(140,96,36,0.22); }
+      /* the sheet is a column: on a short screen only the faces scroll - the title, the chosen face and
+         the buttons stay in view (an iPhone SE had 返回 / 就係佢！ below the fold) */
+      #campaign-mayor .cm-sheet { display: flex; flex-direction: column; }
+      #campaign-mayor .cm-sheet > * { flex: none; }
+      #campaign-mayor .cm-body.is-faces { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+      #campaign-mayor .cm-body.is-faces .cm-face { align-self: flex-start; }
+      #campaign-mayor .cm-title { display: table; margin: 0 auto 6px; padding: 2px 26px; font-size: 22px; font-weight: 700; letter-spacing: 3px; color: #f6d77a;
+        background: linear-gradient(180deg, #7a1f1f, #561313); border: 2px solid #c9a227; border-radius: 3px; text-align: center; }
+      #campaign-mayor .cm-lede { text-align: center; color: #6e1a1a; margin-bottom: 12px; }
+      #campaign-mayor .cm-body { display: flex; gap: 24px; align-items: flex-start; }
+      #campaign-mayor .cm-face { flex: 0 0 196px; text-align: center; }
+      #campaign-mayor .cm-frame { width: 196px; height: 196px; box-sizing: border-box; border: 3px solid #c9a227; border-radius: 4px; background: #4a2a18;
+        box-shadow: 0 0 0 3px #6e1a1a, 0 6px 14px rgba(0,0,0,0.35); overflow: hidden; }
+      #campaign-mayor .cm-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      #campaign-mayor .cm-plate { display: inline-block; max-width: 100%; margin-top: 12px; padding: 1px 14px; font-weight: 700; color: #f6d77a; overflow-wrap: anywhere;
+        background: linear-gradient(180deg, #8e1b5b, #5b1240); border: 2px solid #c9a227; border-radius: 3px; }
+      #campaign-mayor .cm-face-caption { margin-top: 4px; font-size: 13px; color: #7a5a3a; }
+      #campaign-mayor .cm-form { flex: 1; min-width: 0; display: grid; gap: 14px; }
+      #campaign-mayor .cm-field { display: grid; gap: 4px; }
+      #campaign-mayor .cm-field > span { font-weight: 700; color: #7a1f1f; letter-spacing: 1px; }
+      #campaign-mayor input, #campaign-mayor select { box-sizing: border-box; min-height: 44px; padding: 6px 10px; font: inherit; font-size: 18px; color: #3b2414;
+        background: #fffaf0; border: 2px solid #c9a227; border-radius: 4px; }
+      #campaign-mayor input:focus, #campaign-mayor select:focus { outline: 3px solid rgba(142,27,91,0.45); outline-offset: 1px; }
+      #campaign-mayor .cm-date { display: flex; gap: 8px; }
+      #campaign-mayor .cm-date select { flex: 1; }
+      #campaign-mayor .cm-note { margin: 0; font-size: 14px; color: #6b4a2a; }
+      #campaign-mayor .cm-error { margin: 0; color: #b3261e; font-weight: 700; }
+      #campaign-mayor .cm-grid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 8px;
+        max-height: min(62vh, 560px); overflow-y: auto; padding: 4px; overscroll-behavior: contain; }
+      /* the picture gives the tile its height (square), so a short grid scrolls instead of squashing
+         its rows (aspect-ratio on the button let them shrink) */
+      #campaign-mayor .cm-pick { padding: 0; border: 2px solid #b89a5a; border-radius: 4px; background: #4a2a18; cursor: pointer; overflow: hidden; align-self: start; }
+      #campaign-mayor .cm-pick img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; display: block; }
+      #campaign-mayor .cm-pick.is-on { border-color: #f6d77a; box-shadow: 0 0 0 3px #8e1b5b, 0 0 10px rgba(246,215,122,0.8); }
+      #campaign-mayor .cm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+      #campaign-mayor .cm-btn { min-height: 44px; padding: 6px 18px; font: inherit; font-weight: 700; color: #3b2414; background: #fffaf0;
+        border: 2px solid #c9a227; border-radius: 4px; cursor: pointer; }
+      #campaign-mayor .cm-btn.is-primary { color: #f6d77a; background: linear-gradient(180deg, #7a1f1f, #561313); }
+      @media (max-width: 640px), (max-height: 520px) {
+        #campaign-mayor { padding: 8px; font-size: 15px; }
+        #campaign-mayor .cm-sheet { padding: 14px 14px 12px; max-height: calc(100dvh - 16px); }
+        #campaign-mayor .cm-title { font-size: 18px; letter-spacing: 2px; padding: 2px 16px; }
+        #campaign-mayor .cm-face { flex-basis: 112px; }
+        #campaign-mayor .cm-frame { width: 112px; height: 112px; }
+        #campaign-mayor .cm-plate { margin-top: 8px; padding: 1px 8px; font-size: 14px; }
+        #campaign-mayor .cm-face-caption { font-size: 12px; }
+        #campaign-mayor .cm-body { gap: 14px; }
+        #campaign-mayor .cm-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; max-height: none; }
+        #campaign-mayor input, #campaign-mayor select { font-size: 16px; }
+      }
+      /* a phone held upright: the face above the form, the faces below the chosen one */
+      @media (max-width: 560px) and (orientation: portrait) {
+        #campaign-mayor .cm-body { flex-direction: column; align-items: stretch; }
+        #campaign-mayor .cm-face { display: grid; grid-template-columns: 96px 1fr; column-gap: 12px; align-items: center; text-align: left; flex-basis: auto; }
+        #campaign-mayor .cm-frame { width: 96px; height: 96px; grid-row: span 2; }
+        #campaign-mayor .cm-plate { justify-self: start; margin-top: 0; }
+        #campaign-mayor .cm-body.is-faces .cm-face { align-self: stretch; }
+        #campaign-mayor .cm-body.is-faces .cm-grid { flex: 1 1 auto; min-height: 0; }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -1318,6 +1557,6 @@
   Object.assign(globalThis, {
     startCampaignChapter, openCampaignSelect, closeCampaignSelect, onCampaignCityLoaded, exportCampaignStart,
     buildCampaignSnapshot, renderCampaignPanel, playCampaignDialogue, playCampaignPrologue, getCampaignPrologueScene,
-    getCampaignProfile: () => runtime.profile,
+    getCampaignProfile: () => runtime.profile, openCampaignMayorPanel,
   });
 })();

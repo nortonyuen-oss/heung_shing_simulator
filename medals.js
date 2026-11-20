@@ -172,6 +172,12 @@
 
   // ── Snapshot of the city being played ─────────────────────────────────────
 
+  function countMedalCampaignChaptersStarred() {
+    const chapters = typeof getCampaignProfile === 'function' ? getCampaignProfile()?.chapters : null;
+    const ids = typeof CAMPAIGN_CHAPTERS !== 'undefined' ? CAMPAIGN_CHAPTERS.map((chapter) => chapter.id) : Object.keys(chapters || {});
+    return ids.filter((id) => Number(chapters?.[id]?.stars) >= 1).length;
+  }
+
   function collectMedalSnapshot() {
     const buildings = {};
     let highDensityResidents = 0;
@@ -280,6 +286,8 @@
       publicHousingResidents: Number(city.housingResidents?.public) || 0,
       // 航班 (airport-routes.js): the routes carrying passengers
       airportRoutes: typeof getAirportState === 'function' ? getAirportState().routesFlying : 0,
+      // 《玩轉18區》 (campaign.js): the chapters the player has a star in, any city
+      campaignChaptersStarred: countMedalCampaignChaptersStarred(),
       hosResidents: Number(city.housingResidents?.hos) || 0,
       privateResidents: Number(city.housingResidents?.private) || 0,
       scienceParkJobs,

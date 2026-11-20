@@ -899,7 +899,11 @@
 
   function onCampaignStar(run, spec, star) {
     const chapter = CAMPAIGN_CHAPTERS_BY_ID[run.chapterId];
-    if (recordCampaignStars(runtime.profile, run, campaignStamp())) scheduleCampaignProfileSave();
+    if (recordCampaignStars(runtime.profile, run, campaignStamp())) {
+      scheduleCampaignProfileSave();
+      // E01 九龍皇帝: a star in every district, judged at once (medals.js)
+      if (star === 1 && typeof runMedalEvaluation === 'function') runMedalEvaluation();
+    }
     if (typeof showToast === 'function') {
       showToast(say(L(`⭐ 第 ${chapter.number} 章${'一二三'[star - 1]}星：《${say(spec.stars[star - 1].title)}》`,
         `⭐ Chapter ${chapter.number}, star ${star}: "${say(spec.stars[star - 1].title)}"`,

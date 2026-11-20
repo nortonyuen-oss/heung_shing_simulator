@@ -53,6 +53,8 @@
   // 公屋／居屋 residents (housing-types.js)
   const MEDAL_PUBLIC_HOUSING_RESIDENTS = 50000;
   const MEDAL_AIRPORT_ROUTES = 5;
+  // E01: the districts of 《玩轉18區》 (campaign-chapters.js), a star in each
+  const MEDAL_CAMPAIGN_DISTRICTS = 18;
   const MEDAL_HOS_RESIDENTS = 20000;
   // A12 (Norton 2026-11-17: 製作一個合理的投資獲利): the script's $2,000,000 was a coin flip after ten
   // game years of buying crashes with $10M; $1,000,000 is the game's own bar for a notable trading
@@ -337,9 +339,11 @@
       stampFact: 'loversStoryComplete',
     },
     {
-      id: 'E01', series: 'S', tier: 'grand', status: 'blocked',
+      id: 'E01', series: 'S', tier: 'grand', status: 'active',
       name: T('香城大紫荊勳章・九龍皇帝', 'Grand Bauhinia · King of Kowloon', '香城大紫荊勲章・九龍皇帝'),
       desc: T('《玩轉18區》十八區各取得至少一星', 'At least one star in each of the 18 districts of the campaign', '「玩転18区」の18区すべてで星を1つ以上獲得'),
+      // the player's chapters with a star (the campaign profile, across saves as the medals are)
+      live: (s) => num(s.campaignChaptersStarred) >= MEDAL_CAMPAIGN_DISTRICTS,
     },
   ]);
 

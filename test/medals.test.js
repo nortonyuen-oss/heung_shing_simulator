@@ -20,7 +20,7 @@ const judge = (snapshot, profile = medals.createEmptyMedalProfile()) => {
 const earns = (snapshot, id) => judge(snapshot).newlyEarned.includes(id);
 const completeDiary = () => ({ seen: Object.fromEntries(LOVERS_STORY_DEFS.map((def, i) => [def.id, 100 + i * 3])) });
 
-test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 35 judged now', () => {
+test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; all 36 judged', () => {
   assert.equal(medals.MEDAL_DEFS.length, 36);
   assert.equal(new Set(medals.MEDAL_DEFS.map((def) => def.id)).size, 36);
   const bySeries = (series) => medals.MEDAL_DEFS.filter((def) => def.series === series).map((def) => def.id);
@@ -29,8 +29,8 @@ test('all 36 traceable medals are listed: 19 core, 14 selected, 3 special; 35 ju
   assert.deepEqual(bySeries('S'), ['C01', 'D01', 'E01']);
   const byStatus = (status) => medals.MEDAL_DEFS.filter((def) => def.status === status).map((def) => def.id);
   assert.deepEqual(byStatus('locked'), [], 'A15-A19 set 2026-11-17');
-  assert.deepEqual(byStatus('blocked'), ['E01'], 'the campaign (公屋/居屋 and the routes live since P4, Claire with the lovers stories)');
-  assert.equal(byStatus('active').length, 35);
+  assert.deepEqual(byStatus('blocked'), [], '公屋/居屋 and the routes live since P4, Claire with the lovers stories, E01 with the campaign');
+  assert.equal(byStatus('active').length, 36);
   medals.MEDAL_DEFS.forEach((def) => {
     ['zhHant', 'en', 'ja'].forEach((language) => {
       assert.ok(def.name[language], `${def.id} name in ${language}`);
@@ -508,3 +508,16 @@ test('B03 公屋之父 and B04 居者有其屋 count the residents of each housi
   assert.equal(earns({ hosResidents: 20000 }, 'B04'), true);
   assert.equal(earns({ privateResidents: 90000 }, 'B03'), false, 'private homes are not public housing');
 });
+
+// E01 九龍皇帝 (v6.0.0): a star in each of the 18 districts of 《玩轉18區》, from the player's campaign profile.
+test('E01: a star in every one of the 18 districts', () => {
+  const e01 = medals.MEDAL_DEFS.find((def) => def.id === 'E01');
+  assert.equal(e01.status, 'active');
+  assert.equal(e01.live({ campaignChaptersStarred: 18 }), true);
+  assert.equal(e01.live({ campaignChaptersStarred: 17 }), false);
+  assert.equal(e01.live({}), false);
+  const source = (file) => require('node:fs').readFileSync(require('node:path').join(__dirname, '..', file), 'utf8');
+  assert.match(source('medals.js'), /campaignChaptersStarred: countMedalCampaignChaptersStarred\(\)/);
+  assert.match(source('campaign.js'), /star === 1 && typeof runMedalEvaluation === 'function'/);
+});
+

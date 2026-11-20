@@ -43,6 +43,11 @@ function detectSiteLanguage() {
 // ── Gallery captions ─────────────────────────────────────────────────────────
 const SITE_GALLERY = {
   "zh-HK": [
+    { title: "玩轉18區：一區一章", alt: "《玩轉18區》章節地圖：香港地圖上標住第 01 至 18 章，北區第一章已經攞咗三粒星", caption: "6.0.0 全新劇情模式：由北區新市鎮開始，逐區打通香港 18 區。每章喺嗰區嘅地圖上開局，有自己嘅目標同限期，最多攞三粒星；攞到一星就解鎖下一章。" },
+    { title: "序幕《女皇密令》", alt: "序幕過場：唐樓書桌上一封蓋住皇家火漆嘅信，下面係女皇陛下嘅對白", caption: "一封火漆密函，委任你做香城市長。劇情用過場插畫同角色對白推進，有時仲要你親自揀點回應。" },
+    { title: "每一區都有自己嘅開場", alt: "第十六章灣仔《國際XX中心》開場插畫：會展、維港同幻彩燈光，秘書金毛玲講解今章任務", caption: "18 章各有一幅開場插畫同一段劇本：灣仔要你做「國際XX中心」，辦盛事、搞旅遊、令庫房有盈餘。每區都有地道角色同港式笑位。" },
+    { title: "目標清單同限期一眼睇晒", alt: "第十六章灣仔遊戲畫面：商場、廣場同海旁高樓，右邊章節面板列出一星目標同即時進度", caption: "唔少章節開局已經有現成市鎮，好似灣仔一開始就有五萬人。右邊面板列晒目標同即時進度：會展營運、舉辦盛事、四種公共交通都有人搭、連續盈餘……一星要喺限期內完成，二星三星可以慢慢追。" },
+    { title: "中段事件：紫色生日電車", alt: "東區章節中段事件插畫：一架紫色全車身生日廣告電車喺街上行，歌迷沿路影相，新聞主播報道", caption: "玩到某啲里程碑就會觸發中段事件：東區電車搭嘅人夠多，歌迷就夾錢幫偶像包起成架叮叮做生日廣告。事件仲會變成香城討論區嘅新聞同街坊留言。" },
     { title: "一座有香港氣息嘅城市", alt: "白天嘅香城市中心：都會大學、生產力促進局、海濱馬路同住宅商廈", caption: "由公共屋邨到玻璃幕牆商廈，大學、生產力局、海濱馬路都係原創像素模型；街上小巴、的士靠左行車，城市會隨土地價值自己重建。" },
     { title: "康文署嘅一日", alt: "運動場、室內體育館、大球場、海洋公園同教堂喺日光下並排", caption: "運動場、室內體育館、大球場、海洋公園、教堂：地標同康樂設施逐個解鎖，城市越大選擇越多。" },
     { title: "海濱住宅有自己嘅節奏", alt: "低密度海濱屋苑、跨海橋同廟宇", caption: "低密度海濱屋苑、跨海橋、廟宇同公園並排；分區密度由你決定，樓宇會隨需求同土地價值自己升級或者重建。" },
@@ -71,6 +76,11 @@ const SITE_GALLERY = {
     {"title": "喺真實香港開城", "alt": "開新城市畫面：全港總覽圖標出各區，維港兩岸被框住，下面係地區地形、難度、簡介同優勢／代價標籤", "caption": "開新城市可以喺全港總覽圖揀 23 個真實地區之一，每區有自己嘅難度、優勢同代價；亦可以由全港真實地形隨機抽一張地圖。"},
   ],
   "zh-TW": [
+    { title: "玩轉18區：一區一章", alt: "《玩轉18區》章節地圖：香港地圖上標示第 01 至 18 章，北區第一章已取得三顆星", caption: "6.0.0 全新劇情模式：從北區新市鎮出發，逐區攻略香港 18 區。每章都在該區的地圖上開局，各有目標與期限，最多可得三顆星；取得一星即解鎖下一章。" },
+    { title: "序幕《女皇密令》", alt: "序幕過場：唐樓書桌上一封蓋著皇家火漆的信，下方是女皇陛下的對白", caption: "一封火漆密函，委任你為香城市長。劇情以過場插畫與角色對白推進，有時還要你親自選擇如何回應。" },
+    { title: "每一區都有自己的開場", alt: "第十六章灣仔《國際XX中心》開場插畫：會展、維港與幻彩燈光，秘書金毛玲說明本章任務", caption: "18 章各有一幅開場插畫與一段劇本：灣仔要你打造「國際XX中心」，舉辦盛事、發展旅遊、讓庫房保持盈餘。每區都有在地角色與港式笑點。" },
+    { title: "目標清單與期限一目了然", alt: "第十六章灣仔遊戲畫面：商場、廣場與海濱高樓，右側章節面板列出一星目標與即時進度", caption: "不少章節開局就有現成市鎮，例如灣仔一開始已有五萬人口。右側面板列出所有目標與即時進度：會展營運、舉辦盛事、四種大眾運輸都有乘客、連續盈餘……一星須在期限內完成，二星、三星可以慢慢挑戰。" },
+    { title: "中段事件：紫色生日電車", alt: "東區章節中段事件插畫：一輛紫色全車身生日廣告電車行駛街上，歌迷沿路拍照，新聞主播報導", caption: "達成特定里程碑會觸發中段事件：東區電車乘客夠多時，歌迷會集資為偶像包下整輛叮叮做生日廣告。事件也會成為香城討論區的新聞與街坊留言。" },
     { title: "一座有香港氣息的城市", alt: "白天的香城市中心：都會大學、生產力促進局、海濱馬路與住宅商廈", caption: "從公共住宅到玻璃帷幕商廈，大學、生產力局、海濱馬路都是原創像素模型；街上小巴、計程車靠左行駛，城市會隨土地價值自行重建。" },
     { title: "康文署的一天", alt: "運動場、室內體育館、大球場、海洋公園與教堂在日光下並排", caption: "運動場、室內體育館、大球場、海洋公園、教堂：地標與康樂設施逐一解鎖，城市越大選擇越多。" },
     { title: "海濱住宅有自己的節奏", alt: "低密度海濱社區、跨海橋與廟宇", caption: "低密度海濱社區、跨海橋、廟宇與公園並排；分區密度由你決定，建築會隨需求與土地價值自行升級或重建。" },
@@ -99,6 +109,11 @@ const SITE_GALLERY = {
     {"title": "在真實香港開城", "alt": "開新城市畫面：全港總覽圖標出各區，維港兩岸被框選，下方是地區地形、難度、簡介與優勢／代價標籤", "caption": "開新城市時可在全港總覽圖選擇 23 個真實地區之一，每區有自己的難度、優勢與代價；也可以從全港真實地形隨機擷取一張地圖。"},
   ],
   en: [
+    { title: "The 18 Districts: one chapter each", alt: "The 18 Districts chapter map: chapters 01 to 18 pinned on a map of Hong Kong, with chapter 1 in North District at three stars", caption: "The new story campaign in 6.0.0: start in a North District new town and work your way through all 18 districts of Hong Kong. Each chapter opens on that district's own map with its own goals and deadline, worth up to three stars; one star unlocks the next chapter." },
+    { title: "Prologue: The Secret Order", alt: "Prologue cut-scene: a letter with a royal wax seal on a tong lau desk, with a line from Her Majesty below", caption: "A sealed letter appoints you Mayor of Heung Shing. The story plays out in illustrated cut-scenes and character dialogue, and now and then you choose how to reply." },
+    { title: "Every district has its own opening", alt: "Opening art for chapter 16, Wan Chai, \"International XX Centre\": the convention centre, the harbour and a light show, with secretary Kam Mo-ling briefing the mayor", caption: "All 18 chapters open with their own illustration and script. In Wan Chai you are asked to build an \"International XX Centre\": stage events, draw tourists and keep the treasury in surplus. Every district brings local characters and Hong Kong humour." },
+    { title: "Goals and deadline at a glance", alt: "Chapter 16 in play: a Wan Chai of malls, a plaza and harbourfront towers, with the chapter panel on the right listing the one-star goals and their progress", caption: "Many chapters start with a town already built - Wan Chai opens with 50,000 people. The panel on the right lists every goal with live progress: the convention centre running, events staged, riders on all four kinds of public transport, months in surplus... Star one has a deadline; stars two and three can wait." },
+    { title: "Mid-chapter event: the purple birthday tram", alt: "Event art from the Eastern chapter: a tram wrapped in a purple birthday ad rolls down the street as fans take photos, reported by the news anchor", caption: "Milestones trigger mid-chapter events: once enough people ride the trams in Eastern, fans chip in to wrap a whole tram for their idol's birthday. Each event also turns into news and comments on the Heung Shing Forum." },
     { title: "A city that feels like Hong Kong", alt: "Downtown Heung Shing by day: the Metropolitan University, the Productivity Council, a waterfront road, housing and office towers", caption: "From public housing estates to glass office towers, the university, the Productivity Council and the waterfront road are all original pixel models; minibuses and taxis drive on the left, and the city redevelops itself as land values move." },
     { title: "A day out with the LCSD", alt: "Sports grounds, an indoor coliseum, a stadium, Ocean Park and a church side by side in daylight", caption: "Sports grounds, an indoor coliseum, the stadium, Ocean Park, a church: landmarks and leisure facilities unlock one by one, and the bigger the city the more you get to choose." },
     { title: "Waterfront living has its own pace", alt: "Low-density waterfront housing, a cross-harbour bridge and a temple", caption: "Low-rise waterfront estates, a bridge over the water, a temple and parks side by side; you set the zoning density, and buildings upgrade or redevelop on their own with demand and land value." },
@@ -127,6 +142,11 @@ const SITE_GALLERY = {
     {"title": "Found your city on real Hong Kong", "alt": "The New City screen: a map of the whole territory with every district marked and Victoria Harbour framed; below, the district's terrain, difficulty, introduction and advantage and cost tags", "caption": "Pick one of 23 real districts on a map of the whole territory, each with its own difficulty, advantages and costs, or draw a random map from Hong Kong's real terrain."},
   ],
   ja: [
+    { title: "18区をめぐる：1区に1章", alt: "「18区をめぐる」章マップ：香港の地図に第01〜18章の印、北区の第1章は星3つ獲得済み", caption: "6.0.0の新しいストーリーモード。北区のニュータウンから始めて、香港18区を1区ずつ攻略します。各章はその区の地図で始まり、独自の目標と期限があり、星は最大3つ。星1つで次の章が解放されます。" },
+    { title: "序章《女王の密令》", alt: "序章のカットシーン：唐楼の机に置かれた王室の封蝋つきの手紙と、女王陛下のセリフ", caption: "封蝋の密書があなたを香城市長に任命します。物語はイラストのカットシーンとキャラクターの会話で進み、ときには返事を自分で選びます。" },
+    { title: "区ごとのオープニング", alt: "第16章 湾仔《国際XXセンター》のオープニング：コンベンションセンター、ビクトリア・ハーバー、光のショー、秘書の金毛玲が任務を説明", caption: "18章それぞれにオープニングのイラストと脚本があります。湾仔では「国際XXセンター」づくりを任され、イベント開催・観光・黒字財政を目指します。各区に地元のキャラクターと香港らしい笑いがあります。" },
+    { title: "目標と期限がひと目でわかる", alt: "第16章のプレイ画面：商業施設や広場、海沿いの高層ビルが並ぶ湾仔と、右側に星1つの目標と進捗を並べた章パネル", caption: "多くの章はすでに街がある状態で始まり、湾仔は人口5万人からスタート。右側のパネルに目標と進捗がリアルタイムで並びます：コンベンションセンターの営業、イベント開催、4種類の公共交通の乗客、連続黒字……星1つには期限があり、星2つ・3つはじっくり狙えます。" },
+    { title: "章の途中のイベント：紫のバースデー電車", alt: "東区の章の途中イベントのイラスト：紫のバースデー広告で全面ラッピングされた電車が通りを走り、ファンが撮影、ニュースキャスターが報道", caption: "節目を達成すると章の途中でイベントが起こります。東区の電車の乗客が増えると、ファンがお金を出し合って推しの誕生日に電車を丸ごとラッピング。イベントは香城掲示板のニュースや住民コメントにもなります。" },
     { title: "香港の空気をまとった街", alt: "昼間の香城中心部：都会大学、生産力促進局、海沿いの道路、住宅とオフィスビル", caption: "公営住宅からガラス張りのオフィスビルまで、大学も生産力促進局も海沿いの道路もオリジナルのピクセルモデル。ミニバスやタクシーは左側通行で、街は地価に合わせて自ら建て替わります。" },
     { title: "康文署の一日", alt: "運動場、室内競技場、スタジアム、オーシャンパーク、教会が昼の光の中に並ぶ", caption: "運動場、室内競技場、スタジアム、オーシャンパーク、教会。ランドマークとレジャー施設は一つずつ解放され、街が大きいほど選択肢が増えます。" },
     { title: "海辺の住宅には独自のリズム", alt: "低密度の海辺の住宅地、海を渡る橋、寺院", caption: "低層の海辺の団地、海を渡る橋、寺院と公園が並びます。区画の密度は自分で決め、建物は需要と地価に応じて自ら建て替わります。" },
@@ -4042,6 +4062,11 @@ function applyStaticText() {
 }
 
 const SITE_GALLERY_SOURCES = [
+  "assets/gameplay/campaignChapterMap.webp",
+  "assets/gameplay/campaignPrologue.webp",
+  "assets/gameplay/campaignChapterIntro.webp",
+  "assets/gameplay/campaignObjectives.webp",
+  "assets/gameplay/campaignEvent.webp",
   "assets/gameplay/citySence.webp",
   "assets/gameplay/sportAndAttraction.webp",
   "assets/gameplay/newWaterfront.webp",

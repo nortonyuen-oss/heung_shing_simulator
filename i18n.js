@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '6.0.4';
+let appVersion = '6.0.5';
 let appReleaseTheme = '【玩轉18區】';
 const APP_RELEASE_THEMES = {"en":"【The 18 Districts】","zhHant":"【玩轉18區】","ja":"【18区をめぐる】"};
 function localizedReleaseTheme() {

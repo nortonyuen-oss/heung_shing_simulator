@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v6.0.4 — 【玩轉18區】
+# 香城模擬器 (The City of Heung Shing) v6.0.5 — 【玩轉18區】
 
-香城模擬器 (The City of Heung Shing) v6.0.4 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v6.0.5 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.5
+
+The City of Heung Shing for Android: a small app (APK, Android 7 or later with Chrome) that opens the browser version full screen, sharing its saves with Chrome and always on the latest release. Download it from the official website or the release page; your phone may ask you to allow apps from unknown sources.
 
 ## New in v6.0.4
 

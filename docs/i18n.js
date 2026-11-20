@@ -290,6 +290,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.0.5","date":"2026-11-21","dateLabel":"2026年11月21日","title":"玩轉18區","items":["新增香城模擬器 Android app：大約 1 MB 嘅 APK，用 Chrome 全螢幕玩網頁版（Android 7 或以上，需要 Chrome）。","存檔同手機 Chrome 共用；網頁版每次更新，app 自動用最新版本，唔使重新安裝。","官網下載區新增 Android 下載。"]},
     {"version":"v6.0.4","date":"2026-11-20","dateLabel":"2026年11月20日","title":"玩轉18區","items":["修正手機直向時，完成章節一星之後結尾對白收唔埋、玩唔落去（中段事件同限期失敗嘅對白都一樣）。","修正手機起唔到避風塘：確認範圍之後會打開避風塘面板，用「查詢」撳避風塘亦會打開，可以確定興建、擴建或者刪除規劃。","九龍城寨文化園區換新圖，地盤改為 4×4；啟德郵輪碼頭換新圖，海嗰邊同陸地嗰邊各一個角度，網頁版轉地圖角度時會跟住轉向。"]},
     {"version":"v6.0.3","date":"2026-11-20","dateLabel":"2026年11月20日","title":"玩轉18區","items":["市長登記：入《玩轉18區》之前，喺羊皮紙登記表（參考《大航海時代4》）填市長姓名同生日，再喺 36 個香城人物入面揀自己嘅樣貌。","主線入面市長講嘢會用你嘅名同頭像；章節地圖嘅市長卡隨時可以改。","市長日：每年生日嗰個月晚上 8 點，所有城市為你放金紫色煙花，惡劣天氣會取消。"]},
     {"version":"v6.0.2","date":"2026-11-20","dateLabel":"2026年11月20日","title":"玩轉18區","items":["手機玩《玩轉18區》：目標面板唔再擋住畫面中間，改為貼喺頂欄下面（打橫時喺左邊），目標清單收埋做一行，撳先展開。","手機版教學講返手機嘅位置（「撳下面「建造」→「路政署」」），要撳嘅按鈕會發光提示。","修正網頁版序幕《女皇密令》嘅背景圖（皇家火漆信）載入唔到。"]},
@@ -671,6 +672,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.0.5": {"title":"玩轉18區","items":["新增香城模擬器 Android app：約 1 MB 的 APK，以 Chrome 全螢幕遊玩網頁版（需要 Android 7 以上與 Chrome）。","存檔與手機 Chrome 共用；網頁版每次更新，app 會自動使用最新版本，無須重新安裝。","官網下載區新增 Android 下載。"]},
     "v6.0.4": {"title":"玩轉18區","items":["修正手機直向時，完成章節一星後結尾對白無法關閉、遊戲無法繼續（中段事件與期限失敗的對白亦同）。","修正手機無法興建避風塘：確認範圍後會開啟避風塘面板，以「查詢」點選避風塘亦可開啟，可確定興建、擴建或刪除規劃。","九龍城寨文化園區換上新圖，地盤改為 4×4；啟德郵輪碼頭換上新圖（海側與陸側兩個角度），網頁版旋轉地圖時會跟著轉向。"]},
     "v6.0.3": {"title":"玩轉18區","items":["市長登記：進入《玩轉18區》前，在羊皮紙登記表（參考《大航海時代4》）填寫市長姓名與生日，再從 36 位香城人物中選擇自己的樣貌。","主線中市長說話會使用你的名字與頭像；章節地圖的市長卡可隨時修改。","市長日：每年生日所在月份的晚上 8 點，所有城市為你施放金紫色煙火，惡劣天氣會取消。"]},
     "v6.0.2": {"title":"玩轉18區","items":["手機遊玩《玩轉18區》：目標面板不再擋住畫面中央，改為貼在頂欄下方（橫向時在左側），目標清單收合成一行，點選才展開。","手機版教學改用手機的位置說明（「點下方「建造」→「路政署」」），要點的按鈕會發光提示。","修正網頁版序幕《女皇密令》的背景圖（蓋著皇家火漆的信）無法載入。"]},
@@ -1045,6 +1047,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.0.5": {"title":"The 18 Districts","items":["New: The City of Heung Shing for Android - a 1 MB APK that plays the browser version full screen in Chrome (Android 7 or later, with Chrome).","Saves are shared with Chrome on the phone, and the app always runs the latest release without reinstalling.","The website's downloads now include Android."]},
     "v6.0.4": {"title":"The 18 Districts","items":["Fixed a dialogue staying on screen after its last line on a phone held upright, which stopped play after a chapter's first star (and after events and the time-up lines).","Fixed typhoon shelters that could not be built from a phone: the shelter panel with Build now opens after the basin is confirmed and when the inspect tool taps a shelter.","New art for the Kowloon Walled City Park, now on a 4x4 lot, and for the Kai Tak cruise terminal, seen from the sea and from the land; in the browser it now turns with the map."]},
     "v6.0.3": {"title":"The 18 Districts","items":["Mayor registration: before The 18 Districts, a parchment form (after Uncharted Waters 4) asks for the mayor's name and birthday, then a face from 36 Heung Shing characters.","In the story the mayor speaks with your name and face; the mayor card on the chapter map changes them at any time.","Mayor's Day: every year at eight on the evening of your birthday month, gold and purple fireworks over every city, called off in bad weather."]},
     "v6.0.2": {"title":"The 18 Districts","items":["The 18 Districts on a phone: the objectives panel no longer covers the middle of the map. It docks under the top bar (on the left held sideways), with the objectives folded to one line until tapped.","On a phone the tutorial tells you where each tool is (Build → Highways) and lights the buttons to press.","Fixed the prologue's backdrop, the letter under the royal seal, failing to load in the browser version."]},
@@ -1419,6 +1422,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.0.5": {"title":"18区をめぐる","items":["新機能：香城シミュレーター Android アプリ。約 1 MB の APK で、ブラウザー版を Chrome の全画面で遊べます（Android 7 以上、Chrome が必要）。","セーブはスマートフォンの Chrome と共有され、更新は再インストールなしで自動的に反映されます。","公式サイトのダウンロードに Android を追加。"]},
     "v6.0.4": {"title":"18区をめぐる","items":["スマートフォン縦向きで、会話が最後の一言のあとも閉じず、章の星1つ目のあと進めなくなる問題を修正（途中イベントと期限切れの会話も）。","スマートフォンで避難港を建設できない問題を修正：水域の確定後と、調査ツールで避難港をタップしたときにパネルが開き、今すぐ建設・拡張・計画削除ができます。","九龍城砦文化パークの新しいアート（敷地は4×4）と、海側・陸側から見た啓徳クルーズターミナルの新しいアート。ブラウザー版では地図を回すと向きが変わります。"]},
     "v6.0.3": {"title":"18区をめぐる","items":["市長登録：「18区をめぐる」の前に、羊皮紙の登録用紙（『大航海時代IV』風）で市長の名前と誕生日を入力し、香城の36人から自分の顔を選びます。","ストーリーでは市長があなたの名前と顔で話します。章マップの市長カードからいつでも変更できます。","市長の日：毎年誕生月の夜8時、すべての都市で金色と紫の花火。悪天候では中止。"]},
     "v6.0.2": {"title":"18区をめぐる","items":["スマートフォンで「18区をめぐる」：目標パネルが画面中央を覆わなくなりました。上部バーの下（横向きでは左側）に表示し、目標リストはタップするまで1行に折りたたみます。","スマートフォンではチュートリアルが各ツールの場所（下の「建設」→「道路局」）を案内し、押すボタンを光らせます。","ブラウザー版でプロローグの背景画像（王室の封蝋つきの手紙）が読み込まれない問題を修正。"]},
@@ -1818,8 +1822,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.4 — 【玩轉18區】",
-      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.4 手機修正對白同避風塘，城寨同郵輪碼頭換新圖。",
+      versionBadge: "v6.0.5 — 【玩轉18區】",
+      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.5 新增 Android app，手機全螢幕玩。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1928,8 +1932,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.4 — 【玩轉18區】",
-      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.4 修正手機對白與避風塘，城寨與郵輪碼頭換上新圖。",
+      versionBadge: "v6.0.5 — 【玩轉18區】",
+      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.5 新增 Android app，手機全螢幕遊玩。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2038,8 +2042,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v6.0.4 — 【The 18 Districts】",
-      versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong. 6.0.4 fixes dialogues and typhoon shelters on phones, with new art for the Walled City Park and the cruise terminal.",
+      versionBadge: "v6.0.5 — 【The 18 Districts】",
+      versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong. 6.0.5 adds an Android app: the game full screen on your phone.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2149,8 +2153,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.4 — 【18区をめぐる】",
-      versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。6.0.4 でスマートフォンの会話と避難港を修正、城砦パークとクルーズターミナルを新しいアートに。",
+      versionBadge: "v6.0.5 — 【18区をめぐる】",
+      versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。6.0.5 で Android アプリを追加、スマートフォンで全画面プレイ。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

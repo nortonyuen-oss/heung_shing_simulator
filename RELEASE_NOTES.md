@@ -1,3 +1,28 @@
+# The City of Heung Shing v6.0.5 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 新增：Android 版
+
+- **香城模擬器 Android app**：一個細小嘅 APK（大約 1 MB），開啟之後用 Chrome 全螢幕玩網頁版。
+- **要求**：Android 7 或以上，部機要有 Chrome。
+- **存檔同更新**：存檔同手機 Chrome 瀏覽器共用；網頁版每次更新，app 會自動用最新版本，唔使重新安裝。
+- **安裝**：喺官網或者 GitHub release 下載 `The.City.of.Heung.Shing-6.0.5-android.apk`。手機可能會要你允許安裝「未知來源」app。第一次開要上網。
+
+**台灣中文：** 新增香城模擬器 Android app：一個約 1 MB 的 APK，開啟後以 Chrome 全螢幕遊玩網頁版。需要 Android 7 以上並安裝 Chrome；存檔與手機 Chrome 共用，網頁版每次更新會自動使用最新版本。請從官網或 GitHub release 下載 APK 安裝，手機可能會要求允許安裝「未知來源」的應用程式。
+
+**English:** New: The City of Heung Shing for Android. A small APK (about 1 MB) that opens the browser version full screen in Chrome. It needs Android 7 or later with Chrome; saves are shared with Chrome on the phone, and the app always runs the latest release of the browser version without reinstalling. Download the APK from the official website or the GitHub release; your phone may ask you to allow apps from unknown sources.
+
+**日本語:** 新機能：香城シミュレーター Android アプリ。約 1 MB の APK で、ブラウザー版を Chrome の全画面で遊べます。Android 7 以上と Chrome が必要です。セーブはスマートフォンの Chrome と共有され、ブラウザー版の更新は再インストールなしで自動的に反映されます。公式サイトまたは GitHub のリリースから APK をダウンロードしてインストールしてください（提供元不明のアプリの許可を求められることがあります）。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.4 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

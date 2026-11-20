@@ -12,7 +12,7 @@ post or reply. Website messages are tracked with the `website-feedback` issue la
 
 ## New in v6.0.1
 
-A campaign fix: the prologue replayed from the title screen (The 18 Districts → Replay the prologue) is visible again - while the showcase city played behind the menu, the cut-scene and its backdrop were hidden with the rest of the game's layers. The website gallery opens with five new screenshots from The 18 Districts.
+The browser version no longer sometimes fails to start after a page refresh on slower devices such as phones: one start-up step could run before all of the game's scripts had loaded. Also a campaign fix: the prologue replayed from the title screen (The 18 Districts → Replay the prologue) is visible again - while the showcase city played behind the menu, the cut-scene and its backdrop were hidden with the rest of the game's layers. The website gallery opens with five new screenshots from The 18 Districts.
 
 ## New in v6.0.0
 

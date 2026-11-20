@@ -4,16 +4,17 @@
 - English: 【The 18 Districts】
 - 日本語：【18区をめぐる】
 
-## 修正：標題畫面重看序幕
+## 修正：重看序幕、網頁版重新整理
 
+- **網頁版重新整理開唔到遊戲**：遊戲啟動時有一步會喺網頁仲未載入晒程式之前就行，所以較慢嘅裝置（例如手機）重新整理時，有機會卡住開唔到。6.0.0 加咗主線，令呢個情況更容易出現。而家會等所有程式載入完先啟動。
 - 標題畫面背景播緊城市展示嘅時候，撳「玩轉18區 → 重看序幕」，成段《女皇密令》過場同背景圖都被隱藏咗，玩家乜都睇唔到。而家過場會正常顯示。
 - 官網截圖新增 5 張《玩轉18區》畫面：章節地圖、序幕、灣仔開場同遊戲畫面、東區紫色生日電車事件。
 
-**台灣中文：** 修正標題畫面背景播放城市展示時，點選「玩轉18區 → 重看序幕」整段過場與背景圖都被隱藏的問題；官網截圖新增 5 張《玩轉18區》畫面。
+**台灣中文：** 修正網頁版重新整理時，較慢的裝置（例如手機）有機會卡住、無法啟動遊戲的問題（遊戲現在會等所有程式載入完成才啟動）；修正標題畫面背景播放城市展示時，點選「玩轉18區 → 重看序幕」整段過場與背景圖都被隱藏的問題；官網截圖新增 5 張《玩轉18區》畫面。
 
-**English:** A campaign fix: replaying the prologue from the title screen (The 18 Districts → Replay the prologue) while the showcase city ran behind the menu hid the whole cut-scene and its backdrop along with the game's other layers. It shows again. The website gallery also opens with five new screenshots from The 18 Districts.
+**English:** Fixed the browser version sometimes failing to start after a page refresh on slower devices such as phones: one start-up step could run before all of the game's scripts had loaded, and 6.0.0's campaign made that more likely. The game now waits for every script before it starts. Also a campaign fix: replaying the prologue from the title screen (The 18 Districts → Replay the prologue) while the showcase city ran behind the menu hid the whole cut-scene and its backdrop along with the game's other layers. It shows again. The website gallery also opens with five new screenshots from The 18 Districts.
 
-**日本語:** タイトル画面の背景でショーケース都市が動いている間に「18区をめぐる → プロローグを再生」を選ぶと、カットシーンと背景画像が他のレイヤーと一緒に隠れて何も見えない問題を修正しました。公式サイトのスクリーンショットにも「18区をめぐる」の画面を5枚追加しました。
+**日本語:** ブラウザー版で、スマートフォンなど処理の遅い端末でページを再読み込みすると、ゲームが起動しないことがある問題を修正しました（すべてのスクリプトの読み込みを待ってから起動します）。また、タイトル画面の背景でショーケース都市が動いている間に「18区をめぐる → プロローグを再生」を選ぶと、カットシーンと背景画像が他のレイヤーと一緒に隠れて何も見えない問題を修正しました。公式サイトのスクリーンショットにも「18区をめぐる」の画面を5枚追加しました。
 
 ## 下載
 

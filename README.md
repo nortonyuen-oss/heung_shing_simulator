@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.11.0 — 【香城洋紫荊勳章】
+# 香城模擬器 (The City of Heung Shing) v6.0.0 — 【玩轉18區】
 
-香城模擬器 (The City of Heung Shing) v5.11.0 — 【香城洋紫荊勳章】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v6.0.0 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.0
+
+The 18 Districts, a story campaign: after the Queen's secret orders, play one chapter in each of Hong Kong's 18 districts, each on its own real district map with a prebuilt start town, three stars to win (the first within 12-24 months), mid-chapter events, a local character for every district and new chapter illustrations. Your progress is kept across saves. The campaign brings new systems to every city: container freight and its lorries, public and HOS housing estates, welfare bills and old buildings to repair or redevelop, a safety index, the Kai Tak cruise terminal, international airport routes with a night curfew, a new Chek Lap Kok map, the Kowloon Walled City park with its film shoots, and the Big Buddha up on its hill. Bus, ferry and metro lines can now run off the map to neighbouring districts. The city news gains a couple's one-time photo diary, and all 36 Bauhinia Medals are now judged, including the Grand Bauhinia for a star in all 18 districts.
 
 ## New in v5.11.0
 

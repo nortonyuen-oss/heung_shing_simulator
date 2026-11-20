@@ -1,3 +1,45 @@
+# The City of Heung Shing v6.0.0 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 全新主線《玩轉18區》
+
+- 女皇密令開場，香港 18 區每區一章。每章喺真實嘅地區地圖上面玩，大部分有預砌開局城市。
+- 每章三粒星：一星要喺限期內（12 至 24 個月）完成，二星、三星唔限時。有中段事件、香城討論區新聞、每區代表人物同轉場插圖；對白框加大，有大頭像。
+- 第一章有一步步教學；選關地圖顯示每區進度。進度跟玩家，跨存檔保存。
+
+## 主線帶嚟嘅新系統（自由建設都用得）
+
+- 貨櫃碼頭吞吐量（TEU）同貨車路線：貨車行經住宅會影響民生。
+- 公屋區同居屋區：喺住宅區揀屋邨類型，由城市自己生長。
+- 福利法案同覆蓋率、社區中心；舊樓會老化，可以維修或者重建；治安指數。
+- 啟德郵輪碼頭：郵輪按旅遊吸引力埋岸，旅客搭公共交通入市區消費；泊岸日附近會塞車。
+- 機場國際航線：11 個航點，自己定每日班次，有機場費同航線開支；可以實施夜間宵禁。新增赤鱲角地圖。
+- 九龍城寨文化園區：遊客、消防容量同拍戲，每部戲殺青有票房同電影熱潮。
+- 天壇大佛起喺山上會更吸引，有巴士線停就多啲善信。
+- 區外交通：巴士、渡輪、地鐵可以開出地圖邊，接駁鄰近地區。
+
+## 情侶生活故事同洋紫荊勳章
+
+- 香城討論區新增一次性情侶相簿：10 篇生活故事加分手篇，按城市設施、季節同天氣刊登。集齊可以取得隱藏勳章《Claire的回憶》。
+- 36 項洋紫荊勳章而家全部可以判定。新開放：公屋、居屋兩項住宅勳章、《衝上雲霄》（5 條國際航線），同埋大紫荊勳章《九龍皇帝》（18 區各取得一星）。
+
+現有城市存檔相容。
+
+**台灣中文：** 全新主線《玩轉18區》：女皇密令開場，香港 18 區各一章，在真實地區地圖上遊玩，每章三顆星（第一顆星有期限），附中段事件、各區代表人物與轉場插圖，進度跨存檔保存。主線同時帶來可在自由建設使用的新系統：貨櫃吞吐量與貨車路線、公屋與居屋區、福利法案與舊樓維修重建、治安指數、啟德郵輪碼頭、機場國際航線與夜間宵禁、赤鱲角新地圖、九龍城寨文化園區與拍片、山上的天壇大佛，以及開往地圖外鄰近地區的公車、渡輪與地鐵。另新增一次性的情侶生活相簿新聞；36 項洋紫荊勳章現已全部可判定，包括 18 區各取得一顆星的《九龍皇帝》。
+
+**English:** The 18 Districts, a new story campaign: after the Queen's secret orders, play one chapter in each of Hong Kong's 18 districts on its own real district map, most with a prebuilt start town. Each chapter has three stars (the first within 12-24 months), mid-chapter events, a local character for every district and new chapter illustrations; progress is kept across saves. The campaign brings new systems to every city: container freight and its lorries, public and HOS housing estates, welfare bills and old buildings to repair or redevelop, a safety index, the Kai Tak cruise terminal, international airport routes with a night curfew, a new Chek Lap Kok map, the Kowloon Walled City park and its film shoots, the Big Buddha on its hill, and bus, ferry and metro lines that run off the map to neighbouring districts. The city news gains a couple's one-time photo diary, and all 36 Bauhinia Medals are now judged, including the Grand Bauhinia for a star in all 18 districts. Existing city saves remain compatible.
+
+**日本語:** 新ストーリーモード「18区をめぐる」：女王の密命から始まり、香港18区を一区一章、実在の地区マップで遊びます（多くは街が用意された状態から開始）。各章に星3つ（1つ目は12〜24か月以内）、章の途中のイベント、各区の代表キャラクターと新しい挿絵があり、進行状況はセーブをまたいで保存されます。フリープレイでも使える新システム：コンテナ取扱量とトラックの経路、公営住宅と居屋の団地、福祉法案と老朽ビルの修繕・建て替え、治安指数、啓徳クルーズターミナル、空港の国際線と夜間運航禁止、新しい赤鱲角マップ、九龍城砦文化パークと映画撮影、山上の天壇大仏、そして地図の外の隣接地区へ走るバス・フェリー・地下鉄。掲示板には一度きりの恋人たちのフォトダイアリーが加わり、洋紫荊勲章は全36種すべて判定されるようになりました（18区すべてで星を獲得する「九龍皇帝」を含む）。既存のセーブは引き続き利用できます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.11.0 — 【香城洋紫荊勳章】
 
 - 廣東話／台灣中文：【香城洋紫荊勳章】

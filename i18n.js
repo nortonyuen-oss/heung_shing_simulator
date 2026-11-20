@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.11.0';
-let appReleaseTheme = '【香城洋紫荊勳章】';
-const APP_RELEASE_THEMES = {"en":"【Heung Shing Bauhinia Medals】","zhHant":"【香城洋紫荊勳章】","ja":"【香城洋紫荊勲章】"};
+let appVersion = '6.0.0';
+let appReleaseTheme = '【玩轉18區】';
+const APP_RELEASE_THEMES = {"en":"【The 18 Districts】","zhHant":"【玩轉18區】","ja":"【18区をめぐる】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;

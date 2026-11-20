@@ -1,3 +1,28 @@
+# The City of Heung Shing v6.0.4 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 修正：手機玩主線；新美術：城寨、郵輪碼頭
+
+- **手機直向對白收唔埋**：完成章節一星之後，結尾對白播完都仲留喺畫面，撳極都冇反應，玩唔落去（中段事件同限期失敗嘅對白都一樣）。而家最後一句撳完就會收埋。
+- **手機起唔到避風塘**：之前手機畫好避風塘範圍之後，只係「規劃中」，搵唔到「確定興建」，所以第 3、4 章要避風塘嘅星攞唔到。而家確認範圍之後會打開避風塘面板，用「查詢」撳避風塘亦會打開；可以喺度確定興建、擴建或者刪除規劃。
+- **九龍城寨文化園區新圖**：取代之前用舊樓砌成嘅暫代圖，地盤改為 4×4。之前已經起咗嘅城寨會保留原本 6×6 位置，換上新圖。
+- **啟德郵輪碼頭新圖**：海嗰邊同陸地嗰邊各一個角度，碼頭貼滿成條海岸邊。網頁版轉地圖角度時，碼頭而家會跟住轉去對海。
+
+**台灣中文：** 修正手機直向時，完成章節一星後結尾對白無法關閉、遊戲無法繼續的問題（中段事件與期限失敗的對白亦同）；修正手機無法興建避風塘的問題：確認範圍後會開啟避風塘面板，以「查詢」點選避風塘亦可開啟，可在面板確定興建、擴建或刪除規劃。新增九龍城寨文化園區新圖（地盤改為 4×4，已建成的保留原本 6×6 位置）與啟德郵輪碼頭新圖（海側與陸側兩個角度），網頁版旋轉地圖時郵輪碼頭會跟著轉向面海。
+
+**English:** Phone fixes for The 18 Districts: on a phone held upright, a dialogue that did not end on a title card (a chapter's closing lines after its first star, mid-chapter events, the time-up lines) stayed on screen after its last line and could not be dismissed. It now closes. A typhoon shelter can now be built from a phone: drawing the basin only planned it, and the touch UI never showed the shelter panel with Build now, so chapters 3 and 4's shelter stars were out of reach. The panel now opens after the basin is confirmed and when the inspect tool taps a shelter. New art: the Kowloon Walled City Park replaces its stand-in, on a 4x4 lot (a park already built keeps its 6x6 ground), and the Kai Tak cruise terminal has a sea-side and a land-side view with its quay along the whole shore. In the browser the terminal now turns to face the sea as the map rotates.
+
+**日本語:** スマートフォンでの修正：縦向きのとき、タイトルカードで終わらない会話（章の星1つ目のあとの締めくくり、途中のイベント、期限切れ）が最後の一言のあとも画面に残り、閉じられなかった問題を修正しました。また、スマートフォンで避難港を建設できなかった問題を修正しました（水域を描いても計画のままで「今すぐ建設」のパネルが出ず、第3・4章の避難港の星が取れませんでした）。水域を確定したときと、調査ツールで避難港をタップしたときにパネルが開きます。新しいアート：九龍城砦文化パーク（敷地は4×4、建設済みのものは6×6のまま）と、海側・陸側の2方向から見た啓徳クルーズターミナル。ブラウザー版では地図を回すとターミナルが海の方を向きます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.3 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

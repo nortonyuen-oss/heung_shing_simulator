@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v6.0.3 — 【玩轉18區】
+# 香城模擬器 (The City of Heung Shing) v6.0.4 — 【玩轉18區】
 
-香城模擬器 (The City of Heung Shing) v6.0.3 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v6.0.4 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.4
+
+Phone fixes for The 18 Districts: a dialogue closes after its last line on a phone held upright (finishing a chapter's first star could leave it stuck on screen), and a typhoon shelter can be built from a phone - its panel with Build now opens after the basin is drawn and when the inspect tool taps the shelter. New art: the Kowloon Walled City Park (now a 4x4 lot) and the Kai Tak cruise terminal seen from the sea and from the land; in the browser the terminal now turns with the map.
 
 ## New in v6.0.3
 

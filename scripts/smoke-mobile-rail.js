@@ -122,6 +122,12 @@ function check(name, ok, detail) {
     check('a fresh basin drag is a free, unapproved draft', (await draft()).plan.ok && (await draft()).plan.cost === 0);
     await confirmBuild();
     check('the typhoon shelter exists after confirming the basin', await page.evaluate(() => getTyphoonShelterState().shelters.length === 1));
+    // 2026-11-20: the shelter's panel follows the basin - without it a phone could plan a shelter but never build it
+    check('the shelter panel with its 確定興建 opens after confirming the basin', await page.evaluate(() => {
+      const panel = document.getElementById('ts-panel');
+      return !!panel && !panel.hidden && getComputedStyle(panel).display !== 'none' && !!panel.querySelector('.ts-approve');
+    }));
+    await page.click('#ts-panel .ts-close');
     await nav('build'); await page.click('[data-mobile-category="marine"]'); await page.click('[data-mobile-tool="typhoon-shelter"]');
     await page.click('[data-mobile-shelter-mode="entrance"]');
     check('switching to entrance mode drops the build-session draft', !(await draft()));

@@ -190,6 +190,19 @@
 [data-ui-profile="touch"] #mobile-route-picker-status { flex: 1; }
 [data-ui-profile="touch"] #mobile-ui.is-picking-route :is(#mobile-panel, #mobile-nav-toggle) { visibility: hidden; pointer-events: none; }
 [data-ui-profile="touch"] .sim-dialog { z-index: 2000; }
+/* 避風塘 (typhoon-shelter-planning.js): the desktop's mode bar is the touch UI's own shelter controls here;
+   the shelter's panel (開展工程, 擴建, 刪除) sits between the top bar and the menu, under the touch UI's
+   menus, its buttons a finger's size. */
+[data-ui-profile="touch"] #ts-modebar { display: none !important; }
+[data-ui-profile="touch"] #ts-panel { top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top) + 8px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); width: auto; max-height: calc(100dvh - var(--mobile-top) - var(--mobile-ticker) - var(--mobile-nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px); overflow-y: auto; overscroll-behavior: contain; z-index: 1050; font-size: 14px; }
+[data-ui-profile="touch"] #ts-panel { background: #0c1826; }
+[data-ui-profile="touch"] #ts-panel button { min-height: 44px; padding: 6px 12px; }
+[data-ui-profile="touch"] #ts-panel .ts-close { min-width: 44px; }
+[data-ui-profile="touch"] #ts-panel .ts-row { flex-wrap: wrap; }
+[data-ui-profile="touch"] #ts-panel input[type=text] { font-size: 16px; min-height: 36px; }
+@media (orientation: landscape) {
+  [data-ui-profile="touch"] #ts-panel { left: auto; width: min(380px, 48vw); }
+}
 [data-ui-profile="touch"] .sim-dialog .dialog-box { width: min(720px, 100%); max-width: 100%; max-height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))); overflow: auto; overscroll-behavior: contain; }
 [data-ui-profile="touch"] .sim-dialog :is(.dialog-body, .forum-history-list) { max-height: none; overflow: visible; }
 [data-ui-profile="touch"] .sim-dialog :is(.forum-history-nav, .dialog-footer) { flex-wrap: wrap; }

@@ -484,11 +484,7 @@ function createTyphoonShelterDom() {
     typhoonShelterMode = b.dataset.tsMode;
     syncTyphoonShelterTool();
   }));
-  panel.querySelector('.ts-close').addEventListener('click', () => {
-    typhoonShelterSelectedId = null;
-    typhoonShelterPendingEdit = null;
-    redrawTyphoonShelterPlanning();
-  });
+  panel.querySelector('.ts-close').addEventListener('click', () => closeTyphoonShelterPanel());
   panel.querySelector('.ts-name').addEventListener('change', (e) => updateSelectedTyphoonShelter({ name: e.target.value.trim().slice(0, 40) }));
   panel.querySelector('.ts-reserve').addEventListener('input', (e) => updateSelectedTyphoonShelter({ reservePct: Number(e.target.value) }));
   panel.querySelector('.ts-delete').addEventListener('click', () => {
@@ -539,6 +535,12 @@ function createTyphoonShelterDom() {
   });
   panel.querySelector('.ts-expand').addEventListener('click', () => {
     typhoonShelterMode = 'basin';
+    // the touch UI draws the addition with its own shelter tool and confirm bar (tool-actions.js prices it)
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileSelectTool === 'function') {
+      mobileSelectTool(TYPHOON_SHELTER_TOOL);
+      if (typeof showToast === 'function') showToast(tsT('typhoonShelter.toast.expandHowTouch', '由避風塘水域邊向外點兩個角，劃出要加嘅水域，然後撳確認。'), 'info');
+      return;
+    }
     syncTyphoonShelterTool();
     if (typeof showToast === 'function') {
       showToast(tsT('typhoonShelter.toast.expandHow', '由避風塘水域邊向外拖曳，劃出要加嘅水域，然後撳「確定擴建」。'), 'info');
@@ -554,6 +556,13 @@ function createTyphoonShelterDom() {
 function updateSelectedTyphoonShelter(fields) {
   const state = getTyphoonShelterState();
   setTyphoonShelterState({ ...state, shelters: state.shelters.map((s) => (s.id === typhoonShelterSelectedId ? { ...s, ...fields } : s)) });
+  redrawTyphoonShelterPlanning();
+}
+
+// The panel's ✕, and the touch UI when another tool is chosen: no shelter selected, nothing pending.
+function closeTyphoonShelterPanel() {
+  typhoonShelterSelectedId = null;
+  typhoonShelterPendingEdit = null;
   redrawTyphoonShelterPlanning();
 }
 
@@ -579,7 +588,13 @@ function renderTyphoonShelterPanel() {
   renderTyphoonShelterConfirm(bar, state.shelters.find((s) => s.id === typhoonShelterSelectedId), !!typhoonShelterDragPreview);
   const plan = preview?.plan || state.shelters.find((s) => s.id === typhoonShelterSelectedId);
   const a = preview?.analysis || (plan && getTyphoonShelterAnalyses().get(plan.id));
-  if (!plan || !a) {
+  // On a phone the panel covers half the map: it stays out of the way while the shelter tool draws a
+  // basin or opens entrances, and comes back once that is confirmed or cancelled (mobile-ui.js
+  // mobileRenderDraft renders it again).
+  const touchDrafting = typeof isTouchUiProfile === 'function' && isTouchUiProfile()
+    && typeof mobileMode !== 'undefined' && mobileMode === TYPHOON_SHELTER_TOOL
+    && (typhoonShelterMode === 'entrance' || !!(typeof mobileBuildSession !== 'undefined' && mobileBuildSession.getState()));
+  if (!plan || !a || touchDrafting) {
     panel.hidden = true;
     return;
   }
@@ -1327,6 +1342,7 @@ const typhoonShelterPlanningApi = {
   resetTyphoonShelterPlanning,
   isTyphoonShelterToolActive,
   approveTyphoonShelterWorks,
+  closeTyphoonShelterPanel,
   confirmTyphoonShelterPendingEdit,
   cancelTyphoonShelterPendingEdit,
   runTyphoonShelterWorksDaily,

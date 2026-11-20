@@ -75,6 +75,8 @@ function mobileInvalidateWorld() {
 }
 function mobileSelectTool(tool) {
   if (!TOUCH_SUPPORTED_TOOLS.includes(tool) && !MOBILE_DIRECT_TAP_TOOLS.includes(tool)) return;
+  // another tool puts a typhoon shelter's panel away (it would cover half the map)
+  if (tool !== 'typhoon-shelter' && typeof closeTyphoonShelterPanel === 'function' && typeof typhoonShelterSelectedId !== 'undefined' && typhoonShelterSelectedId) closeTyphoonShelterPanel();
   mobileCancelBuild();
   mobileMode = tool;
   if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) setTransportModeActive(false);
@@ -140,6 +142,11 @@ function handleMobileMapTap({ x, y }) {
   }
   if (mobileMode === 'inspect') {
     mobileCancelBuild();
+    // a typhoon shelter's water or breakwater opens its panel, as the desktop inspect tool does
+    if (typeof inspectTyphoonShelterAt === 'function' && inspectTyphoonShelterAt(activeScene, tile.row, tile.col)) {
+      document.getElementById('inspect-panel').style.display = 'none';
+      return;
+    }
     const sign = areDistrictSignsVisible() && [...getDistrictSigns()].reverse().find((item) => {
       const sprite = activeScene.districtSignSprites?.get(item.id);
       return (item.row === tile.row && item.col === tile.col)
@@ -158,6 +165,8 @@ function handleMobileMapTap({ x, y }) {
 
 function mobileRenderDraft(draft) {
   if (!mobileUi) return;
+  // a typhoon shelter's panel hides while its tool drafts, and returns once the draft is done
+  if (typeof renderTyphoonShelterPanel === 'function') renderTyphoonShelterPanel();
   const building = !!draft;
   mobileUi.classList.toggle('is-building', building);
   mobileUi.classList.toggle('is-district-sign', draft?.tool === 'district-sign');

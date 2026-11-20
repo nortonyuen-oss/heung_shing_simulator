@@ -400,6 +400,13 @@ function commitTouchToolAction(scene, draft, plan) {
     ok = placeUnderseaTunnel(scene, draft.start, draft.end);
   } else if (draft.tool === 'typhoon-shelter') {
     ok = commitTyphoonShelterPlan(scene, plan.shelterPlan, plan.shelterAnalysis);
+    // a basin only plans the shelter: its panel (開展工程, 擴建, 刪除) follows, as it does on the desktop -
+    // the touch UI never opened it, so a phone could plan a shelter but never build one (v6.0.3,
+    // Norton: 手機版個避風頭確認唔到)
+    if (ok && typeof document !== 'undefined' && typeof showTyphoonShelterPanel === 'function') {
+      showTyphoonShelterPanel(true);
+      if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning(scene, { force: true });
+    }
   } else if (draft.tool === 'terrain') {
     for (const { row, col } of plan.tiles) {
       if (plan.terrainType === 'raise') applyRaiseTerrain(scene, row, col, TERRAIN_RAISE_BLOCK_RADIUS);

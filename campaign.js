@@ -24,6 +24,8 @@
     dialogue: Promise.resolve(),
     dialogueOpen: false,
     collapsed: false,
+    // the touch UI folds the objectives list to one line; a tap opens it
+    objectivesOpen: false,
     highlighted: [],
     selectedChapterId: 'ch01',
     // chapters that wait for a built start city: chapterId -> whether UI/campaign/chNN.json is there
@@ -43,6 +45,17 @@
     if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return true;
     if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) return true;
     return false;
+  }
+
+  // The browser build serves the art under content-hashed names. A literal path in a script is
+  // rewritten when it is built - but not one under UI/news/ (kept logical for forum posts in saves),
+  // so the prologue's letter (UI/news/phase0.webp) is resolved here, as every picture is.
+  function campaignImageSrc(path) {
+    return typeof resolveBundledAssetPath === 'function' ? resolveBundledAssetPath(path) : path;
+  }
+
+  function isTouchCampaign() {
+    return typeof isTouchUiProfile === 'function' && isTouchUiProfile();
   }
 
   function isLandingVisible() {
@@ -586,14 +599,14 @@
   function renderSpeaker(id) {
     const speaker = CAMPAIGN_SPEAKERS[id] || {};
     const face = speaker.portrait
-      ? `<img class="cd-portrait" src="${escapeHtml(speaker.portrait)}" alt="">`
+      ? `<img class="cd-portrait" src="${escapeHtml(campaignImageSrc(speaker.portrait))}" alt="">`
       : `<div class="cd-portrait cd-glyph" aria-hidden="true">${escapeHtml(speaker.glyph || '💬')}</div>`;
     return { face, name: say(speaker.name) };
   }
 
   // A cut-scene's backdrop: the screen dimmed behind the box (over the title screen too), with a
   // picture when one is given. A click on it moves the scene on like a click on the box.
-  function showDialogueBackdrop(image, onClick) {
+  function showDialogueBackdrop(image, onClick, position = '') {
     let layer = document.getElementById('campaign-backdrop');
     if (!layer) {
       layer = document.createElement('div');
@@ -601,7 +614,8 @@
       document.body.appendChild(layer);
     }
     layer.style.backgroundImage = typeof image === 'string' && image
-      ? `linear-gradient(rgba(8,12,18,0.15), rgba(8,12,18,0.15)), url("${encodeURI(image)}")` : '';
+      ? `linear-gradient(rgba(8,12,18,0.15), rgba(8,12,18,0.15)), url("${encodeURI(campaignImageSrc(image))}")` : '';
+    layer.style.backgroundPosition = position;
     layer.onclick = onClick;
     layer.style.display = 'block';
     return layer;
@@ -610,7 +624,8 @@
   // Plays lines one at a time (a click moves on); the clock stops while it is open. A line with
   // `choices` waits for one of its buttons, and the chosen option's `lines` play next.
   // options.backdrop (true, or a picture's path) plays the lines as a cut-scene; with options.reveal the
-  // picture shows alone for CAMPAIGN_SCENE_REVEAL_MS (or until a click) before the first line.
+  // picture shows alone for CAMPAIGN_SCENE_REVEAL_MS (or until a click) before the first line;
+  // options.backdropPosition places a picture whose subject is off centre.
   const CAMPAIGN_SCENE_REVEAL_MS = 1600;
   function playCampaignDialogue(lines, options = {}) {
     const list = (lines || []).filter(Boolean);
@@ -668,7 +683,7 @@
         if (previousSpeed !== null && typeof setGameSpeed === 'function') setGameSpeed(previousSpeed);
         resolve();
       };
-      if (options.backdrop) backdrop = showDialogueBackdrop(options.backdrop, next);
+      if (options.backdrop) backdrop = showDialogueBackdrop(options.backdrop, next, options.backdropPosition);
       box.addEventListener('click', next);
       show();
       if (revealed) box.style.display = 'flex';
@@ -689,7 +704,7 @@
   }
 
   function playCampaignPrologue() {
-    playCampaignDialogue(getCampaignPrologueScene(), { backdrop: CAMPAIGN_PROLOGUE.backdrop || true });
+    playCampaignDialogue(getCampaignPrologueScene(), { backdrop: CAMPAIGN_PROLOGUE.backdrop || true, backdropPosition: CAMPAIGN_PROLOGUE.backdropPosition });
     // replayed from the title screen there is no city to arrive in: the arrival stays a cut-scene
     return playCampaignDialogue(CAMPAIGN_PROLOGUE.arrival, { backdrop: isLandingVisible() });
   }
@@ -712,6 +727,11 @@
     const run = getRun();
     const spec = run ? CAMPAIGN_CHAPTER_SPECS[run.chapterId] : null;
     if (action === 'collapse') runtime.collapsed = !runtime.collapsed;
+    else if (action === 'objectives') {
+      runtime.objectivesOpen = !runtime.objectivesOpen;
+      // folded again, the panel is short: back to its top, where the tutorial is
+      if (!runtime.objectivesOpen) event.currentTarget.scrollTop = 0;
+    }
     else if (action === 'skip-tutorial' && run) { skipCampaignTutorial(run); rememberCampaignTutorial(run); setTutorialHighlight([]); }
     else if (action === 'tutorial-look') { lookFromCampaignTutorial(event.target.closest('[data-look]')?.dataset.look); return; }
     else if (action === 'ack' && run && spec) {
@@ -766,6 +786,20 @@
       if (scene.dragonBoatCourseFlash === g) scene.dragonBoatCourseFlash = null;
       g.destroy();
     });
+  }
+
+  // The touch UI has its own buttons for a step: the 建造 tab (and, held sideways, the menu handle
+  // that shows it), the same departments by category, then the tool; the budget is under 管理.
+  function touchTutorialHighlight(selectors) {
+    const out = new Set();
+    for (const selector of selectors || []) {
+      const category = /^\[data-tool-category="([\w-]+)"\]$/.exec(selector);
+      const tool = /^\[data-tool="([\w-]+)"\]$/.exec(selector);
+      if (category) ['#mobile-nav-toggle', '#mobile-nav [data-mobile-page="build"]', `[data-mobile-category="${category[1]}"]`].forEach((s) => out.add(s));
+      else if (tool) out.add(`[data-mobile-tool="${tool[1]}"]`);
+      else if (selector === '#topbar-income' || selector === '#topbar-expense') ['#mobile-nav-toggle', '#mobile-nav [data-mobile-page="manage"]', '[data-mobile-native="finance"]'].forEach((s) => out.add(s));
+    }
+    return [...out];
   }
 
   function setTutorialHighlight(selectors) {
@@ -823,7 +857,10 @@
     const snapshot = buildCampaignSnapshot();
     stepCampaignTutorial(run, spec, snapshot);
     const step = getCampaignTutorialStep(run, spec);
-    setTutorialHighlight(step && !runtime.collapsed ? step.highlight : []);
+    const touch = isTouchCampaign();
+    panel.classList.toggle('is-touch', touch);
+    const highlight = step && !runtime.collapsed ? step.highlight : [];
+    setTutorialHighlight(touch ? touchTutorialHighlight(highlight) : highlight);
 
     const head = `
       <div class="cp-head">
@@ -842,7 +879,7 @@
       tutorial = `
         <div class="cp-tutorial">
           <div class="cp-section">🎓 ${escapeHtml(say(L('教學', 'Tutorial', 'チュートリアル')))} ${run.tutorial.step + 1} / ${spec.tutorial.length}</div>
-          <div class="cp-tutor">${face}<div><div class="cp-tutor-name">${escapeHtml(name)}</div><div>${escapeHtml(say(step.text))}</div></div></div>
+          <div class="cp-tutor">${face}<div><div class="cp-tutor-name">${escapeHtml(name)}</div><div>${escapeHtml(say(touch && step.touchText ? step.touchText : step.text))}</div></div></div>
           <div class="cp-tutorial-actions">
             ${step.look ? `<button type="button" class="cp-look" data-campaign-action="tutorial-look" data-look="${escapeHtml(step.look)}">${escapeHtml(say({
               run: L('睇長廊', 'Show the promenade', '遊歩道を見る'),
@@ -865,20 +902,28 @@
     if (run.stars < spec.stars.length && !run.freePlay) {
       const star = spec.stars[run.stars];
       const result = evaluateCampaignStar(spec, run.stars, snapshot, run);
-      objectives = `
-        <div class="cp-section">${'★'.repeat(run.stars + 1)} ${escapeHtml(say(star.title))}</div>
+      const heading = `${'★'.repeat(run.stars + 1)} ${escapeHtml(say(star.title))}`;
+      // on a phone the list is one line until tapped open, so the map stays in view
+      const folded = touch && !runtime.objectivesOpen;
+      objectives = touch
+        ? `<button type="button" class="cp-section cp-fold" data-campaign-action="objectives" aria-expanded="${!folded}">
+            <span>${heading}</span><span class="cp-count">${result.items.filter((item) => item.done).length} / ${result.items.length} ${folded ? '▸' : '▾'}</span></button>`
+        : `<div class="cp-section">${heading}</div>`;
+      if (!folded) objectives += `
         <ul class="cp-objectives">${result.items.map((item) => `
           <li class="${item.done ? 'is-done' : ''}"><span class="cp-tick">${item.done ? '✓' : '○'}</span>
             <span class="cp-label">${escapeHtml(say(item.label))}</span>
             ${item.progress ? `<span class="cp-progress">${escapeHtml(item.progress)}</span>` : ''}</li>`).join('')}
         </ul>`;
     }
+    const foot = touch && !runtime.objectivesOpen && run.stars < spec.stars.length && !run.freePlay ? ''
+      : `<div class="cp-foot"><button type="button" data-campaign-action="chapters">🗺 ${escapeHtml(say(L('章節地圖', 'Chapter map', '章マップ')))}</button></div>`;
     panel.innerHTML = `${head}
       <div class="cp-title">《${escapeHtml(say(chapter.title))}》</div>
       ${tutorial}
       <div class="cp-status">${escapeHtml(status)}</div>
       ${objectives}
-      <div class="cp-foot"><button type="button" data-campaign-action="chapters">🗺 ${escapeHtml(say(L('章節地圖', 'Chapter map', '章マップ')))}</button></div>`;
+      ${foot}`;
     panel.style.display = 'block';
   }
 
@@ -1139,6 +1184,37 @@
       #campaign-panel .cp-progress { grid-column: 2; color: #5b6570; font-size: 11px; }
       #campaign-panel .cp-foot { padding: 8px 10px; }
       #campaign-panel .cp-foot button { font: inherit; padding: 2px 8px; border-radius: 3px; border: 1px solid #8794a3; background: #f4f7fa; cursor: pointer; }
+      /* the touch UI (Norton 2026-11-20: 手機玩教學擋住主畫面): docked under the ticker, not over the
+         middle of the map - the screen's width upright, a column on the left held sideways (the menus
+         open on the right). The chapter's title goes, the guide's face shrinks, the objectives fold
+         to one line, and the buttons grow to a finger's size. */
+      #campaign-panel.is-touch { top: calc(var(--mobile-top, 44px) + var(--mobile-ticker, 24px) + env(safe-area-inset-top) + 6px);
+        left: max(6px, env(safe-area-inset-left)); right: auto; width: min(360px, calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+        max-height: min(46dvh, calc(100dvh - var(--mobile-top, 44px) - var(--mobile-ticker, 24px) - var(--mobile-nav, 52px) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px));
+        min-height: 0; overscroll-behavior: contain; font-size: 12.5px; line-height: 1.4; }
+      #campaign-panel.is-touch .cp-head { min-height: 34px; padding: 2px 4px 2px 10px; }
+      #campaign-panel.is-touch .cp-head button { width: 40px; height: 30px; font-size: 16px; }
+      #campaign-panel.is-touch .cp-title { display: none; }
+      #campaign-panel.is-touch .cp-section { margin: 6px 8px 2px; }
+      #campaign-panel.is-touch .cp-tutorial .cp-section { margin-top: 4px; }
+      #campaign-panel.is-touch .cp-tutor { gap: 6px; }
+      #campaign-panel.is-touch .cp-tutor .cd-portrait { flex-basis: 30px; width: 30px; height: 30px; font-size: 17px; }
+      #campaign-panel.is-touch .cp-tutorial-actions { padding-top: 4px; }
+      #campaign-panel.is-touch .cp-tutorial-actions button, #campaign-panel.is-touch .cp-foot button { min-height: 32px; padding: 2px 12px; }
+      #campaign-panel.is-touch .cp-status { margin: 4px 8px 0; font-size: 11.5px; }
+      #campaign-panel.is-touch .cp-fold { display: flex; gap: 6px; align-items: center; width: calc(100% - 12px); margin: 4px 6px 6px; min-height: 34px;
+        padding: 2px 8px; border: 1px solid #b7c3d0; border-radius: 4px; background: #f4f7fa; font: inherit; font-weight: 700; color: #1e5cb3; text-align: left; cursor: pointer; }
+      #campaign-panel.is-touch .cp-fold span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #campaign-panel.is-touch .cp-count { flex: none; color: #5b6570; font-weight: 400; }
+      #campaign-panel.is-touch .cp-foot { padding: 6px 8px; }
+      body:has(#mobile-ui.ticker-hidden) #campaign-panel.is-touch { --mobile-ticker: 0px; }
+      @media (orientation: portrait) and (max-width: 560px) {
+        #campaign-panel.is-touch { width: auto; right: max(6px, env(safe-area-inset-right)); }
+      }
+      /* held sideways the column is clear of the menu handle (bottom centre): it may run down the side */
+      @media (orientation: landscape) {
+        #campaign-panel.is-touch { max-height: calc(100dvh - var(--mobile-top, 44px) - var(--mobile-ticker, 24px) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px); }
+      }
       .campaign-tutorial-highlight { outline: 3px solid #f2b51d !important; outline-offset: 1px; animation: campaign-pulse 1.2s ease-in-out infinite; }
       @keyframes campaign-pulse { 0%, 100% { outline-color: #f2b51d; } 50% { outline-color: rgba(242,181,29,0.25); } }
       /* the dialogue (Norton 2026-11-20: 參考大航海時代4): a wide band along the bottom on parchment, in the
@@ -1234,6 +1310,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
     setInterval(() => { if (!runtime.dialogueOpen) renderCampaignPanel(); }, CAMPAIGN_PANEL_REFRESH_MS);
     document.addEventListener('languagechange', () => { renderCampaignPanel(); renderCampaignSelect(); });
+    document.addEventListener('uiprofilechange', () => renderCampaignPanel());
   }
   if (typeof onGameClockEvent === 'function') onGameClockEvent('gameclock:month', onCampaignMonthTurned);
   loadCampaignProfile();

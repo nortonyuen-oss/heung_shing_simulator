@@ -120,9 +120,12 @@
   // PROLOGUE 00《女皇密令》: a royal letter on the desk of the player's tong lau flat, read out by Her
   // Majesty herself; the player's reply and her answer; then the arrival. `backdrop` is the picture
   // behind the scene: the sealed letter on the desk, the 樂聲 fan, half a cup of iced lemon tea
-  // (Norton's UI/news/phase0.png, as WebP like the other UI/news art).
+  // (Norton's UI/news/phase0.png, as WebP like the other UI/news art). The letter sits low in the
+  // picture, so the screen keeps its bottom edge (`backdropPosition`): on a phone held sideways the
+  // crest and the seal stay above the dialogue band, and the window at the top is what is cut.
   const CAMPAIGN_PROLOGUE = Object.freeze({
     backdrop: 'UI/news/phase0.webp',
+    backdropPosition: 'center bottom',
     opening: Object.freeze([
       { card: T('序幕《女皇密令》', 'Prologue: The Secret Order', '序章《女王の密令》'),
         hint: T('一封蓋住皇家火漆嘅信，擺咗喺你唐樓書桌上……', 'A letter under a royal wax seal lies on the desk of your tong lau flat...', '王室の封蝋が押された手紙が、唐楼の机の上に置かれている……') },
@@ -183,6 +186,7 @@
     tutorial: Object.freeze([
       { id: 'road', speaker: 'secretary', highlight: ['[data-tool-category="roads"]', '[data-tool="road"]'],
         text: T('第一步：起路。撳左邊「路政署」，揀道路，拖一條路將村屋同外面駁通。', 'Step 1: roads. Open Highways on the left, pick Road and drag one out to join the village to the rest of the map.', 'ステップ1：道路。左の「道路局」で道路を選び、村と外をつなぐ道路を引こう。'),
+        touchText: T('第一步：起路。撳下面「建造」→「路政署」，揀道路，拉一條路將村屋同外面駁通。', 'Step 1: roads. Tap Build below, then Highways, pick Road and lay one to join the village to the rest of the map.', 'ステップ1：道路。下の「建設」→「道路局」で道路を選び、村と外をつなぐ道路を引こう。'),
         done: (s, base) => num(s.roadTiles) >= num(base.roadTiles) + 5 },
       { id: 'plant', speaker: 'secretary', highlight: ['[data-tool-category="power"]', '[data-tool="power-coal"]', '[data-tool="power-solar"]'],
         text: T('第二步：起電廠。去「電力水務」起一座發電廠：燃煤電廠電多但污染大，太陽能電廠細啲但乾淨。', 'Step 2: a power plant. Open Utilities and build one: coal gives plenty of power but pollutes; solar is smaller but clean.', 'ステップ2：発電所。「電力水道」で発電所を建てよう。石炭は電力が多いが汚染も大きく、太陽光は小さいがクリーン。'),
@@ -200,7 +204,8 @@
         text: T('第六步：去「公共設施」起一間消防局，我哋住得安心啲。', 'Step 6: open Civic and build a fire station, so we can sleep at night.', 'ステップ6：「公共施設」で消防署を建てて。安心して暮らせるように。'),
         done: (s) => built(s, 'fire_station') },
       { id: 'budget', speaker: 'treasurer', highlight: ['#topbar-income', '#topbar-expense'], ack: true,
-        text: T('最後：睇住上面嘅「每月收入」同「每月支出」，收入要大過支出。錢唔夠可以加少少稅，但加得太多街坊會唔開心。', 'Last: watch Monthly Income and Monthly Expenses at the top - income must beat spending. Short of money? Raise taxes a little, but too much makes people unhappy.', '最後に：上の「月収入」と「月支出」を見て、収入が支出を上回るように。足りなければ少し増税してもいいが、上げすぎると住民の不満が募る。') },
+        text: T('最後：睇住上面嘅「每月收入」同「每月支出」，收入要大過支出。錢唔夠可以加少少稅，但加得太多街坊會唔開心。', 'Last: watch Monthly Income and Monthly Expenses at the top - income must beat spending. Short of money? Raise taxes a little, but too much makes people unhappy.', '最後に：上の「月収入」と「月支出」を見て、収入が支出を上回るように。足りなければ少し増税してもいいが、上げすぎると住民の不満が募る。'),
+        touchText: T('最後：撳下面「管理」→「預算」，睇住每月收入同每月支出，收入要大過支出。錢唔夠可以加少少稅，但加得太多街坊會唔開心。', 'Last: tap Manage below, then Budget, and watch monthly income and expenses - income must beat spending. Short of money? Raise taxes a little, but too much makes people unhappy.', '最後に：下の「管理」→「予算」で月収入と月支出を見て、収入が支出を上回るように。足りなければ少し増税してもいいが、上げすぎると住民の不満が募る。') },
     ]),
     stars: Object.freeze([
       {
@@ -310,6 +315,9 @@
       text: T('龍舟第一步：起海濱長廊。去左邊「康文署」揀海濱長廊，沿住海岸一格接一格起，最少連續 6 格，中間唔好斷（斜角接駁唔計）。',
         'Dragon Boat, step 1: a promenade. Open Leisure Services on the left, pick Waterfront Promenade and lay it tile by tile along the shore - at least 6 tiles in one piece, edge to edge (a corner touch does not join).',
         'ドラゴンボート ステップ1：遊歩道。左の「康文署」で海浜遊歩道を選び、海岸に沿って1マスずつ、途切れず6マス以上つなげよう（斜めのつながりは不可）。'),
+      touchText: T('龍舟第一步：起海濱長廊。撳下面「建造」→「康文署」揀海濱長廊，沿住海岸一格接一格起，最少連續 6 格，中間唔好斷（斜角接駁唔計）。',
+        'Dragon Boat, step 1: a promenade. Tap Build below, then Leisure Services, pick Waterfront Promenade and lay it tile by tile along the shore - at least 6 tiles in one piece, edge to edge (a corner touch does not join).',
+        'ドラゴンボート ステップ1：遊歩道。下の「建設」→「康文署」で海浜遊歩道を選び、海岸に沿って1マスずつ、途切れず6マス以上つなげよう（斜めのつながりは不可）。'),
       done: (s) => num(s.dragonBoatRun) >= 6 },
     { id: 'water', speaker: 'engineer', look: 'run', highlight: ['[data-tool-category="parks"]', '[data-tool="promenade"]'],
       text: T('第二步：龍舟要一條直賽道。長廊對出 1 至 5 格內，要有約 14 格長、4 格闊、同海岸平行嘅開放海面。海灣太窄、海岸太彎都唔得：揀一段直啲、出面海闊啲嘅海岸，再起長廊。',

@@ -58,3 +58,45 @@ test('story art: Norton\'s NPCs have their faces and lines', () => {
   assert.equal(ch06.failure[0].speaker, 'jaydenMum');
   assert.ok(fs.readFileSync(path.join(ROOT, 'scripts/prepare-campaign-story-images.js'), 'utf8').includes("'UI/storyBoardGraphics'"));
 });
+
+// 2026-11-20: the web build rewrites UI/ paths in scripts to hashed names - all but UI/news/ (forum posts
+// keep theirs logical) - so the prologue's letter was a 404 on the web (Norton: 啟動畫面見不到信封既圖).
+test('story art: the prologue\'s letter is resolved for the web build, and kept above the dialogue band', () => {
+  const prologue = campaign.CAMPAIGN_PROLOGUE;
+  assert.equal(prologue.backdrop, 'UI/news/phase0.webp');
+  assert.ok(exists(prologue.backdrop));
+  assert.equal(prologue.backdropPosition, 'center bottom');
+  const build = fs.readFileSync(path.join(ROOT, 'scripts/build-web.js'), 'utf8');
+  assert.ok(build.includes("!logical.startsWith('UI/news/')"), 'the build leaves UI/news/ paths to display time');
+  const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
+  assert.match(runtime, /function campaignImageSrc\(path\) \{\s*return typeof resolveBundledAssetPath === 'function' \? resolveBundledAssetPath\(path\) : path;/);
+  assert.ok(runtime.includes('url("${encodeURI(campaignImageSrc(image))}")'), 'the backdrop goes through campaignImageSrc');
+  assert.ok(runtime.includes('src="${escapeHtml(campaignImageSrc(speaker.portrait))}"'), 'so do the portraits');
+  assert.ok(runtime.includes('backdropPosition: CAMPAIGN_PROLOGUE.backdropPosition'));
+});
+
+// 2026-11-20 (Norton: 手機玩教學擋住主畫面): on the touch UI the panel docks under the ticker with the
+// objectives folded, and the steps that point at the desktop's left toolbar or top bar say where
+// the phone keeps them.
+test('story art: the tutorial speaks to a phone, and lights the phone\'s own buttons', () => {
+  const tutorials = [...new Set(specs.map((spec) => spec.tutorial).filter(Boolean))];
+  const steps = tutorials.flat();
+  const desktopOnly = /左邊|上面|on the left|at the top|左の|上の/;
+  steps.filter((step) => Object.values(step.text).some((text) => desktopOnly.test(text))).forEach((step) => {
+    assert.ok(step.touchText, `${step.id} has words for a phone`);
+    ['zhHant', 'en', 'ja'].forEach((lang) => {
+      assert.ok(step.touchText[lang], `${step.id} touchText in ${lang}`);
+      assert.doesNotMatch(step.touchText[lang], desktopOnly, `${step.id} touchText in ${lang}`);
+    });
+  });
+  assert.deepEqual(steps.filter((step) => step.touchText).map((step) => step.id), ['road', 'budget', 'promenade']);
+  // what the touch highlight lights must exist in the touch UI
+  const mobile = fs.readFileSync(path.join(ROOT, 'mobile-ui.js'), 'utf8');
+  ['id="mobile-nav-toggle"', 'id="mobile-nav"', 'data-mobile-page="${page}"', "['build',", "['manage',",
+    'data-mobile-category="${button.dataset.toolCategory}"', 'data-mobile-tool="${tool}"', 'data-mobile-native="${key}"', "['finance', 'budget.label'"]
+    .forEach((needle) => assert.ok(mobile.includes(needle), needle));
+  const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
+  assert.ok(runtime.includes('setTutorialHighlight(touch ? touchTutorialHighlight(highlight) : highlight)'));
+  assert.ok(runtime.includes('touch && step.touchText ? step.touchText : step.text'));
+  assert.match(runtime, /#campaign-panel\.is-touch \{ top: calc\(var\(--mobile-top, 44px\) \+ var\(--mobile-ticker, 24px\)/);
+});

@@ -41,7 +41,7 @@ test('story art: the stars\' and events\' scenes are Norton\'s Event boards', ()
 
 test('story art: Norton\'s NPCs have their faces and lines', () => {
   const npcs = ['minibus', 'scientist', 'foodie', 'railFan', 'busFan', 'jaydenMum', 'jayden', 'police', 'uncleBus', 'villager',
-    'commentator', 'chanHoNam', 'playboy', 'mkGirl', 'singh', 'goddess', 'bankGirl', 'tycoon', 'barber', 'filmStar', 'taiOGranny'];
+    'commentator', 'chanHoNam', 'playboy', 'mkGirl', 'singh', 'goddess', 'bankGirl', 'tycoon', 'barber', 'filmStar', 'taiOGranny', 'footballCommentator'];
   const said = new Set(specs.flatMap((spec) => [...spec.intro, ...spec.outro, ...spec.failure, ...(spec.events || []).flatMap((event) => event.lines)])
     .map((line) => line.speaker).filter(Boolean));
   npcs.forEach((id) => {
@@ -168,4 +168,16 @@ test('story art: the chapter map keeps the city\'s notices out, and a phone held
   ['toast.stillLoading', '開局城市準備中', '開唔到呢一章', '歡迎上任'].forEach((text) =>
     assert.match(runtime, new RegExp(`campaignToast\\([^\\n]*${text}`), text));
   assert.match(runtime, /@media \(orientation: landscape\) and \(max-height: 520px\) \{[^@]*grid-template-areas: "top map" "grid map" "detail map";/);
+});
+
+test('story art: chapter 16\'s football night waits for a match held at the 城超聯足球場 in the chapter', () => {
+  const event = campaign.CAMPAIGN_CHAPTER_SPECS.ch16.events.find((e) => e.id === 'leagueNight');
+  assert.ok(event);
+  const base = { monthIndex: 10 };
+  assert.equal(event.when({ majorEvents: [] }, base), false);
+  assert.equal(event.when({ majorEvents: [{ id: 'leagueMatchday', monthIndex: 9 }] }, base), false, 'before the chapter began');
+  assert.equal(event.when({ majorEvents: [{ id: 'menaConcert', monthIndex: 12 }] }, base), false, 'not football');
+  assert.equal(event.when({ majorEvents: [{ id: 'leagueMatchday', monthIndex: 11 }] }, base), true);
+  assert.equal(event.when({ majorEvents: [{ id: 'muiKinKwokMatch', monthIndex: 10 }] }, base), true);
+  assert.equal(event.lines[0].speaker, 'footballCommentator');
 });

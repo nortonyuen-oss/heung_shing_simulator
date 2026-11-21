@@ -90,6 +90,8 @@
     // 航空署代表 is Captain Cool (Norton 2026-11-21; scripts/source-art/campaign/portraits/aviation-source.png)
     aviation: { name: T('Captain Cool', 'Captain Cool', 'キャプテン・クール'), portrait: 'UI/campaign/portraits/aviation.webp', glyph: '✈️' },
     portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
+    // 城超聯's voice (Norton 2026-11-21: 第 16 章, at the 城超聯足球場, with 梅建國's friendly in the air)
+    footballCommentator: { name: T('足球評述員', 'Football Commentator', 'サッカー実況'), portrait: 'UI/campaign/portraits/footballCommentator.webp', glyph: '⚽' },
     // 第 10 章離島's own face, the one district that had none (art-prompts.md B18; Norton chose her 2026-11-21)
     taiOGranny: { name: T('大澳阿婆', 'Tai O Granny', '大澳のおばあちゃん'), portrait: 'UI/campaign/portraits/taiOGranny.webp', glyph: '🦐' },
     volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), portrait: 'UI/campaign/portraits/volunteer.webp', glyph: '🙋' },
@@ -1539,6 +1541,24 @@
           headline: T('國際XX中心有六個，幾時有國際安居樂業中心？', 'Six international centres - when do we get an International Centre for Living in Peace?', '国際XXセンターが6つ、国際安居楽業センターはいつ？'),
           body: T('盛事撞正上下班時間，灣仔交通大擠塞。', 'A mega event at rush hour: Wan Chai gridlocked.', '大型イベントがラッシュと重なり、湾仔は大渋滞。'),
           comment: T('幻彩fing香城一晚fing晒半個庫房。', 'Fantasy fing Heung Shing flung away half the treasury in one night.', '幻彩fing香城、一晩で国庫の半分をfing。'),
+        },
+      },
+      // 《城超聯之夜》: the chapter's first football night at the 城超聯足球場 - a 城超聯 matchday or 梅建國's
+      // match (梅建國's bill also needs an airport, which Wan Chai's start town has not)
+      {
+        id: 'leagueNight',
+        when: (s, base) => (Array.isArray(s.majorEvents) ? s.majorEvents : [])
+          .some((e) => ['leagueMatchday', 'muiKinKwokMatch'].includes(e.id) && num(e.monthIndex) >= num(base?.monthIndex)),
+        lines: Object.freeze([
+          { speaker: 'footballCommentator', text: T('各位觀眾，城超聯足球場今晚爆滿！聽講梅建國都會嚟香城踢友誼賽——佢今次會唔會真係落場呢？', 'Good evening, everyone - the City Super League stadium is packed tonight! Word is Mui Kin-kwok is coming to Heung Shing for a friendly - but will he actually take the field this time?', '皆さんこんばんは、シティ・スーパーリーグのスタジアムは今夜満員です！梅建国も香城に親善試合に来るとの噂――今度こそ本当にピッチに立つのでしょうか？') },
+          { speaker: 'resident', text: T('我買咗飛，過海隧道塞咗兩個鐘，入到場已經完半場。', 'I bought a ticket, sat two hours in the cross-harbour tunnel, and got in at half-time.', 'チケットを買ったのに海底トンネルで2時間渋滞、入場したらもうハーフタイムだった。') },
+          { speaker: 'footballCommentator', text: T('入波！入波！……大電視重播緊，因為好多球迷仲喺東區走廊。', 'Goal! Goal! ...on the big screen again, since half the fans are still on the Island Eastern Corridor.', 'ゴール！ゴール！……大型ビジョンでリプレイ中、多くのファンはまだ東区回廊の上ですので。') },
+          { speaker: 'tourism', text: T('香城足球，衝出亞洲！', 'Heung Shing football, out of Asia and onto the world stage!', '香城サッカー、アジアから世界へ！') },
+        ]),
+        forum: {
+          headline: T('城超聯爆滿，球迷：我張飛係睇過海隧道嘅', 'City Super League sells out; a fan: "My ticket was for the cross-harbour tunnel"', 'シティ・スーパーリーグ満員、ファン「俺のチケットは海底トンネル観戦用」'),
+          body: T('城超聯足球場入座率創新高，灣仔一帶交通癱瘓，梅建國友誼賽傳聞再起。', 'Record attendance at the City Super League stadium, Wan Chai gridlocked, and talk of Mui Kin-kwok\'s friendly again.', 'シティ・スーパーリーグのスタジアムは観客数過去最高、湾仔一帯は交通まひ、梅建国の親善試合のうわさも再燃。'),
+          comment: T('梅建國嚟唔嚟都好，最緊要佢肯落場。', 'Whether Mui Kin-kwok comes or not, what matters is that he actually plays.', '梅建国が来ても来なくても、大事なのはちゃんとピッチに立つことだ。'),
         },
       },
     ]),

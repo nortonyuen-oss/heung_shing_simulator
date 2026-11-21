@@ -900,6 +900,11 @@ function saveGame(silent = false) {
       if (!isAutosave && operationGeneration === saveSessionGeneration) {
         currentSaveId = data.id;
       }
+      // 《玩轉18區》: a chapter's run in this save is remembered, to go on from it (繼續上次進度)
+      if (typeof onCampaignSaveWritten === 'function' && payload?.save_data?.city?.campaign) {
+        onCampaignSaveWritten({ id: data?.id, autosave: isAutosave, run: payload.save_data.city.campaign,
+          cityName: payload.city_name, year: payload.year, month: payload.month, population: payload.population });
+      }
       if (operationGeneration === saveSessionGeneration) {
         const browser = globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && typeof platformText === 'function';
         showToast(browser ? platformText(HeungShingStorage.memoryOnly ? 'memory' : 'saved')

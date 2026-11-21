@@ -260,3 +260,48 @@ test('wiring: scripts, the title-screen button, the menu, the city\'s field, loa
   assert.match(server, /if \(!options\.allowDevExports\) return res\.status\(404\)[\s\S]{0,400}campaign-start|campaign-start[\s\S]{0,200}if \(!options\.allowDevExports\)/);
   assert.match(source('campaign.js'), /format: CAMPAIGN_START_FILE_FORMAT/);
 });
+
+test('繼續上次進度: each chapter remembers its latest saves, and offers the newest still in its slot', () => {
+  const profile = campaign.createEmptyCampaignProfile();
+  assert.deepEqual(profile.resume, {});
+  const at = (minute) => `2026-11-21T10:${String(minute).padStart(2, '0')}:00.000Z`;
+  assert.equal(campaign.recordCampaignResume(profile, 'ch04', 'manual', { id: 7, cityName: '南區', year: 1902, month: 3, population: 12000, stars: 0, at: at(1) }), true);
+  assert.equal(campaign.recordCampaignResume(profile, 'ch04', 'auto', { id: 1, cityName: '南區', year: 1902, month: 9, population: 15000, stars: 1, at: at(5) }), true);
+  assert.equal(campaign.recordCampaignResume(profile, 'zz', 'manual', { id: 3, at: at(1) }), false, 'no such chapter');
+  assert.equal(campaign.recordCampaignResume(profile, 'ch04', 'other', { id: 3, at: at(1) }), false);
+  assert.equal(campaign.recordCampaignResume(profile, 'ch04', 'manual', { id: 'x' }), false, 'a save id is a number');
+  const manualRow = { id: 7, save_type: 'manual', city_name: '南區', year: 1902, month: 3, population: 12000 };
+  const autoRow = { id: 1, save_type: 'autosave', city_name: '南區', year: 1902, month: 9, population: 15000 };
+  // the newest of the two, while its slot still shows it
+  assert.equal(campaign.pickCampaignResume(profile, 'ch04', [manualRow, autoRow]).kind, 'auto');
+  // the one autosave slot taken by another city: the manual save is offered
+  assert.equal(campaign.pickCampaignResume(profile, 'ch04', [manualRow, { ...autoRow, city_name: '北區' }]).id, 7);
+  // the manual slot saved again after the run (another month), the autosave gone: nothing
+  assert.equal(campaign.pickCampaignResume(profile, 'ch04', [{ ...manualRow, month: 4 }]), null);
+  assert.equal(campaign.pickCampaignResume(profile, 'ch05', [manualRow, autoRow]), null);
+  assert.equal(campaign.pickCampaignResume(profile, 'ch04', null), null);
+  // stored and read back
+  const cleaned = campaign.normalizeCampaignProfile(JSON.parse(JSON.stringify(profile)));
+  assert.deepEqual(cleaned.resume.ch04.auto, profile.resume.ch04.auto);
+  assert.deepEqual(campaign.normalizeCampaignProfile({ resume: { ch04: { manual: { id: -1 } }, zz: { manual: { id: 2 } } } }).resume, {});
+});
+
+test('繼續上次進度: wired into saving, the chapter map and a fresh start', () => {
+  const save = fs.readFileSync(path.join(__dirname, '..', 'save.js'), 'utf8');
+  assert.match(save, /onCampaignSaveWritten\(\{ id: data\?\.id, autosave: isAutosave, run: payload\.save_data\.city\.campaign,/);
+  const runtimeSource = fs.readFileSync(path.join(__dirname, '..', 'campaign.js'), 'utf8');
+  assert.match(runtimeSource, /await refreshCampaignResumes\(\);\s*renderCampaignSelect\(\);/);
+  assert.match(runtimeSource, /data-cs-action="resume"/);
+  assert.match(runtimeSource, /data-cs-action="restart"/);
+  assert.match(runtimeSource, /else if \(action === 'resume'\) resumeCampaignChapter\(runtime\.selectedChapterId\);/);
+  // a fresh run (重新開始, or 限期已過's restart) stops offering the old progress
+  assert.match(runtimeSource, /city\.campaign = createCampaignRun\([^\n]*\n\s*\/\/ a fresh run[^\n]*\n\s*if \(runtime\.profile\.resume\?\.\[chapterId\]\) \{\s*delete runtime\.profile\.resume\[chapterId\];/);
+});
+
+test('觀看序章？: chapter 1 plays the prologue the first time, and asks every time after', () => {
+  const runtimeSource = fs.readFileSync(path.join(__dirname, '..', 'campaign.js'), 'utf8');
+  assert.match(runtimeSource, /if \(typeof picked\.onPick === 'function'\) picked\.onPick\(\);/, 'a choice reports what was picked');
+  assert.match(runtimeSource, /let watch = !runtime\.profile\.prologueSeen;\s*if \(!watch\) \{\s*await playCampaignDialogue\(\[\{\s*speaker: 'secretary'/);
+  assert.match(runtimeSource, /\{ text: L\('觀看序章', 'Watch the prologue', 'プロローグを見る'\), onPick: \(\) => \{ watch = true; \} \}/);
+  assert.match(runtimeSource, /if \(watch\) \{\s*await playCampaignPrologue\(\);/);
+});

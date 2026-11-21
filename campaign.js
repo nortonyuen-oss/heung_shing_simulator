@@ -32,6 +32,8 @@
     selectedChapterId: 'ch01',
     // chapters that wait for a built start city: chapterId -> whether UI/campaign/chNN.json is there
     startFileReady: {},
+    // chapters with a save to go on from (refreshCampaignResumes): chapterId -> the remembered save
+    resume: {},
   };
 
   const language = () => (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant');
@@ -105,6 +107,9 @@
         });
         stored.prologueSeen = stored.prologueSeen || runtime.profile.prologueSeen;
         stored.mayor = stored.mayor || runtime.profile.mayor;
+        Object.entries(runtime.profile.resume || {}).forEach(([id, kinds]) => Object.entries(kinds || {}).forEach(([kind, entry]) => {
+          if (String(entry?.at) > String(stored.resume?.[id]?.[kind]?.at || '')) recordCampaignResume(stored, id, kind, entry);
+        }));
         runtime.profile = stored;
         runtime.loaded = true;
       } catch (error) {
@@ -583,14 +588,35 @@
     }
     await loadCampaignProfile();
     city.campaign = createCampaignRun(chapterId, monthIndexNow(), buildCampaignSnapshot());
+    // a fresh run: the chapter's earlier progress is not offered any more (its saves are kept)
+    if (runtime.profile.resume?.[chapterId]) {
+      delete runtime.profile.resume[chapterId];
+      delete runtime.resume[chapterId];
+      scheduleCampaignProfileSave();
+    }
     // a shared tutorial already played in an earlier chapter (the 龍舟 venue in 西貢) is not again
     if (spec.tutorialId && runtime.profile.tutorials?.[spec.tutorialId]) city.campaign.tutorial = null;
     if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
     renderCampaignPanel();
-    if (chapter.number === 1 && !runtime.profile.prologueSeen) {
-      await playCampaignPrologue();
-      runtime.profile.prologueSeen = true;
-      scheduleCampaignProfileSave();
+    // chapter 1 opens on the prologue: the first time always, after that if the player asks for it
+    // (Norton 2026-11-21: 01章開始新遊戲時問「觀看序章？」，yes 就播序章然後緊接第一關)
+    if (chapter.number === 1) {
+      let watch = !runtime.profile.prologueSeen;
+      if (!watch) {
+        await playCampaignDialogue([{
+          speaker: 'secretary',
+          text: L('市長，開工之前，要唔要睇返女皇嘅密令（序章）？', 'Mayor, before we begin - would you like to see Her Majesty\'s secret order again (the prologue)?', '市長、始める前に女王陛下の密令（プロローグ）をもう一度ご覧になりますか？'),
+          choices: [
+            { text: L('觀看序章', 'Watch the prologue', 'プロローグを見る'), onPick: () => { watch = true; } },
+            { text: L('直接開始', 'Start right away', 'すぐに始める') },
+          ],
+        }]);
+      }
+      if (watch) {
+        await playCampaignPrologue();
+        runtime.profile.prologueSeen = true;
+        scheduleCampaignProfileSave();
+      }
     }
     // over the chapter's own scene, a cut-scene between the cities
     await playCampaignDialogue(spec.intro, { backdrop: getCampaignChapterScene(chapterId) || false, reveal: true });
@@ -718,7 +744,10 @@
         if (Array.isArray(line.choices)) {
           const button = event?.target?.closest?.('[data-choice]');
           if (!button) return;
-          list.splice(index + 1, 0, ...((line.choices[Number(button.dataset.choice)] || {}).lines || []).filter(Boolean));
+          const picked = line.choices[Number(button.dataset.choice)] || {};
+          // a choice may also tell its caller what was picked (觀看序章？)
+          if (typeof picked.onPick === 'function') picked.onPick();
+          list.splice(index + 1, 0, ...(picked.lines || []).filter(Boolean));
         }
         index += 1;
         if (index < list.length) { show(); return; }
@@ -1063,6 +1092,48 @@
     renderCampaignPanel();
   }
 
+  // save.js, once a save is written: a chapter's run in it is remembered (繼續上次進度)
+  function onCampaignSaveWritten({ id, autosave, run, cityName, year, month, population } = {}) {
+    if (!run?.chapterId || !CAMPAIGN_CHAPTERS_BY_ID[run.chapterId]) return;
+    const recorded = recordCampaignResume(runtime.profile, run.chapterId, autosave ? 'auto' : 'manual', {
+      id, cityName, year, month, population, stars: run.stars, at: new Date().toISOString(),
+    });
+    if (recorded) scheduleCampaignProfileSave();
+  }
+
+  // Which chapters have a save to go on from, by the save list (one request when the chapter map opens).
+  async function refreshCampaignResumes() {
+    let rows = null;
+    try { rows = typeof listSaves === 'function' ? await listSaves() : null; } catch { rows = null; }
+    runtime.resume = {};
+    if (!Array.isArray(rows)) return;
+    CAMPAIGN_CHAPTERS.forEach((chapter) => {
+      const found = pickCampaignResume(runtime.profile, chapter.id, rows);
+      if (found) runtime.resume[chapter.id] = found;
+    });
+  }
+
+  async function resumeCampaignChapter(chapterId) {
+    const saved = runtime.resume[chapterId];
+    if (!saved) return startCampaignChapter(chapterId);
+    // already in that chapter's city: just go back to it
+    if (isCityInPlay() && city.campaign?.chapterId === chapterId) { closeCampaignSelect(); return true; }
+    if (isCityInPlay() && !window.confirm(say(L(
+      '繼續上次進度會離開而家個城市，未儲存嘅進度會失去。繼續？',
+      'Going back to that chapter leaves the city you are in; anything unsaved will be lost. Continue?',
+      '前回の続きに戻ると今の都市を離れます。未保存の進行は失われます。続けますか？',
+    )))) return false;
+    closeCampaignSelect();
+    const loaded = typeof loadSaveById === 'function' && await loadSaveById(saved.id, activeScene);
+    if (!loaded) {
+      campaignToast(say(L('讀唔到上次嘅存檔。', 'The last save could not be loaded.', '前回のセーブを読み込めませんでした。')), 'danger');
+      return false;
+    }
+    if (typeof hideLandingScreen === 'function') hideLandingScreen();
+    renderCampaignPanel();
+    return true;
+  }
+
   // save.js, once a city has loaded (a chapter run comes back with its save)
   function onCampaignCityLoaded() {
     runtime.collapsed = false;
@@ -1101,6 +1172,10 @@
   function renderCampaignSelect() {
     const dialog = document.getElementById('campaign-select-dialog');
     if (!dialog) return;
+    // the window's title in the language of the moment (it was set once, when the window was first built);
+    // English and Japanese by the story's name alone, which fits beside the close button on a phone
+    const title = dialog.querySelector('[data-cs-title]');
+    if (title) title.textContent = say(L('香城模擬器：玩轉18區', 'The 18 Districts', '18区をめぐる'));
     const pins = CAMPAIGN_CHAPTERS.map((chapter) => {
       const box = getChapterPin(chapter);
       if (!box) return '';
@@ -1125,6 +1200,17 @@
       open: L('可以開始', 'Ready to play', 'プレイ可能'),
       cleared: L('已取得星級', 'Stars earned', '星を獲得済み'),
     }[state.key];
+    // a run in progress (繼續上次進度): go on from its save, or start the chapter again
+    const playable = state.key === 'open' || state.key === 'cleared';
+    const saved = playable ? runtime.resume[chapter.id] : null;
+    const resumeButtons = saved ? `
+          <button type="button" class="dialog-cancel-btn" data-cs-action="restart">${escapeHtml(say(L('重新開始', 'Start again', '最初から')))}</button>
+          <button type="button" class="dialog-ok-btn" data-cs-action="resume">${escapeHtml(say(L('繼續上次進度', 'Continue', '前回の続きから')))}</button>` : '';
+    const resumeNote = saved ? `<div class="cs-resume-note">${escapeHtml(say(L(
+      `上次玩到 ${saved.year} 年 ${saved.month} 月・${saved.cityName}・人口 ${saved.population.toLocaleString('en-US')}`,
+      `Last played: ${MONTHS_EN[saved.month - 1]} ${saved.year} · ${saved.cityName} · ${saved.population.toLocaleString('en-US')} people`,
+      `前回：${saved.year}年${saved.month}月・${saved.cityName}・人口 ${saved.population.toLocaleString('en-US')}`,
+    )))}</div>` : '';
     const total = CAMPAIGN_CHAPTERS.reduce((sum, entry) => sum + (runtime.profile.chapters[entry.id]?.stars || 0), 0);
     const cleared = CAMPAIGN_CHAPTERS.filter((entry) => (runtime.profile.chapters[entry.id]?.stars || 0) > 0).length;
     const mayor = runtime.profile.mayor;
@@ -1133,16 +1219,16 @@
         <span><strong>${escapeHtml(say(L(`${mayor.name} 市長`, `Mayor ${mayor.name}`, `${mayor.name} 市長`)))}</strong>
         <small>${escapeHtml(say(L(`生日 ${mayor.birthMonth} 月 ${mayor.birthDay} 日・改資料 ✎`, `Birthday ${MONTHS_EN[mayor.birthMonth - 1]} ${mayor.birthDay} · edit ✎`, `誕生日 ${mayor.birthMonth}月${mayor.birthDay}日・変更 ✎`)))}</small></span></button>` : '';
     dialog.querySelector('[data-cs-body]').innerHTML = `
-      <div class="cs-top">${mayorRow}<div class="cs-summary">${escapeHtml(say(L(`主線 ${cleared}／18 區・星數 ${total}／54`, `Main story ${cleared}/18 districts · ${total}/54 stars`, `メイン ${cleared}／18区・星 ${total}／54`)))}</div></div>
+      <div class="cs-top">${mayorRow}<div class="cs-summary">${escapeHtml(say(L(`主線 ${cleared}／18 區・星數 ${total}／54`, `${cleared}/18 districts · ${total}/54 stars`, `メイン ${cleared}／18区・星 ${total}／54`)))}</div></div>
       <div class="cs-map"><img src="UI/hk-district-overview.webp" alt="">${pins}</div>
       <div class="cs-grid" role="group" aria-label="${escapeHtml(say(L('章節', 'Chapters', '章')))}">${chips}</div>
       <div class="cs-detail">
         <div class="cs-detail-title">${escapeHtml(say(L(`第 ${String(chapter.number).padStart(2, '0')} 章・`, `Chapter ${chapter.number} · `, `第${chapter.number}章・`)))}${escapeHtml(say(chapter.district))}《${escapeHtml(say(chapter.title))}》</div>
-        <div class="cs-detail-meta"><span class="cp-stars">${renderStars(state.stars)}</span> ${escapeHtml(say(stateText))}</div>
+        <div class="cs-detail-meta"><span class="cp-stars">${renderStars(state.stars)}</span> ${escapeHtml(say(stateText))}${chapter.number === 1 && runtime.profile.prologueSeen
+          ? ` <button type="button" class="cs-link" data-cs-action="prologue">${escapeHtml(say(L('↻ 重看序幕', '↻ Replay the prologue', '↻ プロローグを再生')))}</button>` : ''}</div>
         <div class="cs-detail-actions">
-          ${chapter.number === 1 && runtime.profile.prologueSeen ? `<button type="button" class="dialog-cancel-btn" data-cs-action="prologue">${escapeHtml(say(L('重看序幕', 'Replay the prologue', 'プロローグを再生')))}</button>` : ''}
-          <button type="button" class="dialog-ok-btn" data-cs-action="start" ${state.key === 'open' || state.key === 'cleared' ? '' : 'disabled'}>${escapeHtml(say(L('開始', 'Start', '開始')))}</button>
-        </div>
+          ${resumeButtons || `<button type="button" class="dialog-ok-btn" data-cs-action="start" ${playable ? '' : 'disabled'}>${escapeHtml(say(L('開始', 'Start', '開始')))}</button>`}
+        </div>${resumeNote}
       </div>`;
   }
 
@@ -1288,7 +1374,7 @@
       <div class="dialog-overlay" data-cs-close></div>
       <div class="dialog-box" style="max-width:820px">
         <div class="dialog-title-bar">
-          <span>${escapeHtml(say(L('香城模擬器：玩轉18區', 'Heung Shing: The 18 Districts', '香城シミュレーター：18区をめぐる')))}</span>
+          <span data-cs-title></span>
           <button class="dialog-close-btn" type="button" data-cs-close>✕</button>
         </div>
         <div class="dialog-body campaign-plain" data-cs-body></div>
@@ -1302,6 +1388,12 @@
       if (pin) { runtime.selectedChapterId = pin.dataset.chapter; renderCampaignSelect(); return; }
       const action = event.target.closest('[data-cs-action]')?.dataset.csAction;
       if (action === 'start') startCampaignChapter(runtime.selectedChapterId);
+      else if (action === 'resume') resumeCampaignChapter(runtime.selectedChapterId);
+      else if (action === 'restart' && window.confirm(say(L(
+        '由開局城市重新開始呢一章？上次嘅存檔唔會刪除，但呢度唔會再提供繼續。',
+        'Start this chapter again from its starting city? The last save is kept, but it will no longer be offered here.',
+        'この章を開始都市からやり直しますか？前回のセーブは消えませんが、ここで続きとしては表示されなくなります。',
+      )))) startCampaignChapter(runtime.selectedChapterId);
       else if (action === 'prologue') { closeCampaignSelect(); playCampaignPrologue(); }
       else if (action === 'mayor') openCampaignMayorPanel().then(renderCampaignSelect);
     });
@@ -1319,6 +1411,7 @@
     setCampaignSelectOpen(true);
     renderCampaignSelect();
     await Promise.all([loadCampaignProfile(), checkCampaignStartFiles()]);
+    await refreshCampaignResumes();
     renderCampaignSelect();
   }
 
@@ -1553,24 +1646,34 @@
         #campaign-select-dialog .cs-map img { max-height: calc(100dvh - 128px); }
         /* the chapter's name and its 開始 side by side, so the column fits the short screen */
         #campaign-select-dialog .cs-detail { grid-area: detail; margin: 0; padding: 6px 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto;
-          grid-template-areas: "title actions" "meta actions"; column-gap: 10px; align-items: center; }
+          grid-template-areas: "title title" "meta actions" "note note"; column-gap: 10px; row-gap: 2px; align-items: center; }
+        #campaign-select-dialog .cs-resume-note { grid-area: note; }
         #campaign-select-dialog .cs-detail-title { grid-area: title; font-size: 15px; line-height: 1.3; }
         #campaign-select-dialog .cs-detail-meta { grid-area: meta; font-size: 13px; }
-        #campaign-select-dialog .cs-detail-actions { grid-area: actions; margin: 0; flex-direction: column; }
+        #campaign-select-dialog .cs-detail .cs-detail-actions { grid-area: actions; margin: 0; flex-wrap: nowrap; gap: 6px; }
+        #campaign-select-dialog .cs-detail .cs-detail-actions button { min-height: 34px; padding: 2px 12px; font-size: 14px; }
+        #campaign-select-dialog .cs-detail .cs-resume-note { margin-top: 2px; font-size: 12px; }
         #campaign-select-dialog .dialog-title-bar { margin-top: 8px; font-size: 15px; }
         #campaign-select-dialog .cs-map img { max-width: 46vw; }
         #campaign-select-dialog .cs-top { gap: 6px 10px; }
         #campaign-select-dialog .cs-top .cs-summary { font-size: 13px; }
         /* (the touch UI's 44px buttons, by a more specific rule: !important) */
         #campaign-select-dialog .cs-chip { min-height: 38px !important; }
+        /* the 18 chapters in two rows of nine, so the chosen chapter and its buttons stay on the short screen */
+        #campaign-select-dialog .cs-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
       }
       #campaign-select-dialog .cs-detail { margin-top: 12px; padding: 8px 12px; background: rgba(255,250,240,0.7); border: 1px solid rgba(160,118,30,0.55); border-radius: 4px; }
       #campaign-select-dialog .cs-detail-title { font-size: 17px; font-weight: 700; color: #6e1a1a; }
       #campaign-select-dialog .cs-detail-meta { color: #5b3b22; }
       #campaign-select-dialog .cs-detail-meta .cp-stars span { color: #b8a27a; } #campaign-select-dialog .cs-detail-meta .cp-stars span.is-on { color: #c9a227; }
       #campaign-select-dialog .cs-detail-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+      #campaign-select-dialog .cs-resume-note { margin-top: 6px; font-size: 13px; color: #5b3b22; text-align: right; }
+      #campaign-select-dialog .cs-detail-actions { flex-wrap: wrap; }
       #campaign-select-dialog .cs-detail-actions button { min-height: 40px; padding: 4px 20px; margin: 0; font: inherit; font-weight: 700; border-radius: 4px; cursor: pointer;
-        color: #3b2414; background: #fffaf0; border: 2px solid #c9a227; }
+        color: #3b2414; background: #fffaf0; border: 2px solid #c9a227; white-space: nowrap; }
+      @media (max-width: 520px) { #campaign-select-dialog .cs-detail-actions button { padding: 4px 14px; } }
+      #campaign-select-dialog .cs-link { margin: 0 0 0 6px; padding: 2px 4px; font: inherit; font-size: 13px; color: #6e1a1a; background: none; border: 0;
+        text-decoration: underline; text-underline-offset: 3px; cursor: pointer; white-space: nowrap; }
       #campaign-select-dialog .cs-detail-actions .dialog-ok-btn { color: #f6d77a; background: linear-gradient(180deg, #7a1f1f, #561313); }
       #campaign-select-dialog .cs-detail-actions button[disabled] { opacity: 0.45; cursor: default; }
       #campaign-select-dialog .cs-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -1663,6 +1766,7 @@
 
   Object.assign(globalThis, {
     startCampaignChapter, openCampaignSelect, closeCampaignSelect, onCampaignCityLoaded, exportCampaignStart,
+    onCampaignSaveWritten, resumeCampaignChapter,
     buildCampaignSnapshot, renderCampaignPanel, playCampaignDialogue, playCampaignPrologue, getCampaignPrologueScene,
     getCampaignProfile: () => runtime.profile, openCampaignMayorPanel,
     // the registered mayor's name and face ({ name, portrait } or null): the council's 行政長官 is the player

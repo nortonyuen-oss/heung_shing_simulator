@@ -90,7 +90,7 @@
     // 航空署代表 is Captain Cool (Norton 2026-11-21; scripts/source-art/campaign/portraits/aviation-source.png)
     aviation: { name: T('Captain Cool', 'Captain Cool', 'キャプテン・クール'), portrait: 'UI/campaign/portraits/aviation.webp', glyph: '✈️' },
     portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
-    // 城超聯's voice (Norton 2026-11-21: 第 16 章, at the 城超聯足球場, with 梅建國's friendly in the air)
+    // 城超聯's voice (Norton 2026-11-21: 第 16 章, at the 城超聯足球場)
     footballCommentator: { name: T('足球評述員', 'Football Commentator', 'サッカー実況'), portrait: 'UI/campaign/portraits/footballCommentator.webp', glyph: '⚽' },
     // 第 10 章離島's own face, the one district that had none (art-prompts.md B18; Norton chose her 2026-11-21)
     taiOGranny: { name: T('大澳阿婆', 'Tai O Granny', '大澳のおばあちゃん'), portrait: 'UI/campaign/portraits/taiOGranny.webp', glyph: '🦐' },
@@ -1543,22 +1543,22 @@
           comment: T('幻彩fing香城一晚fing晒半個庫房。', 'Fantasy fing Heung Shing flung away half the treasury in one night.', '幻彩fing香城、一晩で国庫の半分をfing。'),
         },
       },
-      // 《城超聯之夜》: the chapter's first football night at the 城超聯足球場 - a 城超聯 matchday or 梅建國's
-      // match (梅建國's bill also needs an airport, which Wan Chai's start town has not)
+      // 《城超聯之夜》: the chapter's first 城超聯 matchday at the 城超聯足球場 (梅建國's exhibition match stays
+      // outside The 18 Districts - Norton: 表演賽喺18區劇本外)
       {
         id: 'leagueNight',
         when: (s, base) => (Array.isArray(s.majorEvents) ? s.majorEvents : [])
-          .some((e) => ['leagueMatchday', 'muiKinKwokMatch'].includes(e.id) && num(e.monthIndex) >= num(base?.monthIndex)),
+          .some((e) => e.id === 'leagueMatchday' && num(e.monthIndex) >= num(base?.monthIndex)),
         lines: Object.freeze([
-          { speaker: 'footballCommentator', text: T('各位觀眾，城超聯足球場今晚爆滿！聽講梅建國都會嚟香城踢友誼賽——佢今次會唔會真係落場呢？', 'Good evening, everyone - the City Super League stadium is packed tonight! Word is Mui Kin-kwok is coming to Heung Shing for a friendly - but will he actually take the field this time?', '皆さんこんばんは、シティ・スーパーリーグのスタジアムは今夜満員です！梅建国も香城に親善試合に来るとの噂――今度こそ本当にピッチに立つのでしょうか？') },
+          { speaker: 'footballCommentator', text: T('各位觀眾，城超聯足球場今晚爆滿！香城足球嘅新一頁，就喺今晚揭開！', 'Good evening, everyone - the City Super League stadium is packed tonight! A new page for Heung Shing football opens right here!', '皆さんこんばんは、シティ・スーパーリーグのスタジアムは今夜満員です！香城サッカーの新たな一ページが、今夜ここで開かれます！') },
           { speaker: 'resident', text: T('我買咗飛，過海隧道塞咗兩個鐘，入到場已經完半場。', 'I bought a ticket, sat two hours in the cross-harbour tunnel, and got in at half-time.', 'チケットを買ったのに海底トンネルで2時間渋滞、入場したらもうハーフタイムだった。') },
           { speaker: 'footballCommentator', text: T('入波！入波！……大電視重播緊，因為好多球迷仲喺東區走廊。', 'Goal! Goal! ...on the big screen again, since half the fans are still on the Island Eastern Corridor.', 'ゴール！ゴール！……大型ビジョンでリプレイ中、多くのファンはまだ東区回廊の上ですので。') },
           { speaker: 'tourism', text: T('香城足球，衝出亞洲！', 'Heung Shing football, out of Asia and onto the world stage!', '香城サッカー、アジアから世界へ！') },
         ]),
         forum: {
           headline: T('城超聯爆滿，球迷：我張飛係睇過海隧道嘅', 'City Super League sells out; a fan: "My ticket was for the cross-harbour tunnel"', 'シティ・スーパーリーグ満員、ファン「俺のチケットは海底トンネル観戦用」'),
-          body: T('城超聯足球場入座率創新高，灣仔一帶交通癱瘓，梅建國友誼賽傳聞再起。', 'Record attendance at the City Super League stadium, Wan Chai gridlocked, and talk of Mui Kin-kwok\'s friendly again.', 'シティ・スーパーリーグのスタジアムは観客数過去最高、湾仔一帯は交通まひ、梅建国の親善試合のうわさも再燃。'),
-          comment: T('梅建國嚟唔嚟都好，最緊要佢肯落場。', 'Whether Mui Kin-kwok comes or not, what matters is that he actually plays.', '梅建国が来ても来なくても、大事なのはちゃんとピッチに立つことだ。'),
+          body: T('城超聯足球場入座率創新高，灣仔一帶交通癱瘓。', 'Record attendance at the City Super League stadium, and Wan Chai gridlocked.', 'シティ・スーパーリーグのスタジアムは観客数過去最高、湾仔一帯は交通まひ。'),
+          comment: T('睇波九十分鐘，塞車兩個鐘，香城球迷真係好有耐性。', 'Ninety minutes of football, two hours of traffic: Heung Shing\'s fans are very patient people.', 'サッカー90分、渋滞2時間。香城のサポーターは本当に辛抱強い。'),
         },
       },
     ]),
@@ -2405,7 +2405,52 @@
   function createEmptyCampaignProfile() {
     // tutorials: the shared ones (a chapter's tutorialId) the player has been through
     // mayor: the 市長登記 (normalizeCampaignMayor), null until the player has filled it in
-    return { schemaVersion: CAMPAIGN_SCHEMA_VERSION, prologueSeen: false, chapters: {}, tutorials: {}, mayor: null };
+    // resume: each chapter's latest save of a run in progress, { manual, auto } (recordCampaignResume)
+    return { schemaVersion: CAMPAIGN_SCHEMA_VERSION, prologueSeen: false, chapters: {}, tutorials: {}, mayor: null, resume: {} };
+  }
+
+  // ── 繼續上次進度 ─────────────────────────────────────────────────────────────
+  // (Norton 2026-11-21: 揀關時應該喺最近玩到一半嘅存檔繼續，除非揀重新開始) Every save written while a chapter
+  // runs is remembered here by its slot, the manual one and the autosave apart, with what the save list
+  // shows of it (city, year, month, population). The chapter map offers the newest whose slot still
+  // shows exactly that: the one autosave slot is shared by every city, and a slot saved again after its
+  // run ended no longer matches.
+  function normalizeCampaignResumeEntry(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = Number(raw.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return null;
+    return {
+      id,
+      cityName: Array.from(String(raw.cityName || '')).slice(0, 60).join(''),
+      year: Math.floor(num(raw.year)),
+      month: Math.max(1, Math.min(12, Math.floor(num(raw.month)) || 1)),
+      population: Math.max(0, Math.floor(num(raw.population))),
+      stars: Math.max(0, Math.min(3, Math.floor(num(raw.stars)))),
+      at: String(raw.at || '').slice(0, 40),
+    };
+  }
+
+  function recordCampaignResume(profile, chapterId, kind, entry) {
+    if (!profile || !CAMPAIGN_CHAPTERS_BY_ID[chapterId] || !['manual', 'auto'].includes(kind)) return false;
+    const clean = normalizeCampaignResumeEntry(entry);
+    if (!clean) return false;
+    profile.resume = profile.resume || {};
+    profile.resume[chapterId] = { ...(profile.resume[chapterId] || {}), [kind]: clean };
+    return true;
+  }
+
+  // The save to continue from: the newest remembered slot the save list still shows as it was, or null.
+  function pickCampaignResume(profile, chapterId, rows) {
+    const saved = profile?.resume?.[chapterId];
+    if (!saved || !Array.isArray(rows)) return null;
+    const matches = (entry, kind) => entry && rows.some((row) => Number(row?.id) === entry.id
+      && (row.save_type === 'autosave') === (kind === 'auto')
+      && String(row.city_name || '') === entry.cityName && Number(row.year) === entry.year
+      && Number(row.month) === entry.month && Math.floor(Number(row.population) || 0) === entry.population);
+    return ['manual', 'auto']
+      .filter((kind) => matches(saved[kind], kind))
+      .map((kind) => ({ ...saved[kind], kind }))
+      .sort((a, b) => String(b.at).localeCompare(String(a.at)))[0] || null;
   }
 
   function normalizeCampaignProfile(raw) {
@@ -2414,6 +2459,10 @@
     profile.prologueSeen = !!raw.prologueSeen;
     profile.mayor = normalizeCampaignMayor(raw.mayor);
     Object.keys(raw.tutorials || {}).forEach((id) => { if (/^[a-zA-Z0-9_-]{1,40}$/.test(id) && raw.tutorials[id]) profile.tutorials[id] = true; });
+    Object.entries(raw.resume || {}).forEach(([id, entry]) => {
+      if (!CAMPAIGN_CHAPTERS_BY_ID[id] || !entry || typeof entry !== 'object') return;
+      ['manual', 'auto'].forEach((kind) => recordCampaignResume(profile, id, kind, entry[kind]));
+    });
     Object.entries(raw.chapters || {}).forEach(([id, entry]) => {
       if (!CAMPAIGN_CHAPTERS_BY_ID[id] || !entry || typeof entry !== 'object') return;
       const stars = Math.max(0, Math.min(3, Math.floor(num(entry.stars))));
@@ -2505,6 +2554,7 @@
     isCampaignChapterPlayable, createCampaignRun, normalizeCampaignRun, evaluateCampaignStar,
     getCampaignDeadlineMonths, getCampaignChaptersUnlockedBy,
     advanceCampaignRun, getCampaignMonthsLeft, createEmptyCampaignProfile, normalizeCampaignProfile,
+    recordCampaignResume, pickCampaignResume,
     getCampaignTutorialStep, advanceCampaignTutorial, acknowledgeCampaignTutorialStep, skipCampaignTutorial,
     recordCampaignStars, isCampaignChapterUnlocked, getCampaignText, getCampaignChapterScene,
     CAMPAIGN_MAYOR_NAME_MAX, CAMPAIGN_MAYOR_DAYS_IN_MONTH, CAMPAIGN_MAYOR_DEFAULT_FACE, CAMPAIGN_MAYOR_LOOKS,

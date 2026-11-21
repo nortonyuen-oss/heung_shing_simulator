@@ -170,7 +170,7 @@ test('story art: the chapter map keeps the city\'s notices out, and a phone held
   assert.match(runtime, /@media \(orientation: landscape\) and \(max-height: 520px\) \{[^@]*grid-template-areas: "top map" "grid map" "detail map";/);
 });
 
-test('story art: chapter 16\'s football night waits for a match held at the 城超聯足球場 in the chapter', () => {
+test('story art: chapter 16\'s football night waits for a 城超聯 matchday held in the chapter', () => {
   const event = campaign.CAMPAIGN_CHAPTER_SPECS.ch16.events.find((e) => e.id === 'leagueNight');
   assert.ok(event);
   const base = { monthIndex: 10 };
@@ -178,6 +178,6 @@ test('story art: chapter 16\'s football night waits for a match held at the 城�
   assert.equal(event.when({ majorEvents: [{ id: 'leagueMatchday', monthIndex: 9 }] }, base), false, 'before the chapter began');
   assert.equal(event.when({ majorEvents: [{ id: 'menaConcert', monthIndex: 12 }] }, base), false, 'not football');
   assert.equal(event.when({ majorEvents: [{ id: 'leagueMatchday', monthIndex: 11 }] }, base), true);
-  assert.equal(event.when({ majorEvents: [{ id: 'muiKinKwokMatch', monthIndex: 10 }] }, base), true);
+  assert.equal(event.when({ majorEvents: [{ id: 'muiKinKwokMatch', monthIndex: 10 }] }, base), false, '梅建國 stays outside the story');
   assert.equal(event.lines[0].speaker, 'footballCommentator');
 });

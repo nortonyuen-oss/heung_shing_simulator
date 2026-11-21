@@ -1,3 +1,35 @@
+# Heung Shing Simulator v6.0.9 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 繼續上次進度；十一個新角色頭像
+
+- **繼續上次進度**：
+  - 章節地圖撳返玩到一半嘅一關，會出「繼續上次進度」同「重新開始」，仲會寫埋上次玩到幾時。
+  - 「繼續」讀返嗰關最近嘅存檔；「重新開始」由開局城市再嚟，舊存檔唔會刪。
+- **觀看序章？**：第 1 章第一次照舊自動播序章；之後重新開始，金毛玲會問要唔要睇序章，睇完即刻接第 1 關。
+- **十一個新頭像**：
+  - 新聞主播、教育署代表、工廠老闆、工人代表、記者、青年義工、製片人。
+  - 廟街嘅煲仔飯老闆娘同算命 So師傅（第 17 章「一晚三個油尖旺」）。
+  - 大澳阿婆：第 10 章離島嘅代表人物，開場同昂坪纜車事件各講一句。
+  - 新神童標（之前張圖個名牌寫錯字）。
+- **第 16 章《城超聯之夜》**：喺城超聯主場日之後出現，有足球評述員同討論區新聞。
+- **章節地圖排版**：中、英、日喺手機直向、橫向同電腦都唔再超出畫面；手機打橫時 18 章排兩行；視窗標題跟語言轉。
+
+**台灣中文：** 章節地圖點選玩到一半的一關，會出現「繼續上次進度」與「重新開始」，並顯示上次玩到何時；「繼續」讀取該關最近的存檔，「重新開始」從開局城市重來，舊存檔不會刪除。第 1 章第一次照舊自動播放序章，之後重新開始時金毛玲會詢問是否觀看序章，看完緊接第 1 關。新增十一個角色頭像：新聞主播、教育署代表、工廠老闆、工人代表、記者、青年義工、製片人、廟街的煲仔飯老闆娘與算命 So師傅、第 10 章離島的代表人物大澳阿婆，以及新的神童標。第 16 章新增《城超聯之夜》，城超聯主場日之後出現。章節地圖在中、英、日三種語言與手機直向、橫向及電腦上都不再超出畫面。
+
+**English:** The 18 Districts picks up where you left off: on the chapter map, a chapter you were part-way through offers Continue and Start again, with when you last played it. Continue loads that chapter's latest save; Start again begins from its starting city and keeps the old save. Chapter 1 still plays the prologue the first time; when you start it again, Kam Mo-ling asks whether to watch the prologue, and it leads straight into the chapter. Eleven new faces: the news anchor, the education officer, the factory owner, the workers' rep, the reporter, the youth volunteer, the film producer, Temple Street's claypot-rice boss and fortune teller Master So (chapter 17's busy night), the Tai O granny - chapter 10's own character, with a line in its opening and in the cable car event - and a new Wonder Boy Biu, whose old picture had the wrong name plate. Chapter 16 has a City Super League night after its first matchday, with a football commentator and a forum post. The chapter map fits in all three languages on phones held either way and on computers.
+
+**日本語:** 「18区をめぐる」は前回の続きから遊べます。章マップで途中まで遊んだ章を選ぶと「前回の続きから」と「最初から」が表示され、前回いつまで遊んだかも分かります。「前回の続きから」はその章の最新のセーブを読み込み、「最初から」は開始都市からやり直します（古いセーブは消えません）。第1章は初回は従来どおりプロローグを自動再生し、やり直す時は金毛玲がプロローグを見るか尋ね、見終わるとそのまま第1章に入ります。新しい顔が11人：ニュースキャスター、教育局代表、工場主、労働者代表、記者、青年ボランティア、映画プロデューサー、廟街の土鍋ご飯の女将と占い師ソー師傅（第17章の夜）、第10章離島の代表人物・大澳のおばあちゃん（冒頭とロープウェイのイベントで登場）、そして名札の誤りを直した新しい神童標。第16章には最初のホームゲームの後に「シティ・スーパーリーグの夜」が加わり、サッカー実況とフォーラムの記事が出ます。章マップは三言語とも、スマートフォンの縦・横とパソコンで画面からはみ出さなくなりました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.8 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

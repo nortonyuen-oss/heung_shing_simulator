@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.8 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.0.9 — 【玩轉18區】
 
-香城模擬器 (Heung Shing Simulator) v6.0.8 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.0.9 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.9
+
+The 18 Districts picks up where you left off: the chapter map offers to continue a chapter from its latest save, or to start it again, and says when you last played it. Starting chapter 1 again asks whether to watch the prologue first. Eleven more characters have faces - the news anchor, the education officer, the factory owner and the workers' rep, the reporter, the youth volunteer, the film producer, Temple Street's claypot-rice boss and fortune teller Master So, the Tai O granny (chapter 10's own character) and a new Wonder Boy Biu - and chapter 16 has a City Super League night with its football commentator. The chapter map fits phones held either way in all three languages.
 
 ## New in v6.0.8
 

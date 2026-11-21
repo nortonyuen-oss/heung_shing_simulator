@@ -48,7 +48,7 @@
     tourism: { name: T('旅遊署代表', 'Tourism Board', '観光局代表'), portrait: 'UI/officials/headOfLeisureAndCulturalService.PNG', glyph: '🧳' },
     // for now (Norton 2026-11-19): the tram driver of the 黃又藍 news art, the host of the 中秋 live broadcast
     tram: { name: T('電車公司代表', 'Tramways', '電車会社代表'), portrait: 'UI/campaign/portraits/tram.png', glyph: '🚋' },
-    anchor: { name: T('新聞主播', 'News Anchor', 'ニュースキャスター'), portrait: 'UI/campaign/portraits/anchor.png', glyph: '📺' },
+    anchor: { name: T('新聞主播', 'News Anchor', 'ニュースキャスター'), portrait: 'UI/campaign/portraits/anchor.webp', glyph: '📺' },
     queen: { name: T('女皇陛下', 'Her Majesty', '女王陛下'), portrait: 'UI/campaign/portraits/queen.png', glyph: '👑' },
     // P3 (chapters 06-18): the council's faces for now, else a glyph, until the campaign's own art
     commerce: { name: T('工商署代表', 'Commerce Bureau', '商工局代表'), portrait: 'UI/officials/councilMember-business.PNG', glyph: '🏢' },
@@ -57,12 +57,15 @@
     environment: { name: T('環境署代表', 'Environment Bureau', '環境局代表'), portrait: 'UI/officials/headOfObservatory.PNG', glyph: '🌿' },
     councillorA: { name: T('議員甲', 'Councillor A', '議員甲'), portrait: 'UI/officials/councilMember-democracyParty.PNG', glyph: '🗳' },
     councillorB: { name: T('議員乙', 'Councillor B', '議員乙'), portrait: 'UI/officials/councilMamber-freedom.PNG', glyph: '🗳' },
-    education: { name: T('教育署代表', 'Education Bureau', '教育局代表'), glyph: '🎓' },
+    education: { name: T('教育署代表', 'Education Bureau', '教育局代表'), portrait: 'UI/campaign/portraits/education.webp', glyph: '🎓' },
     villager: { name: T('元朗阿伯', 'Yuen Long Uncle', '元朗のおじさん'), portrait: 'UI/campaign/portraits/villager.webp', glyph: '🏮' },
-    factory: { name: T('工廠老闆', 'Factory Owner', '工場主'), glyph: '🏭' },
-    worker: { name: T('工人代表', 'Workers\' Rep', '労働者代表'), glyph: '👷' },
-    reporter: { name: T('記者', 'Reporter', '記者'), glyph: '🎤' },
-    stallOwner: { name: T('夜市老闆', 'Night-Market Stallholder', '夜市の店主'), glyph: '🍲' },
+    factory: { name: T('工廠老闆', 'Factory Owner', '工場主'), portrait: 'UI/campaign/portraits/factory.webp', glyph: '🏭' },
+    worker: { name: T('工人代表', 'Workers\' Rep', '労働者代表'), portrait: 'UI/campaign/portraits/worker.webp', glyph: '👷' },
+    reporter: { name: T('記者', 'Reporter', '記者'), portrait: 'UI/campaign/portraits/reporter.webp', glyph: '🎤' },
+    // 廟街: the claypot-rice boss and the fortune teller (Norton 2026-11-21: 「廟街老闆改左做So師傅」, then the
+    // claypot rice stall got its own face - both stand in 第 17 章's night)
+    stallOwner: { name: T('煲仔飯老闆娘', 'Claypot Rice Boss', '土鍋ご飯の女将'), portrait: 'UI/campaign/portraits/stallOwner.webp', glyph: '🍲' },
+    soSifu: { name: T('So師傅', 'Master So', 'ソー師傅'), portrait: 'UI/campaign/portraits/soSifu.webp', glyph: '🔮' },
     commentator: { name: T('神童標', 'Wonder Boy Biu', '神童標'), portrait: 'UI/campaign/portraits/commentator.webp', glyph: '🐎' },
     // Norton's NPC boards (UI/storyBoardGraphics/NPC, 2026-11-20; scripts/prepare-campaign-story-images.js)
     minibus: { name: T('紅Van司機', 'Red Minibus Driver', '赤バン運転手'), portrait: 'UI/campaign/portraits/minibus.webp', glyph: '🚐' },
@@ -87,8 +90,8 @@
     // 航空署代表 is Captain Cool (Norton 2026-11-21; scripts/source-art/campaign/portraits/aviation-source.png)
     aviation: { name: T('Captain Cool', 'Captain Cool', 'キャプテン・クール'), portrait: 'UI/campaign/portraits/aviation.webp', glyph: '✈️' },
     portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
-    volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), glyph: '🙋' },
-    producer: { name: T('製片人', 'Film Producer', '映画プロデューサー'), glyph: '🎬' },
+    volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), portrait: 'UI/campaign/portraits/volunteer.webp', glyph: '🙋' },
+    producer: { name: T('製片人', 'Film Producer', '映画プロデューサー'), portrait: 'UI/campaign/portraits/producer.webp', glyph: '🎬' },
     // 第 14 章《古大樂、共金寶、林豐開機》 (P4 phase 6)
     filmStar: { name: T('古大樂', 'Koo Dai-lok', '古大楽'), portrait: 'UI/campaign/portraits/filmStar.webp', glyph: '🎬' },
   });
@@ -1629,6 +1632,7 @@
         lines: Object.freeze([
           { speaker: 'transport', text: T('地鐵站外排隊長龍，尖沙咀碼頭又有幾千人等船。', 'Queues outside the metro stations, and thousands waiting at the Tsim Sha Tsui pier.', '地下鉄の駅の外に長蛇の列、尖沙咀の埠頭でも数千人が船待ちです。') },
           { speaker: 'stallOwner', text: T('我煲仔飯賣晒，但全部客行唔到入嚟！', 'My claypot rice sold out - but none of the customers can get in!', '土鍋ご飯は完売したのに、客が誰も入って来られない！') },
+          { speaker: 'soSifu', text: T('我鐵板神算早計到今晚人山人海，但計唔到全部人塞喺地鐵站出口。', 'My iron-plate reckoning foresaw tonight\'s crowds - it never foresaw them all stuck at the metro exit.', '鉄板神算で今夜の大入りは出ておったが、皆が地下鉄の出口で詰まるとは出ておらなんだ。') },
           { speaker: 'culture', text: T('演出即將開場，但觀眾困喺路上。', 'The show is about to start, and the audience is stuck on the road.', 'まもなく開演なのに、観客が道で足止めされています。') },
           { card: T('一晚三個油尖旺', 'Three Yau Tsim Mongs in One Night', '一晩に三つの油尖旺'),
             hint: T('加開地鐵、小輪、巴士班次，或者設步行區；夜間人流同日間通勤要分開處理。', 'Add metro, ferry and bus services, or pedestrian zones; night crowds and day commuters need handling apart.', '地下鉄・フェリー・バスを増便するか、歩行者天国を。夜の人出と昼の通勤は分けて考えよう。') },

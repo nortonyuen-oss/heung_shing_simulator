@@ -11,7 +11,7 @@
 
 已完成：市長六款樣貌（陳一心、李幼羚、張思賢、黃念慈、何向華、林英秀，名字用考評局中文寫作卷指定名單）、B1 旅遊署代表、B2 Captain Cool。
 
-2026-11-21 第二批已完成：A1 沙田馬場（6×12，切開兩個 6×6 半邊加鏡像，`racecourse.js`）、A2 濕地公園、A3 社區中心、A4 啟德郵輪（日間）、B3 碼頭主任，另加第 14 章結尾插圖（郵輪碼頭開幕同賭船，`UI/campaign/events/cruiseTerminalOpening.webp`）。仲欠：A1 夜間、A4 夜間、A5、B4–B19、C1–C2。
+2026-11-21 第二批已完成：A1 沙田馬場（6×12，切開兩個 6×6 半邊加鏡像，`racecourse.js`）、A2 濕地公園、A3 社區中心、A4 啟德郵輪（日間）、B3 碼頭主任，另加第 14 章結尾插圖（郵輪碼頭開幕同賭船，`UI/campaign/events/cruiseTerminalOpening.webp`）。仲欠：A1 夜間、A4 夜間、A5、B12–B19、C1–C2（B4–B11 喺同日第三批完成）。
 
 ---
 
@@ -130,7 +130,7 @@ Character: a Civil Aviation Department officer, a calm middle-aged man in a navy
 Character: a container terminal port master, a weathered tough man in his fifties with a grey crew cut, orange high-visibility vest and white hard hat, holding a walkie-talkie, squinting with authority. Background: softly blurred Kwai Tsing container terminal with giant gantry cranes and stacked colourful containers at dusk.
 ```
 
-### B4. 教育署代表（3 句，emoji）
+### ~~B4. 教育署代表~~（2026-11-21 完成）
 
 ```
 [Same style paragraph as B1]
@@ -138,7 +138,7 @@ Character: a container terminal port master, a weathered tough man in his fiftie
 Character: an Education Bureau representative, a strict but kind woman in her forties with glasses on a chain, a cardigan over a blouse, holding a stack of school reports and a red pen. Background: softly blurred Hong Kong secondary school classroom with a blackboard and uniformed students.
 ```
 
-### B5. 工廠老闆（3 句，emoji）
+### ~~B5. 工廠老闆~~（2026-11-21 完成）
 
 ```
 [Same style paragraph as B1]
@@ -146,7 +146,7 @@ Character: an Education Bureau representative, a strict but kind woman in her fo
 Character: an old-school Hong Kong factory owner, a stout man in his sixties with slicked-back grey hair, a short-sleeved shirt with a pen in the pocket, a gold watch, arms crossed, sceptical frown. Background: softly blurred industrial building corridor in Kwun Tong with goods lifts and cardboard boxes.
 ```
 
-### B6. 工人代表（2 句，emoji）
+### ~~B6. 工人代表~~（2026-11-21 完成）
 
 ```
 [Same style paragraph as B1]
@@ -154,7 +154,7 @@ Character: an old-school Hong Kong factory owner, a stout man in his sixties wit
 Character: a workers' representative, a lean determined man in his forties with rolled-up sleeves, a faded union T-shirt and a towel over his shoulder, raising one hand to make a point. Background: softly blurred factory floor turning into a modern office lobby.
 ```
 
-### B7. 記者（1 句，emoji）
+### ~~B7. 記者~~（2026-11-21 完成）
 
 ```
 [Same style paragraph as B1]
@@ -162,7 +162,7 @@ Character: a workers' representative, a lean determined man in his forties with 
 Character: a young investigative reporter, a sharp woman in her twenties with a short ponytail, a press badge on a lanyard, holding out a microphone and a phone recording, eyebrows raised mid-question. Background: softly blurred Legislative Council chamber corridor with camera flashes.
 ```
 
-### B8. 夜市老闆（1 句，emoji）
+### ~~B8. 夜市老闆~~（2026-11-21 完成：煲仔飯老闆娘；另加廟街算命嘅 So師傅，兩個都喺第 17 章「一晚三個油尖旺」出場）
 
 ```
 [Same style paragraph as B1]
@@ -170,7 +170,7 @@ Character: a young investigative reporter, a sharp woman in her twenties with a 
 Character: a Temple Street night market claypot rice (煲仔飯) stall owner, a cheerful plump man in his fifties with a white vest and an apron, holding a sizzling claypot with a cloth, steam rising. Background: softly blurred Temple Street night market with neon and red lanterns.
 ```
 
-### B9. 青年義工（1 句，emoji）
+### ~~B9. 青年義工~~（2026-11-21 完成）
 
 ```
 [Same style paragraph as B1]
@@ -178,7 +178,7 @@ Character: a Temple Street night market claypot rice (煲仔飯) stall owner, a 
 Character: a youth volunteer, an energetic university student in a bright volunteer vest over a hoodie, carrying a box of food parcels, warm smile. Background: softly blurred Sham Shui Po street with old tenement buildings and street stalls.
 ```
 
-### B10. 製片人（1 句，emoji）
+### ~~B10. 製片人~~（2026-11-21 完成）
 
 ```
 [Same style paragraph as B1]
@@ -186,7 +186,7 @@ Character: a youth volunteer, an energetic university student in a bright volunt
 Character: a Hong Kong film producer, a flamboyant man in his fifties with tinted sunglasses on his head, a leather jacket and a scarf, holding a megaphone and a clapperboard (no writing on it). Background: softly blurred film set inside a recreated Kowloon Walled City alley with film lights.
 ```
 
-### B11. 新聞主播（6 句，而家用新聞圖裁切）
+### ~~B11. 新聞主播~~（2026-11-21 完成，取代新聞圖裁切）
 
 ```
 [Same style paragraph as B1]

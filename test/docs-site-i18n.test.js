@@ -28,11 +28,18 @@ test('every data-i18n key used in the public site resolves to a real string in a
   const SITE_LANGUAGES = vm.runInContext('SITE_LANGUAGES', context);
 
   const usedKeys = new Set();
-  ['index.html', 'guide.html', 'copyright.html', 'feedback.html', 'news.html', 'ads.html', 'moderate.html', 'member.html'].forEach((file) => {
+  ['index.html', 'changelog.html', 'gallery.html', 'guide.html', 'copyright.html', 'feedback.html', 'news.html', 'ads.html', 'moderate.html', 'member.html'].forEach((file) => {
     const html = fs.readFileSync(path.join(DOCS, file), 'utf8');
     const regex = /data-i18n="([^"]+)"/g;
     let match;
     while ((match = regex.exec(html))) usedKeys.add(match[1]);
+  });
+  // the shell (site-shell.js) and the page parts (site-pages.js) build their text from keys too
+  ['site-shell.js', 'site-pages.js'].forEach((file) => {
+    const source = fs.readFileSync(path.join(DOCS, file), 'utf8');
+    const regex = /['"`]((?:shell|nav|footer|hero|home|changelogPage|galleryPage|gallery)\.[\w.]+)['"`]/g;
+    let match;
+    while ((match = regex.exec(source))) if (!match[1].endsWith('.html')) usedKeys.add(match[1]); // not page links
   });
   assert.ok(usedKeys.size > 0, 'expected to find at least one data-i18n attribute');
 
@@ -156,5 +163,45 @@ test('every gallery image source referenced by the site exists on disk', () => {
   sources.forEach((relativePath) => {
     const fullPath = path.join(DOCS, relativePath);
     assert.ok(fs.existsSync(fullPath), `missing gallery asset: ${relativePath}`);
+  });
+});
+
+test('the 1999 site: every page has the shell, and every picture it shows is on disk', () => {
+  const pages = ['index.html', 'changelog.html', 'gallery.html', 'guide.html', 'copyright.html', 'feedback.html', 'news.html', 'ads.html', 'moderate.html', 'member.html'];
+  const missing = [];
+  pages.forEach((file) => {
+    const html = fs.readFileSync(path.join(DOCS, file), 'utf8');
+    assert.match(html, /<link rel="stylesheet" href="site-1999\.css\?v=[^"]+"/, `${file} loads the 1999 stylesheet`);
+    assert.ok(html.indexOf('site-shell.js') > 0 && html.indexOf('site-shell.js') < html.indexOf('i18n.js'), `${file} builds the shell before i18n.js translates it`);
+    assert.doesNotMatch(html, /class="site-header"/, `${file} has no old header`);
+    assert.match(html, /<main id="top">/, `${file} has the main the shell wraps`);
+    for (const [, src] of html.matchAll(/(?:src|poster|data-gallery-src)="(assets\/[^"]+)"/g)) {
+      if (!fs.existsSync(path.join(DOCS, src))) missing.push(`${file}: ${src}`);
+    }
+  });
+  assert.deepEqual(missing, []);
+});
+
+test('the release history has its own page, and the home page only the latest three', () => {
+  const home = fs.readFileSync(path.join(DOCS, 'index.html'), 'utf8');
+  const history = fs.readFileSync(path.join(DOCS, 'changelog.html'), 'utf8');
+  assert.match(home, /data-render="latest-orders"/);
+  assert.match(home, /href="changelog\.html"/);
+  assert.doesNotMatch(home, /data-render="changelog"/);
+  assert.match(history, /<body data-page="changelog">/);
+  assert.match(history, /data-render="release-history"/);
+  assert.match(fs.readFileSync(path.join(DOCS, 'site-pages.js'), 'utf8'), /buildLocalizedChangelog\(language\(\)\)\.slice\(0, 3\)/);
+});
+
+test('the chart has every campaign chapter, generated from the game', () => {
+  const context = vm.createContext({});
+  vm.runInContext(`${fs.readFileSync(path.join(DOCS, 'site-campaign.js'), 'utf8')}\nthis.chapters = SITE_CAMPAIGN_CHAPTERS;`, context);
+  const { CAMPAIGN_CHAPTERS } = require('../campaign-chapters.js');
+  const chapters = JSON.parse(JSON.stringify(context.chapters)); // out of the vm realm
+  assert.deepEqual(chapters.map((chapter) => chapter.id), CAMPAIGN_CHAPTERS.map((chapter) => chapter.id));
+  chapters.forEach((chapter, index) => {
+    assert.deepEqual(chapter.district, { ...CAMPAIGN_CHAPTERS[index].district }, `${chapter.id} district`);
+    assert.ok(chapter.x > 0 && chapter.x < 100 && chapter.y > 0 && chapter.y < 100, `${chapter.id} sits on the chart`);
+    assert.ok(fs.existsSync(path.join(DOCS, chapter.board)), `${chapter.id} board art`);
   });
 });

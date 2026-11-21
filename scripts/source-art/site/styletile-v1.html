@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-HK"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fcf5e1;--paper2:#f2e4bf;--paper3:#e6d3a3;--maroon:#7a1f1f;--maroon2:#561313;--gold:#c9a227;--gold2:#f6d77a;--ink:#14100c;--green:#123f38;--green2:#1a6f5a;--hkred:#d7261e;--sea:#527a96}
+*{box-sizing:border-box}body{margin:0;background:#1d140d;font-family:"Noto Sans TC","PingFang TC",sans-serif;color:var(--ink);width:1600px}
+.board{padding:28px;display:grid;grid-template-columns:repeat(12,1fr);gap:22px}
+.cap{grid-column:1/-1;display:flex;align-items:baseline;gap:16px;color:var(--gold2)}
+.cap h1{font:900 34px "Noto Serif TC",serif;margin:0;letter-spacing:4px}.cap span{font:700 14px Cinzel,serif;letter-spacing:4px;color:#c9b27a}
+/* parchment frame (the game's story dialog) */
+.parch{position:relative;background:linear-gradient(180deg,var(--paper),var(--paper2));border:3px solid var(--gold);border-radius:6px;box-shadow:0 0 0 5px var(--maroon),0 0 0 7px var(--gold),0 14px 34px rgba(0,0,0,.55),inset 0 0 28px rgba(140,96,36,.22);padding:18px 20px}
+.parch::before{content:"";position:absolute;inset:6px;border:1px solid rgba(160,118,30,.5);border-radius:3px;pointer-events:none}
+.plate{display:inline-block;padding:3px 22px;background:linear-gradient(180deg,var(--maroon),var(--maroon2));border:2px solid var(--gold);border-radius:3px;color:var(--gold2);font:900 18px "Noto Serif TC",serif;letter-spacing:3px;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.label{font:700 11px Cinzel,serif;letter-spacing:3px;color:#8a6a3a;margin:2px 0 10px}
+/* hero */
+.hero{grid-column:1/-1;position:relative;height:470px;border:4px solid var(--ink);background:url(UI/campaign/select-backdrop.webp) center 40%/cover;overflow:hidden;box-shadow:0 0 0 4px var(--gold),0 0 0 8px var(--maroon)}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(0,0,0,.16) 1px,transparent 1.3px) 0 0/6px 6px;mix-blend-mode:multiply}
+.logo{position:absolute;left:46px;top:34px;z-index:2}
+.logo .zh{font:900 110px/1 "Noto Serif TC",serif;color:#fff;letter-spacing:8px;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:6px 6px 0 var(--hkred),9px 9px 0 var(--ink)}
+.logo .en{margin-top:12px;font:700 22px Cinzel,serif;letter-spacing:8px;color:var(--gold2);text-shadow:2px 2px 0 var(--ink)}
+.logo .ver{margin-top:14px}
+.ctas{position:absolute;left:46px;bottom:40px;display:flex;gap:16px;z-index:2}
+.btn{font:900 22px "Noto Serif TC",serif;letter-spacing:3px;padding:12px 30px;border:3px solid;cursor:pointer}
+.btn.play{color:var(--gold2);background:linear-gradient(180deg,#8e2525,var(--maroon2));border-color:#e3c35a #3a0c0c #3a0c0c #e3c35a;box-shadow:0 0 0 2px var(--gold)}
+.btn.dl{color:var(--ink);background:linear-gradient(180deg,#ffe58a,var(--gold));border-color:#fff3c2 #7a5c10 #7a5c10 #fff3c2;box-shadow:0 0 0 2px var(--ink)}
+.hosts{position:absolute;right:30px;bottom:0;display:flex;align-items:flex-end;gap:0;z-index:2}
+.bubble{position:absolute;right:250px;top:46px;max-width:300px;background:#fff;border:3px solid var(--ink);border-radius:46% 54% 48% 52%/55% 45% 55% 45%;padding:18px 22px;font:700 19px/1.45 "Noto Sans TC",sans-serif;z-index:3;box-shadow:5px 5px 0 var(--ink)}
+.bubble::after{content:"";position:absolute;right:-26px;bottom:18px;border:16px solid transparent;border-left:30px solid var(--ink)}
+.host{width:230px;height:230px;border:4px solid var(--ink);background-size:cover;box-shadow:6px 6px 0 rgba(0,0,0,.6);transform:rotate(2deg)}
+.speed{position:absolute;inset:-40%;background:repeating-conic-gradient(from 0deg at 72% 60%,rgba(255,255,255,.0) 0 4deg,rgba(255,250,225,.18) 4deg 5deg);z-index:1}
+/* palette */
+.pal{grid-column:span 5}.sw{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.sw div{height:74px;border:2px solid var(--ink);display:flex;align-items:flex-end;padding:4px;font:700 10px/1.2 monospace;color:#fff;text-shadow:0 1px 2px #000}
+/* type */
+.type{grid-column:span 7}.t1{font:900 46px "Noto Serif TC",serif;color:var(--maroon);-webkit-text-stroke:1px var(--ink)}.t2{font:900 24px "Noto Serif TC",serif;color:var(--maroon)}.t3{font:400 16px/1.7 "Noto Sans TC",sans-serif}.t4{font:700 13px Cinzel,serif;letter-spacing:4px;color:#8a6a3a}
+/* comic panels */
+.panels{grid-column:span 7;display:grid;grid-template-columns:1.3fr 1fr;grid-template-rows:180px 150px;gap:10px;background:var(--paper);padding:10px;border:4px solid var(--ink)}
+.pn{position:relative;border:4px solid var(--ink);background-size:cover;background-position:center;overflow:hidden}
+.pn:nth-child(1){grid-row:span 2;transform:rotate(-.6deg)}.pn:nth-child(2){transform:rotate(.8deg)}
+.pn b{position:absolute;left:8px;bottom:8px;background:var(--paper);border:3px solid var(--ink);padding:3px 10px;font:900 18px "Noto Serif TC",serif}
+.pn i{position:absolute;right:8px;top:6px;font:900 40px "Noto Serif TC",serif;font-style:normal;color:#ffde2a;-webkit-text-stroke:2px var(--ink);transform:rotate(-8deg)}
+/* portrait cards */
+.people{grid-column:span 5;display:flex;gap:16px;align-items:flex-start}
+.pc{width:150px;text-align:center}.pc .fr{padding:6px;border-radius:6px;background:linear-gradient(180deg,var(--paper),var(--paper2));border:3px solid var(--gold);box-shadow:0 0 0 3px var(--maroon),0 0 0 5px var(--gold)}
+.pc img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border:1px solid var(--maroon)}
+.pc .nm{margin-top:10px;display:inline-block;padding:1px 12px;background:linear-gradient(180deg,#8e1b5b,#5b1240);border:2px solid var(--gold);color:var(--gold2);font:700 14px "Noto Serif TC",serif}
+.pc .rl{font-size:12px;color:#c9b27a;margin-top:4px}
+/* 90s web */
+.web90{grid-column:span 6}.nav90{display:flex;flex-direction:column;gap:6px;width:200px;float:left;margin-right:18px}
+.nav90 a{display:flex;align-items:center;gap:8px;padding:6px 10px;background:linear-gradient(180deg,#2a5d52,var(--green));color:#fff;font:700 15px "Noto Serif TC",serif;border:2px solid;border-color:#6fae9c #07201b #07201b #6fae9c;text-decoration:none}
+.nav90 a.on{background:linear-gradient(180deg,#8e2525,var(--maroon2));color:var(--gold2);border-color:#e3c35a #3a0c0c #3a0c0c #e3c35a}
+.news{overflow:hidden}.news h3{margin:0 0 8px}.news li{margin:6px 0;font-size:14px;list-style:none}.news li::before{content:"⚓ ";color:var(--maroon)}
+.new{display:inline-block;background:var(--hkred);color:#fff;font:900 11px Arial;padding:1px 5px;border:1px solid var(--ink);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.counter{margin-top:12px;display:flex;align-items:center;gap:8px;font:700 13px "Noto Sans TC"}.counter span{display:inline-flex}.counter em{font:700 22px/1 "Courier New",monospace;font-style:normal;color:#7dff7d;background:#050805;border:2px inset #444;padding:3px 4px;margin-right:2px}
+.badges{clear:both;padding-top:12px;display:flex;gap:8px}.badges div{font:700 10px Arial;border:2px outset #ddd;background:#ece9d8;padding:3px 6px}
+/* chart */
+.chart{grid-column:span 6;position:relative}
+.chart .map{position:relative;border:3px solid var(--gold);box-shadow:0 0 0 3px var(--maroon);background:#4a2a18;padding:4px}
+.chart .map img{display:block;width:100%;height:250px;object-fit:cover;filter:sepia(.35) saturate(.9) contrast(1.05)}
+.chart .rose{position:absolute;right:18px;top:16px;width:70px;height:70px;border-radius:50%;background:conic-gradient(var(--maroon) 0 12.5%,var(--paper) 0 25%,var(--maroon) 0 37.5%,var(--paper) 0 50%,var(--maroon) 0 62.5%,var(--paper) 0 75%,var(--maroon) 0 87.5%,var(--paper) 0);border:3px solid var(--gold);opacity:.9}
+.pin{position:absolute;width:24px;height:24px;border-radius:50%;border:2px solid var(--paper);font:700 10px/20px Arial;color:#fff;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+</style></head><body>
+<div class="board">
+  <div class="cap"><h1>香城模擬器 官網美術語言</h1><span>HEUNG SHING · WEB 1999 STYLE TILE — 港漫 × 大航海時代IV × 90s PC GAME SITE</span></div>
+  <section class="hero">
+    <div class="speed"></div>
+    <div class="logo"><div class="zh">香城模擬器</div><div class="en">HEUNG SHING SIMULATOR</div><div class="ver"><span class="plate">v6.0.7【玩轉18區】</span></div></div>
+    <div class="ctas"><button class="btn play">▶ 線上即玩</button><button class="btn dl">⬇ 免費下載</button></div>
+    <div class="bubble">市長，你終於到喇！<br>先揀你嘅版本，再去北區上任。</div>
+    <div class="hosts"><div class="host" style="background-image:url(UI/campaign/portraits/secretary.png)"></div></div>
+  </section>
+  <section class="pal parch"><div class="plate">色票</div><div class="label">PALETTE — 遊戲劇情色 + 港漫紅墨</div>
+    <div class="sw">
+      <div style="background:#fcf5e1;color:#000;text-shadow:none">羊皮紙<br>#fcf5e1</div><div style="background:#e6d3a3;color:#000;text-shadow:none">深羊皮<br>#e6d3a3</div>
+      <div style="background:#7a1f1f">酒紅牌<br>#7a1f1f</div><div style="background:#c9a227">金邊<br>#c9a227</div><div style="background:#f6d77a;color:#000;text-shadow:none">牌金字<br>#f6d77a</div>
+      <div style="background:#14100c">港漫墨<br>#14100c</div><div style="background:#d7261e">港漫紅<br>#d7261e</div><div style="background:#123f38">遊戲深綠<br>#123f38</div><div style="background:#1a6f5a">即玩綠<br>#1a6f5a</div><div style="background:#527a96">海圖水<br>#527a96</div>
+    </div></section>
+  <section class="type parch"><div class="plate">字體</div><div class="label">TYPE — 港漫大字 / 正文 / 航海英文</div>
+    <div class="t1">標題｜玩轉十八區</div><div class="t2">小標題｜一區一章，香港 18 區逐區通關</div>
+    <div class="t3">正文 Noto Sans TC 16px：起街道、規劃社區、經營自己嘅巴士公司，處理議會同颱風，再睇住一座有性格嘅香城慢慢成長。</div>
+    <div class="t4">CINZEL · SMALL CAPS LABEL · CHAPTER XII</div></section>
+  <section class="panels">
+    <div class="pn" style="background-image:url(UI/campaign/events/singerBirthday.webp)"><b>節慶同盛事</b><i>轟！</i></div>
+    <div class="pn" style="background-image:url(docs/assets/gameplay/nightSkyline.webp)"><b>入夜萬家燈火</b></div>
+    <div class="pn" style="background-image:url(UI/campaign/events/tramway.webp)"><b>叮叮遊港島</b></div>
+  </section>
+  <section class="people">
+    <div class="pc"><div class="fr"><img src="UI/campaign/portraits/queen.png"></div><div class="nm">女皇陛下</div><div class="rl">最新密令（What's New）</div></div>
+    <div class="pc"><div class="fr"><img src="UI/campaign/portraits/mayorLook1.webp"></div><div class="nm">陳一心</div><div class="rl">揀你嘅市長</div></div>
+    <div class="pc"><div class="fr"><img src="UI/campaign/portraits/aviation.webp"></div><div class="nm">Captain Cool</div><div class="rl">下載＝出發登機</div></div>
+  </section>
+  <section class="web90 parch"><div class="plate">90s 網頁零件</div><div class="label">LEFT NAV · WHAT'S NEW · COUNTER · BADGES</div>
+    <nav class="nav90"><a class="on">⚓ 首頁</a><a>🗺 玩轉18區</a><a>🏙 遊戲特色</a><a>⬇ 下載</a><a>📖 攻略</a><a>💬 香城討論區</a></nav>
+    <div class="news"><h3 class="t2">最新密令 <span class="new">NEW!</span></h3><ul><li>2026/11/21　v6.0.7 統一兩套視覺</li><li>2026/11/21　v6.0.5 Android app 登場</li><li>2026/11/20　v6.0.0《玩轉18區》開放</li></ul>
+      <div class="counter">線上遊玩人次 <span><em>0</em><em>1</em><em>2</em><em>3</em><em>4</em><em>5</em></span></div></div>
+    <div class="badges"><div>Best viewed 1024×768</div><div>香城市政規劃局 Presents</div><div>⚓ Made in Heung Shing</div></div></section>
+  <section class="chart parch"><div class="plate">航海圖：18 區</div><div class="label">THE 18 DISTRICTS — CHAPTER CHART</div>
+    <div class="map"><img src="UI/hk-district-overview.webp"><div class="rose"></div>
+      <span class="pin" style="left:43%;top:24%;background:#c9a227;color:#14100c">01</span><span class="pin" style="left:50%;top:36%;background:#c9a227;color:#14100c">02</span><span class="pin" style="left:64%;top:46%;background:#8e1b5b">03</span><span class="pin" style="left:48%;top:83%;background:#4a3f36">04</span></div></section>
+</div></body></html>

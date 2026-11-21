@@ -7,251 +7,298 @@
   <meta name="description" content="免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。免費遊玩，分享及再利用請參閱版權條款。" />
   <meta property="og:title" content="香城模擬器 | Heung Shing Simulator" />
   <meta property="og:description" content="由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。" />
-  <meta property="og:image" content="assets/backgroundTitle.jpg" />
-  <meta name="theme-color" content="#17212d" />
+  <meta property="og:image" content="assets/site/hero.webp" />
+  <meta name="theme-color" content="#561313" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20261121-v6.0.7-1" />
-  <script src="i18n.js?v=20261121-v6.0.7-1" defer></script>
-  <script src="web-play.js?v=20261121-v6.0.7-1" defer></script>
-  <script src="site.js?v=20261121-v6.0.7-1" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Serif+JP:wght@700;900&family=Noto+Serif+TC:wght@700;900&display=swap" />
+  <link rel="stylesheet" href="site-1999.css?v=20261121-v6.0.7-2" />
+  <script src="site-shell.js?v=20261121-v6.0.7-2" defer></script>
+  <script src="site-campaign.js?v=20261121-v6.0.7-2" defer></script>
+  <script src="site-pages.js?v=20261121-v6.0.7-2" defer></script>
+  <script src="i18n.js?v=20261121-v6.0.7-2" defer></script>
+  <script src="web-play.js?v=20261121-v6.0.7-2" defer></script>
+  <script src="site.js?v=20261121-v6.0.7-2" defer></script>
 </head>
-<body>
-  <header class="site-header" aria-label="網站導覽">
-    <a class="brand" href="#top" aria-label="Heung Shing Simulator">
-      <img src="assets/icon.png" alt="" />
-      <span>香城模擬器</span>
-    </a>
-    <nav>
-      <div class="nav-links">
-        <a href="#" data-web-play-link hidden data-web-copy="play">即刻玩</a>
-        <a href="#nightlife" data-i18n="film.nav">夜繽紛特輯</a>
-        <a href="#gallery" data-i18n="nav.gallery">截圖</a>
-        <a href="#downloads" data-i18n="nav.downloads">下載</a>
-        <a href="#requirements" data-i18n="nav.requirements">配置要求</a>
-        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
-        <a href="news.html" data-i18n="nav.news">香城討論區</a>
-        <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
-        <a href="ads.html" data-i18n="nav.ads">宣傳2-零速傳播</a>
-        <a href="member.html" data-i18n="nav.member">香城街坊福利會</a>
-        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
-        <a href="#stats" data-i18n="nav.stats">統計</a>
-        <a href="#changelog" data-i18n="nav.changelog">版本</a>
-        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
-      </div>
-      <div class="lang-switcher" data-language-switcher></div>
-    </nav>
-  </header>
-
+<body data-page="home">
   <main id="top">
-    <section class="hero">
-      <div class="hero-content">
-        <p class="eyebrow" data-i18n="hero.eyebrowPrefix">香城模擬器</p>
-        <h1 data-i18n="hero.title">香城模擬器</h1>
-        <p class="hero-version" data-i18n="hero.versionBadge">v6.0.7 — 【玩轉18區】</p>
-        <p class="hero-version-desc" data-i18n="hero.versionDesc">6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.5 新增 Android app；6.0.7 統一深綠同大航海兩套視覺。</p>
-        <p class="lede" data-i18n="hero.lede">一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。</p>
-        <p class="hero-free-label" data-i18n="hero.freeLabel">完全免費 · 瀏覽器 + macOS + Windows · 本機存檔</p>
-        <div class="hero-actions">
-          <a class="button primary" href="#" data-web-play-link hidden data-web-copy="play">即刻玩</a>
-          <a class="button primary" href="#downloads" data-i18n="hero.downloadBtn">【免費下載】</a>
-          <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-release-link data-i18n="hero.latestBtn">最新版本</a>
-          <a class="button secondary" href="guide.html" data-i18n="hero.guideBtn">睇遊戲指南</a>
+    <!-- ① the front page: the box, the logo, the two big buttons -->
+    <section class="hs-hero" aria-labelledby="hero-title">
+      <div class="hs-speed" aria-hidden="true"></div>
+      <div class="hs-hero-copy">
+        <span class="hs-hero-kicker" data-i18n="home.heroKicker">官方電腦遊戲 · 全中文 · 完全免費</span>
+        <h1 class="hs-logo" id="hero-title" data-i18n="hero.title">香城模擬器</h1>
+        <div class="hs-logo-en" aria-hidden="true">HEUNG SHING SIMULATOR</div>
+        <p class="hs-plate" data-i18n="hero.versionBadge">v6.0.7 — 【玩轉18區】</p>
+        <p class="hs-slogan" data-i18n="home.heroSlogan">由你話事！打造屬於你嘅香城。</p>
+        <p class="hs-lede" data-i18n="home.heroLede">向 SimCity 2000 致敬嘅香港城市建設遊戲：起街道、劃分區、經營巴士公司、應付議會同颱風，再玩轉香港 18 區。</p>
+        <div class="hs-ctas">
+          <a class="hs-btn is-play" href="https://heung-shing-play.nortonyuen.workers.dev" rel="noopener" data-web-play-link data-web-copy="play">即刻玩</a>
+          <a class="hs-btn is-download" href="#downloads" data-i18n="hero.downloadBtn">【免費下載】</a>
         </div>
-        <p class="hero-share-note" data-i18n="hero.shareNote">歡迎免費遊玩，同朋友分享官方連結、截圖同介紹。影片、素材同遊戲再散布嘅使用範圍，請參閱版權條款。</p>
+        <p class="hs-platforms" data-i18n="home.heroPlatforms">瀏覽器 · Windows · macOS · Android</p>
+      </div>
+      <div class="hs-box">
+        <img src="assets/site/box.webp" width="720" height="907" alt="香城模擬器盒裝封面：維港日落、金毛玲同玩轉18區" data-i18n-attr="alt:home.boxAlt" fetchpriority="high" />
       </div>
     </section>
 
-    <section id="nightlife" class="trailer" aria-labelledby="nightlife-title">
-      <div class="section-head">
-        <p class="eyebrow" data-i18n="film.eyebrow">90 秒遊戲旅遊特輯</p>
-        <h2 id="nightlife-title" data-i18n="film.title">香城夜繽紛</h2>
-        <p id="nightlife-description" class="trailer-intro" data-i18n="film.intro">聖誕大廈燈飾、端午龍舟競渡、七月十四阿飄、UFO 到訪，仲有維港煙花壓軸。香城生活，多姿多彩。</p>
-        <p class="trailer-intro" data-i18n="film.details">遊戲配樂 · 廣東話字幕 · 90 秒 · 1080p</p>
+    <!-- ② what's new: the queen's three latest orders, and the counters -->
+    <section id="news" class="hs-news" aria-labelledby="news-title">
+      <div class="hs-parch hs-letter">
+        <div class="hs-head">
+          <span class="hs-kicker" data-i18n="home.newsKicker">THE QUEEN'S ORDERS</span>
+          <h2 class="hs-plate" id="news-title" data-i18n="home.newsTitle">最新密令</h2>
+        </div>
+        <div class="hs-orders">
+          <div>
+            <div class="hs-frame"><img src="assets/site/people/queen.webp" width="256" height="256" alt="" loading="lazy" /></div>
+            <span class="hs-name" data-person="queen">香城女皇</span>
+          </div>
+          <div>
+            <ol data-render="latest-orders"></ol>
+            <a class="hs-more" href="changelog.html" data-i18n="home.newsAll">全部版本紀錄 →</a>
+          </div>
+        </div>
       </div>
-      <div class="trailer-frame">
+      <aside class="hs-parch hs-counters" aria-labelledby="counters-title">
+        <h2 class="hs-plate" id="counters-title" data-i18n="home.countersTitle">香城人氣</h2>
+        <div class="hs-counter">
+          <span data-i18n="stats.latestVersion">最新版本</span>
+          <strong data-latest-version>v6.0.7</strong>
+          <small data-latest-published>2026年11月21日發布</small>
+        </div>
+        <div class="hs-counter">
+          <span data-i18n="stats.totalDownloads">總下載次數</span>
+          <strong data-total-downloads>載入中</strong>
+        </div>
+        <div class="hs-counter">
+          <span data-web-copy="title">累計網頁遊玩人次</span>
+          <strong data-web-play-total>暫未提供</strong>
+          <small data-web-play-time></small>
+        </div>
+        <div class="hs-counter">
+          <span data-i18n="stats.totalViews">入口瀏覽</span>
+          <span class="badge-value">
+            <img src="https://hits.sh/nortonyuen-oss.github.io/heung_shing_simulator.svg?view=total&label=views&color=7a1f1f&labelColor=14100c" alt="入口瀏覽次數" data-i18n-attr="alt:stats.viewsAlt" loading="lazy" referrerpolicy="no-referrer" />
+          </span>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ③ the 18 districts: the chart, a pin and a chip for every chapter -->
+    <section id="campaign" class="hs-parch" aria-labelledby="campaign-title">
+      <div class="hs-head">
+        <span class="hs-kicker" data-i18n="home.campaignKicker">THE 18 DISTRICTS</span>
+        <h2 class="hs-plate" id="campaign-title" data-i18n="home.campaignTitle">玩轉18區</h2>
+        <p data-i18n="home.campaignIntro">女皇一封密令，你由北區上任。香港 18 區每區一章，喺真實地區地圖上建城，三粒星過關。</p>
+      </div>
+      <div class="hs-campaign-grid">
+        <div class="hs-chart-col">
+          <div class="hs-chart">
+            <div class="hs-chart-map" data-render="campaign-chart">
+              <img src="assets/site/chart.webp" width="1062" height="800" alt="" loading="lazy" />
+            </div>
+            <span class="rose" aria-hidden="true"></span>
+          </div>
+          <div class="hs-mayors">
+            <div>
+              <h3 data-i18n="home.mayorsTitle">揀你嘅市長</h3>
+              <p data-i18n="home.mayorsText">六位香城市長任你揀，亦可以用遊戲入面 30 幾位角色做你嘅樣。</p>
+            </div>
+            <div class="hs-mayor-row">
+              <div class="hs-frame"><img src="assets/site/people/mayorLook1.webp" width="256" height="256" alt="" loading="lazy" /></div>
+              <div class="hs-frame"><img src="assets/site/people/mayorLook2.webp" width="256" height="256" alt="" loading="lazy" /></div>
+              <div class="hs-frame"><img src="assets/site/people/mayorLook3.webp" width="256" height="256" alt="" loading="lazy" /></div>
+              <div class="hs-frame"><img src="assets/site/people/mayorLook4.webp" width="256" height="256" alt="" loading="lazy" /></div>
+              <div class="hs-frame"><img src="assets/site/people/mayorLook5.webp" width="256" height="256" alt="" loading="lazy" /></div>
+              <div class="hs-frame"><img src="assets/site/people/mayorLook6.webp" width="256" height="256" alt="" loading="lazy" /></div>
+            </div>
+          </div>
+        </div>
+        <div class="hs-chapter-col">
+          <div class="hs-host">
+            <div class="hs-frame"><img src="assets/site/people/secretary.webp" width="256" height="256" alt="" loading="lazy" /></div>
+            <p class="hs-bubble"><b data-person="secretary">金毛玲</b>：<span data-i18n="home.campaignPick">撳地圖上嘅點或者下面嘅區名睇章節。</span></p>
+          </div>
+          <div class="hs-chapter" data-render="campaign-chapter" aria-live="polite"></div>
+          <div class="hs-chips" data-render="campaign-chips"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ features: a 港漫 page of six panels (each opens its screenshot), the film and the trailer -->
+    <section id="features" class="hs-parch" aria-labelledby="features-title">
+      <div class="hs-head">
+        <span class="hs-kicker" data-i18n="home.featuresKicker">FEATURES</span>
+        <h2 class="hs-plate" id="features-title" data-i18n="home.featuresTitle">遊戲特色</h2>
+      </div>
+      <div class="hs-comic">
+        <button class="hs-panel" type="button" data-gallery-open data-gallery-src="assets/gameplay/citySence.webp" data-feature="0">
+          <img src="assets/gameplay/citySence.webp" alt="" loading="lazy" decoding="async" />
+          <span class="sfx" aria-hidden="true">起！</span>
+          <span class="cap"><b data-i18n="home.features.0.title">規劃建設 · 發展全城</b><span data-i18n="home.features.0.text"></span></span>
+        </button>
+        <button class="hs-panel" type="button" data-gallery-open data-gallery-src="assets/site/feature-tram.webp" data-feature="1">
+          <img src="assets/site/feature-tram.webp" alt="" loading="lazy" decoding="async" />
+          <span class="sfx" aria-hidden="true">叮叮！</span>
+          <span class="cap"><b data-i18n="home.features.1.title">電車穿梭 · 城市脈動</b><span data-i18n="home.features.1.text"></span></span>
+        </button>
+        <button class="hs-panel" type="button" data-gallery-open data-gallery-src="assets/gameplay/legislativeCouncil.webp" data-feature="2">
+          <img src="assets/gameplay/legislativeCouncil.webp" alt="" loading="lazy" decoding="async" />
+          <span class="sfx" aria-hidden="true">通過！</span>
+          <span class="cap"><b data-i18n="home.features.2.title">市政會議 · 由你話事</b><span data-i18n="home.features.2.text"></span></span>
+        </button>
+        <button class="hs-panel" type="button" data-gallery-open data-gallery-src="assets/gameplay/rainyNight.webp" data-feature="3">
+          <img src="assets/gameplay/rainyNight.webp" alt="" loading="lazy" decoding="async" />
+          <span class="sfx" aria-hidden="true">轟隆！</span>
+          <span class="cap"><b data-i18n="home.features.3.title">日夜天氣 · 颱風訊號</b><span data-i18n="home.features.3.text"></span></span>
+        </button>
+        <button class="hs-panel" type="button" data-gallery-open data-gallery-src="assets/gameplay/dragonBoatRace.webp" data-feature="4">
+          <img src="assets/gameplay/dragonBoatRace.webp" alt="" loading="lazy" decoding="async" />
+          <span class="sfx" aria-hidden="true">咚咚鏘！</span>
+          <span class="cap"><b data-i18n="home.features.4.title">節慶盛事 · 地道風情</b><span data-i18n="home.features.4.text"></span></span>
+        </button>
+        <button class="hs-panel" type="button" data-gallery-open data-gallery-src="assets/gameplay/heungShingForum.webp" data-feature="5">
+          <img src="assets/gameplay/heungShingForum.webp" alt="" loading="lazy" decoding="async" />
+          <span class="sfx" aria-hidden="true">爆料！</span>
+          <span class="cap"><b data-i18n="home.features.5.title">討論區 · 報紙新聞</b><span data-i18n="home.features.5.text"></span></span>
+        </button>
+      </div>
+      <div class="hs-video">
         <video controls playsinline preload="none" width="1920" height="1080" poster="assets/video/heung-shing-night-festivals.webp" aria-label="香城夜繽紛：香城生活，多姿多彩" aria-describedby="nightlife-description" data-i18n-attr="aria-label:film.playerLabel">
           <source src="assets/video/heung-shing-night-festivals.mp4" type="video/mp4" />
           <track kind="captions" src="assets/video/heung-shing-night-festivals.zh-HK.vtt" srclang="zh-HK" label="廣東話" />
           <a href="assets/video/heung-shing-night-festivals.mp4" data-i18n="film.download">下載影片（1080p MP4）</a>
         </video>
+        <div>
+          <span class="hs-kicker" data-i18n="film.eyebrow">90 秒遊戲旅遊特輯</span>
+          <h3 data-i18n="film.title">香城夜繽紛</h3>
+          <p id="nightlife-description" data-i18n="film.intro">聖誕大廈燈飾、端午龍舟競渡、七月十四阿飄、UFO 到訪，仲有維港煙花壓軸。香城生活，多姿多彩。</p>
+          <p data-i18n="film.details">遊戲配樂 · 廣東話字幕 · 90 秒 · 1080p</p>
+          <p><a href="https://www.youtube.com/watch?v=Ta4rs_UTDl8" target="_blank" rel="noopener noreferrer" data-i18n="trailer.watch">在 YouTube 觀看 ↗</a></p>
+          <a class="hs-more" href="gallery.html" data-i18n="home.galleryLink">睇晒 31 張截圖同影片 →</a>
+        </div>
       </div>
-      <p class="trailer-link"><a href="assets/video/heung-shing-night-festivals.mp4" download="香城夜繽紛.mp4" data-i18n="film.download">下載影片（1080p MP4）</a></p>
     </section>
 
-    <section id="trailer" class="trailer" aria-labelledby="trailer-title">
-      <div class="section-head">
-        <p class="eyebrow" data-i18n="trailer.eyebrow">Trailer</p>
-        <h2 id="trailer-title" data-i18n="trailer.title">先睇預告片</h2>
-        <p class="trailer-intro" data-i18n="trailer.intro">香城模擬器嘅 YouTube 預告片，由 Diablock Channel 製作：先睇畫面，再免費下載。</p>
+    <!-- ⑤ downloads: a boarding pass for every way to play, Captain Cool at the gate -->
+    <section id="downloads" class="hs-parch" aria-labelledby="downloads-title">
+      <div class="hs-dl-top">
+        <div class="hs-head">
+          <span class="hs-kicker" data-i18n="home.downloadsKicker">DOWNLOADS</span>
+          <h2 class="hs-plate" id="downloads-title" data-i18n="downloads.title">選擇你的平台</h2>
+          <p data-i18n="downloads.intro">遊戲本體免費下載。揀返你部電腦嘅版本，就可以開始建立自己嘅香城。</p>
+        </div>
+        <div class="hs-captain">
+          <p class="hs-bubble" data-i18n="home.downloadsHost">揀好機種，準備登機！</p>
+          <div>
+            <div class="hs-frame"><img src="assets/site/people/aviation.webp" width="256" height="256" alt="" loading="lazy" /></div>
+            <span class="hs-name" data-person="aviation">Captain Cool</span>
+          </div>
+        </div>
       </div>
-      <div class="trailer-frame">
-        <iframe src="https://www.youtube-nocookie.com/embed/Ta4rs_UTDl8?rel=0" title="香城模擬器預告片" data-i18n-attr="title:trailer.frameTitle" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+      <div class="hs-passes">
+        <article class="hs-pass is-web">
+          <span class="platform">BROWSER</span>
+          <h3 data-i18n="home.playCardTitle">網頁版即玩</h3>
+          <p data-i18n="home.playCardText">唔使安裝，開瀏覽器就玩；手機會自動用觸控版。</p>
+          <a class="hs-btn is-play" href="https://heung-shing-play.nortonyuen.workers.dev" rel="noopener" data-web-play-link data-web-copy="play">即刻玩</a>
+        </article>
+        <article class="hs-pass" data-render="download-card">
+          <span class="platform" data-field="platform">macOS</span>
+          <h3 data-field="title">Mac Apple Silicon</h3>
+          <p data-field="desc">適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
+          <a class="hs-btn is-download" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-6.0.7-arm64.dmg" data-download-link="mac-arm64" data-field="btn">下載 ARM64 DMG</a>
+        </article>
+        <article class="hs-pass" data-render="download-card">
+          <span class="platform" data-field="platform">macOS</span>
+          <h3 data-field="title">Mac Intel</h3>
+          <p data-field="desc">適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
+          <a class="hs-btn is-download" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-6.0.7-x64.dmg" data-download-link="mac-x64" data-field="btn">下載 Intel DMG</a>
+        </article>
+        <article class="hs-pass" data-render="download-card">
+          <span class="platform" data-field="platform">Windows</span>
+          <h3 data-field="title">Windows 安裝版</h3>
+          <p data-field="desc">推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
+          <a class="hs-btn is-download" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.6.0.7.exe" data-download-link="windows-setup" data-field="btn">下載安裝版 EXE</a>
+        </article>
+        <article class="hs-pass" data-render="download-card">
+          <span class="platform" data-field="platform">Windows</span>
+          <h3 data-field="title">Windows 免安裝版</h3>
+          <p data-field="desc">不用安裝，下載後直接執行。適合快速試玩。</p>
+          <a class="hs-btn is-download" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.6.0.7.exe" data-download-link="windows-portable" data-field="btn">下載免安裝版 EXE</a>
+        </article>
+        <article class="hs-pass" data-render="download-card">
+          <span class="platform" data-field="platform">Android</span>
+          <h3 data-field="title">Android App</h3>
+          <p data-field="desc">Android 7 或以上，需要 Chrome。全螢幕玩網頁版，存檔同 Chrome 共用，每次更新自動用最新版本。下載 APK 後安裝，手機可能要你允許安裝「未知來源」app。</p>
+          <a class="hs-btn is-download" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-6.0.7-android.apk" data-download-link="android" data-field="btn">下載 Android APK</a>
+        </article>
       </div>
-      <p class="trailer-link"><a href="https://www.youtube.com/watch?v=Ta4rs_UTDl8" target="_blank" rel="noopener noreferrer" data-i18n="trailer.watch">在 YouTube 觀看 ↗</a></p>
+
+      <details class="hs-details">
+        <summary data-i18n="home.requirementsToggle">硬件配置要求</summary>
+        <div>
+          <p data-i18n="requirements.intro">遊戲以 Electron 桌面程式運行，用 WebGL 硬體加速渲染。城市越大、夜晚越多燈，對顯示卡嘅要求越高。</p>
+          <table>
+            <thead><tr><th>項目</th><th>最低配置</th><th>建議配置</th></tr></thead>
+            <tbody data-render="requirements-table"></tbody>
+          </table>
+          <ul data-render="requirements-notes"></ul>
+        </div>
+      </details>
+      <details class="hs-details">
+        <summary data-i18n="home.webHelpToggle">網頁版存檔同備份</summary>
+        <div>
+          <p data-web-copy="help"></p>
+          <p data-web-copy="platforms"></p>
+          <p data-web-copy="detail"></p>
+        </div>
+      </details>
+      <p class="hs-notice" data-i18n="downloads.notice">AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。</p>
     </section>
 
-    <section class="sharing" aria-labelledby="sharing-title">
-      <div class="sharing-copy">
-        <p class="eyebrow" data-i18n="sharing.eyebrow">Made to be shared</p>
-        <h2 id="sharing-title" data-i18n="sharing.title">一份想同大家分享嘅城市遊戲</h2>
-        <p data-i18n="sharing.desc">香城模擬器係一個免費嘅個人創作，希望將香港街道、城市治理同老派城市模擬嘅樂趣放埋一齊。有興趣就下載嚟玩，唔需要付費。</p>
-        <a class="text-link" href="#downloads" data-i18n="sharing.downloadLink">揀你嘅版本，免費開始建城 →</a>
+    <!-- ⑥ community: the four neighbourhood pages, and how to credit the game -->
+    <section id="community" class="hs-parch" aria-labelledby="community-title">
+      <div class="hs-head">
+        <span class="hs-kicker" data-i18n="home.communityKicker">COMMUNITY</span>
+        <h2 class="hs-plate" id="community-title" data-i18n="home.communityTitle">香城街坊</h2>
       </div>
-      <aside class="credit-card" aria-label="分享及出處說明" data-i18n-attr="aria-label:sharing.ariaLabel">
+      <div class="hs-people">
+        <a class="hs-person" href="news.html">
+          <div class="hs-frame"><img src="assets/site/people/uncleBus.webp" width="256" height="256" alt="" loading="lazy" /></div>
+          <span class="hs-name" data-person="uncleBus">巴士阿叔</span>
+          <em data-i18n="nav.news">香城討論區</em>
+          <p data-i18n="home.community.0.text">遊戲入面嘅城市新聞同街坊留言，喺官網都睇得到。</p>
+        </a>
+        <a class="hs-person" href="feedback.html">
+          <div class="hs-frame"><img src="assets/site/people/villager.webp" width="256" height="256" alt="" loading="lazy" /></div>
+          <span class="hs-name" data-person="villager">元朗阿伯</span>
+          <em data-i18n="nav.feedback">香城連儂牆</em>
+          <p data-i18n="home.community.1.text">有意見、有 bug、有心聲？貼張 memo 上牆。</p>
+        </a>
+        <a class="hs-person" href="member.html">
+          <div class="hs-frame"><img src="assets/site/people/foodie.webp" width="256" height="256" alt="" loading="lazy" /></div>
+          <span class="hs-name" data-person="foodie">為食 Viviane</span>
+          <em data-i18n="nav.member">香城街坊福利會</em>
+          <p data-i18n="home.community.2.text">登記做街坊會員（自選），之後有更多互動。</p>
+        </a>
+        <a class="hs-person" href="ads.html">
+          <div class="hs-frame"><img src="assets/site/people/tycoon.webp" width="256" height="256" alt="" loading="lazy" /></div>
+          <span class="hs-name" data-person="tycoon">李超人</span>
+          <em data-i18n="nav.ads">宣傳2-零速傳播</em>
+          <p data-i18n="home.community.3.text">申請一句 120 字內嘅廣告，批准後喺遊戲走馬燈播。</p>
+        </a>
+      </div>
+      <p class="hs-credit">
         <span data-i18n="sharing.creditLabel">分享時請註明</span>
         <strong data-i18n="sharing.creditText">《香城模擬器 / Heung Shing Simulator》</strong>
-        <p data-i18n="sharing.creditDesc">分享官方連結、截圖同介紹時，請保留作品名稱及原始連結。影片、素材再利用同安裝包散布另依版權條款。</p>
-        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener">github.com/nortonyuen-oss/heung_shing_simulator</a>
-        <a class="text-link" href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
-      </aside>
-    </section>
-
-    <section id="gallery" class="gallery">
-      <div class="section-head">
-        <p class="eyebrow" data-i18n="gallery.eyebrow">Screenshots</p>
-        <h2 data-i18n="gallery.title">一張圖，一段香城故事</h2>
-        <p class="gallery-intro" data-i18n="gallery.intro">唔只係睇畫面：每張截圖都同相關玩法放埋一齊。撳任何圖片就可以放大，慢慢睇城市細節。</p>
-      </div>
-
-      <div class="gallery-grid" data-render="gallery"></div>
-    </section>
-
-    <section id="stats" class="stats-strip" aria-label="網站統計">
-      <p class="stats-record">
-        <span class="stats-record-item">
-          <span class="stat-label" data-i18n="stats.latestVersion">最新版本</span>
-          <strong class="stat-value" data-latest-version>v6.0.7</strong>
-          <span data-latest-published>2026年11月20日發布</span>
-        </span>
-        <span class="stats-record-item">
-          <span class="stat-label" data-i18n="stats.totalDownloads">總下載次數</span>
-          <strong class="stat-value" data-total-downloads>載入中</strong>
-        </span>
-        <span class="stats-record-item">
-          <span class="stat-label" data-web-copy="title">累計網頁遊玩人次</span>
-          <strong class="stat-value" data-web-play-total>暫未提供</strong>
-          <small data-web-play-time></small>
-        </span>
-        <span class="stats-record-item">
-          <span class="stat-label" data-i18n="stats.totalViews">入口瀏覽</span>
-          <span class="badge-value">
-            <img
-              src="https://hits.sh/nortonyuen-oss.github.io/heung_shing_simulator.svg?view=total&label=views&color=1f5d64&labelColor=17212d"
-              alt="入口瀏覽次數"
-              loading="lazy"
-              referrerpolicy="no-referrer"
-            />
-          </span>
-        </span>
+        <span data-i18n="sharing.creditDesc">分享官方連結、截圖同介紹時，請保留作品名稱及原始連結。</span>
+        <a class="hs-more" href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
       </p>
-    </section>
-
-    <section id="browser-play" class="downloads">
-      <div class="section-head">
-        <h2 data-web-copy="heading">網頁遊玩同存檔備份</h2>
-        <p data-web-copy="help"></p>
-        <p data-web-copy="platforms"></p>
-        <p class="stat-note" data-web-copy="detail"></p>
-      </div>
-    </section>
-
-    <section id="downloads" class="downloads">
-      <div class="section-head">
-        <p class="eyebrow" data-i18n="downloads.eyebrow">Downloads</p>
-        <h2 data-i18n="downloads.title">選擇你的平台</h2>
-        <p class="downloads-intro" data-i18n="downloads.intro">遊戲本體免費下載。揀返你部電腦嘅版本，就可以開始建立自己嘅香城。</p>
-      </div>
-
-      <div class="download-grid">
-        <article class="download-card" data-render="download-card">
-          <div>
-            <span class="platform" data-field="platform">macOS</span>
-            <h3 data-field="title">Mac Apple Silicon</h3>
-            <p data-field="desc">適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
-          </div>
-          <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-6.0.7-arm64.dmg" data-download-link="mac-arm64" data-field="btn">下載 ARM64 DMG</a>
-          </div>
-        </article>
-
-        <article class="download-card" data-render="download-card">
-          <div>
-            <span class="platform" data-field="platform">macOS</span>
-            <h3 data-field="title">Mac Intel</h3>
-            <p data-field="desc">適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
-          </div>
-          <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-6.0.7-x64.dmg" data-download-link="mac-x64" data-field="btn">下載 Intel DMG</a>
-          </div>
-        </article>
-
-        <article class="download-card" data-render="download-card">
-          <div>
-            <span class="platform" data-field="platform">Windows</span>
-            <h3 data-field="title">Windows 安裝版</h3>
-            <p data-field="desc">推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
-          </div>
-          <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.6.0.7.exe" data-download-link="windows-setup" data-field="btn">下載安裝版 EXE</a>
-          </div>
-        </article>
-
-        <article class="download-card" data-render="download-card">
-          <div>
-            <span class="platform" data-field="platform">Windows</span>
-            <h3 data-field="title">Windows 免安裝版</h3>
-            <p data-field="desc">不用安裝，下載後直接執行。適合快速試玩。</p>
-          </div>
-          <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.6.0.7.exe" data-download-link="windows-portable" data-field="btn">下載免安裝版 EXE</a>
-          </div>
-        </article>
-
-        <article class="download-card" data-render="download-card">
-          <div>
-            <span class="platform" data-field="platform">Android</span>
-            <h3 data-field="title">Android App</h3>
-            <p data-field="desc">Android 7 或以上，需要 Chrome。全螢幕玩網頁版，存檔同 Chrome 共用，每次更新自動用最新版本。下載 APK 後安裝，手機可能要你允許安裝「未知來源」app。</p>
-          </div>
-          <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-6.0.7-android.apk" data-download-link="android" data-field="btn">下載 Android APK</a>
-          </div>
-        </article>
-      </div>
-
-      <p class="notice" data-i18n="downloads.notice">AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。未設定 AI 亦可照常使用模擬新聞。現時安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。</p>
-    </section>
-
-    <section id="requirements" class="requirements" aria-labelledby="requirements-title">
-      <div class="section-head">
-        <p class="eyebrow" data-i18n="requirements.eyebrow">System Requirements</p>
-        <h2 id="requirements-title" data-i18n="requirements.title">硬體配置要求</h2>
-        <p class="requirements-intro" data-i18n="requirements.intro">遊戲以 Electron 桌面程式運行，用 WebGL 硬體加速渲染。城市越大、夜晚越多燈，對顯示卡嘅要求越高。</p>
-      </div>
-      <div class="manual-table-wrap">
-        <table class="manual-table requirements-table">
-          <thead><tr><th>項目</th><th>最低配置</th><th>建議配置</th></tr></thead>
-          <tbody data-render="requirements-table"></tbody>
-        </table>
-      </div>
-      <ul class="requirements-notes" data-render="requirements-notes"></ul>
-    </section>
-
-    <section id="changelog" class="changelog">
-      <div class="section-head">
-        <p class="eyebrow" data-i18n="changelog.eyebrow">Release Notes</p>
-        <h2 data-i18n="changelog.title">版本變更說明</h2>
-      </div>
-
-      <div class="release-list" data-render="changelog"></div>
-    </section>
-
-    <section class="features">
-      <div class="feature">
-        <h2 data-i18n="features.title">建設、治理、迭代</h2>
-        <p data-i18n="features.desc">劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠；再起貨櫃碼頭、機場同自己嘅巴士公司，令城市真正運作起嚟。一個顯示日就係遊戲入面一個月：日出日落、天氣、颱風同議會法案全部跟同一個時鐘行，入夜之後每棟樓都有自己嘅開燈習慣。放置雙語路牌建立分區，再由討論區、報章同 AI 新聞講返你座城市嘅故事。</p>
-      </div>
-      <div class="feature-list" data-render="feature-list"></div>
     </section>
   </main>
 
@@ -270,18 +317,5 @@
       </div>
     </div>
   </dialog>
-
-  <footer>
-    <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
-    <div class="footer-links">
-      <a href="news.html" data-i18n="nav.news">香城討論區</a>
-      <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
-      <a href="ads.html" data-i18n="nav.ads">宣傳2-零速傳播</a>
-      <a href="member.html" data-i18n="nav.member">香城街坊福利會</a>
-        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
-      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
-      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>
-    </div>
-  </footer>
 </body>
 </html>

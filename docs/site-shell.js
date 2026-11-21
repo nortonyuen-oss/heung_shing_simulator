@@ -45,6 +45,14 @@
     return node;
   };
   const label = (key) => element('span', { 'data-i18n': key }, [key]);
+  const LANGUAGES = [['zh-HK', '中文（香港）'], ['zh-TW', '中文（台灣）'], ['en', 'English'], ['ja', '日本語']];
+  function languageSelect() {
+    const select = element('select', { class: 'hs-lang-select', 'data-i18n-attr': 'aria-label:shell.langLabel' },
+      LANGUAGES.map(([value, name]) => element('option', { value }, [name])));
+    select.addEventListener('change', () => { if (typeof setSiteLanguage === 'function') setSiteLanguage(select.value); });
+    document.addEventListener('sitelanguagechange', (event) => { select.value = event.detail?.language || select.value; });
+    return select;
+  }
   const here = (item) => (item.pages || []).includes(page);
   const navLink = (item, withIcon = true) => element('a', {
     href: item.href, 'data-section': item.section, class: here(item) ? 'is-here' : null, 'aria-current': here(item) ? 'page' : null,
@@ -60,6 +68,8 @@
     ]),
     element('span', { class: 'hs-top-spacer' }),
     element('div', { class: 'lang-switcher', 'data-language-switcher': true, 'data-i18n-attr': 'aria-label:shell.langLabel', role: 'group' }),
+    // a phone has no room for four buttons: one compact picker instead
+    languageSelect(),
     element('a', { class: 'hs-btn is-play', href: PLAY_URL, rel: 'noopener', 'data-web-play-link': true, 'data-web-copy': 'play' }, ['即刻玩']),
   ]);
 
@@ -91,6 +101,7 @@
       element('a', { href: GITHUB, rel: 'noopener' }, ['GitHub']),
       element('a', { href: 'https://heungshingsimulator.blogspot.com/', rel: 'noopener' }, [label('footer.blog')]),
     ]),
+    element('div', { class: 'lang-switcher hs-footer-langs', 'data-language-switcher': true, 'data-i18n-attr': 'aria-label:shell.langLabel', role: 'group' }),
     element('div', { class: 'hs-badges', 'aria-hidden': 'true' }, [
       element('span', { class: 'hs-badge is-maroon', 'data-i18n': 'shell.badgePresents' }, ['香城市政規劃局 Presents']),
       element('span', { class: 'hs-badge', 'data-i18n': 'shell.badgeView' }, ['Best viewed 1024×768']),

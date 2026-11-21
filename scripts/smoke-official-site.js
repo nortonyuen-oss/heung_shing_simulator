@@ -67,7 +67,13 @@ let browser, server;
     assert.ok(await page.locator('.hs-bottom-nav').isVisible(), `${file}: the phone has the bottom bar`);
     assert.equal(await page.locator('.hs-nav').isVisible(), false, `${file}: the phone hides the left nav`);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= 390), `${file}: no sideways scroll on a phone`);
+    // the phone picks its language from the top bar's picker (the four buttons are desktop only)
+    assert.ok(await page.locator('.hs-lang-select').isVisible(), `${file}: the phone has a language picker`);
   }
+  await page.selectOption('.hs-lang-select', 'en');
+  await page.waitForFunction(() => document.documentElement.lang === 'en');
+  assert.equal(await page.locator('.hs-footer-langs .lang-btn.active').textContent(), 'English');
+  await page.selectOption('.hs-lang-select', 'zh-HK');
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.evaluate(() => setSiteLanguage('ja')); // the checks below read the Japanese fallbacks

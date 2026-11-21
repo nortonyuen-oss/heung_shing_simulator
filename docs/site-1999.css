@@ -39,6 +39,13 @@ body.hs a { color: inherit; }
 .hs-top .lang-btn { font: 700 12px var(--hs-body); padding: 4px 9px; color: var(--hs-gold-2); background: rgba(0,0,0,.25);
   border: 1px solid rgba(201,162,39,.55); border-radius: 3px; cursor: pointer; }
 .hs-top .lang-btn.active { color: var(--hs-ink); background: var(--hs-gold-2); border-color: var(--hs-gold-2); }
+.hs-lang-select { display: none; height: 36px; max-width: 118px; padding: 0 6px; font: 700 13px var(--hs-body); color: var(--hs-gold-2);
+  background: rgba(0,0,0,.3); border: 1px solid rgba(201,162,39,.7); border-radius: 3px; }
+.hs-lang-select option { color: var(--hs-ink); background: var(--hs-paper); }
+.hs-footer-langs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.hs-footer .lang-btn { min-height: 32px; padding: 4px 12px; font: 700 13px var(--hs-body); color: var(--hs-gold-2); background: rgba(0,0,0,.25);
+  border: 1px solid rgba(201,162,39,.55); border-radius: 3px; cursor: pointer; }
+.hs-footer .lang-btn.active { color: var(--hs-ink); background: var(--hs-gold-2); border-color: var(--hs-gold-2); }
 
 /* bevelled buttons: the old web's raised edges */
 .hs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 22px;
@@ -91,6 +98,7 @@ body.hs a { color: inherit; }
   .hs-brand small { display: none; }
   .hs-top .hs-btn { padding: 4px 10px; font-size: 14px; letter-spacing: 1px; }
   .hs-top .lang-switcher { display: none; }
+  .hs-lang-select { display: block; }
   .hs-main { padding: 14px 12px 28px; }
 }
 
@@ -378,7 +386,7 @@ body.hs .lightbox-close { position: absolute; right: 8px; top: 8px; z-index: 2; 
 
 /* the forum pages still load styles.css for their own content (spec phase P3): keep the shell's own layout */
 @media (min-width: 1000px) { body.hs nav.hs-nav { display: block; color: #fff; font-size: 16px; } }
-body.hs .hs-top .lang-switcher { padding: 0; border: 0; border-radius: 0; background: none; }
+body.hs .hs-top .lang-switcher, body.hs .hs-footer-langs { padding: 0; border: 0; border-radius: 0; background: none; }
 body.hs:not([data-page="guide"]):not([data-page="copyright"]) .guide-hero { padding-top: 28px; }
 
 @media (prefers-reduced-motion: reduce) {

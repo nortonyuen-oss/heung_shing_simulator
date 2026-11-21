@@ -30,16 +30,17 @@ body.hs a { color: inherit; }
 .hs-top { position: sticky; top: 0; z-index: 50; height: var(--hs-top-h); display: flex; align-items: center; gap: 16px;
   padding: 0 18px; background: linear-gradient(180deg, #3a1515, var(--hs-maroon-2)); border-bottom: 3px solid var(--hs-gold);
   box-shadow: 0 3px 0 var(--hs-ink), 0 8px 18px rgba(0,0,0,.45); }
-.hs-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
-.hs-brand img { width: 40px; height: 40px; }
-.hs-brand b { font: 900 22px/1 var(--hs-display); letter-spacing: 3px; color: #fff; text-shadow: 2px 2px 0 var(--hs-ink); white-space: nowrap; }
+.hs-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+.hs-brand > span { min-width: 0; overflow: hidden; }
+.hs-brand img { flex: none; width: 40px; height: 40px; }
+.hs-brand b { display: block; overflow: hidden; text-overflow: ellipsis; font: 900 22px/1 var(--hs-display); letter-spacing: 3px; color: #fff; text-shadow: 2px 2px 0 var(--hs-ink); white-space: nowrap; }
 .hs-brand small { display: block; font: 700 10px/1.2 var(--hs-latin); letter-spacing: 3px; color: var(--hs-gold-2); white-space: nowrap; }
 .hs-top-spacer { flex: 1; }
 .hs-top .lang-switcher { display: flex; gap: 4px; }
 .hs-top .lang-btn { font: 700 12px var(--hs-body); padding: 4px 9px; color: var(--hs-gold-2); background: rgba(0,0,0,.25);
   border: 1px solid rgba(201,162,39,.55); border-radius: 3px; cursor: pointer; }
 .hs-top .lang-btn.active { color: var(--hs-ink); background: var(--hs-gold-2); border-color: var(--hs-gold-2); }
-.hs-lang-select { display: none; height: 36px; max-width: 118px; padding: 0 6px; font: 700 13px var(--hs-body); color: var(--hs-gold-2);
+.hs-lang-select { display: none; flex: none; height: 36px; max-width: 96px; padding: 0 6px; font: 700 13px var(--hs-body); color: var(--hs-gold-2);
   background: rgba(0,0,0,.3); border: 1px solid rgba(201,162,39,.7); border-radius: 3px; }
 .hs-lang-select option { color: var(--hs-ink); background: var(--hs-paper); }
 .hs-footer-langs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
@@ -88,15 +89,16 @@ body.hs a { color: inherit; }
   .hs-bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: grid; grid-template-columns: repeat(6, 1fr);
     padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, #3a1515, var(--hs-maroon-2));
     border-top: 3px solid var(--hs-gold); box-shadow: 0 -3px 0 var(--hs-ink); }
-  .hs-bottom-nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px; gap: 1px;
-    text-decoration: none; color: var(--hs-gold-2); font: 700 10.5px/1.15 var(--hs-body); text-align: center; }
+  .hs-bottom-nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 48px; gap: 1px;
+    text-decoration: none; color: var(--hs-gold-2); font: 700 clamp(9px, 2.7vw, 10.5px)/1.15 var(--hs-body); text-align: center; white-space: nowrap; }
   .hs-bottom-nav a .ic { font-size: 19px; line-height: 1; }
   .hs-bottom-nav a.is-here { color: #fff; text-shadow: 0 0 8px rgba(246,215,122,.8); }
   body.hs { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
   .hs-top { padding: 0 10px; gap: 8px; }
   .hs-brand b { font-size: 18px; letter-spacing: 1px; }
   .hs-brand small { display: none; }
-  .hs-top .hs-btn { padding: 4px 10px; font-size: 14px; letter-spacing: 1px; }
+  .hs-top .hs-btn { flex: none; padding: 4px 10px; font-size: 14px; letter-spacing: 1px; }
+  .hs-hero .hs-plate { padding: 3px 12px; font-size: 17px; letter-spacing: 1px; }
   .hs-top .lang-switcher { display: none; }
   .hs-lang-select { display: block; }
   .hs-main { padding: 14px 12px 28px; }
@@ -388,6 +390,13 @@ body.hs .lightbox-close { position: absolute; right: 8px; top: 8px; z-index: 2; 
 @media (min-width: 1000px) { body.hs nav.hs-nav { display: block; color: #fff; font-size: 16px; } }
 body.hs .hs-top .lang-switcher, body.hs .hs-footer-langs { padding: 0; border: 0; border-radius: 0; background: none; }
 body.hs:not([data-page="guide"]):not([data-page="copyright"]) .guide-hero { padding-top: 28px; }
+
+/* a phone in English or Japanese: the long name gives way to the icon in the top bar */
+@media (max-width: 560px) {
+  :lang(en) .hs-brand > span, :lang(ja) .hs-brand > span { display: none; }
+  :lang(en) .hs-top .hs-btn, :lang(ja) .hs-top .hs-btn { letter-spacing: 0; }
+  :lang(en) .hs-hero .hs-plate { font-size: 14px; letter-spacing: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .hs-speed, .hs-box, .hs-new { animation: none; }

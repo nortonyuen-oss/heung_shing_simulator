@@ -25,12 +25,12 @@
   const GITHUB = 'https://github.com/nortonyuen-oss/heung_shing_simulator';
 
   const NAV = [
-    { key: 'shell.home', href: onHome ? '#top' : 'index.html', icon: '⌂', section: 'top', pages: ['home'] },
-    { key: 'shell.campaign', href: home('#campaign'), icon: '⚓', section: 'campaign' },
-    { key: 'shell.features', href: home('#features'), icon: '★', section: 'features', pages: ['gallery'] },
-    { key: 'shell.downloads', href: home('#downloads'), icon: '⬇', section: 'downloads' },
-    { key: 'shell.guide', href: 'guide.html', icon: '✎', pages: ['guide'] },
-    { key: 'shell.community', href: home('#community'), icon: '✉', section: 'community', pages: ['news', 'feedback', 'member', 'ads'],
+    { key: 'shell.home', tab: 'shell.tabs.home', href: onHome ? '#top' : 'index.html', icon: '⌂', section: 'top', pages: ['home'] },
+    { key: 'shell.campaign', tab: 'shell.tabs.campaign', href: home('#campaign'), icon: '⚓', section: 'campaign' },
+    { key: 'shell.features', tab: 'shell.tabs.features', href: home('#features'), icon: '★', section: 'features', pages: ['gallery'] },
+    { key: 'shell.downloads', tab: 'shell.tabs.downloads', href: home('#downloads'), icon: '⬇', section: 'downloads' },
+    { key: 'shell.guide', tab: 'shell.tabs.guide', href: 'guide.html', icon: '✎', pages: ['guide'] },
+    { key: 'shell.community', tab: 'shell.tabs.community', href: home('#community'), icon: '✉', section: 'community', pages: ['news', 'feedback', 'member', 'ads'],
       children: [['news', 'nav.news'], ['feedback', 'nav.feedback'], ['member', 'nav.member'], ['ads', 'nav.ads']] },
   ];
   const MORE = [['changelog', 'shell.releases'], ['gallery', 'shell.gallery'], ['copyright', 'nav.copyright']];
@@ -45,7 +45,8 @@
     return node;
   };
   const label = (key) => element('span', { 'data-i18n': key }, [key]);
-  const LANGUAGES = [['zh-HK', '中文（香港）'], ['zh-TW', '中文（台灣）'], ['en', 'English'], ['ja', '日本語']];
+  // short names: the picker shares a phone's top bar with the name and the play button
+  const LANGUAGES = [['zh-HK', '香港中文'], ['zh-TW', '台灣中文'], ['en', 'English'], ['ja', '日本語']];
   function languageSelect() {
     const select = element('select', { class: 'hs-lang-select', 'data-i18n-attr': 'aria-label:shell.langLabel' },
       LANGUAGES.map(([value, name]) => element('option', { value }, [name])));
@@ -54,9 +55,9 @@
     return select;
   }
   const here = (item) => (item.pages || []).includes(page);
-  const navLink = (item, withIcon = true) => element('a', {
+  const navLink = (item, key = item.key) => element('a', {
     href: item.href, 'data-section': item.section, class: here(item) ? 'is-here' : null, 'aria-current': here(item) ? 'page' : null,
-  }, [...(withIcon ? [element('span', { class: 'ic', 'aria-hidden': 'true' }, [item.icon])] : []), label(item.key)]);
+  }, [element('span', { class: 'ic', 'aria-hidden': 'true' }, [item.icon]), label(key)]);
   const pageLink = ([name, key]) => element('a', { href: `${name}.html`, 'aria-current': page === name ? 'page' : null }, [label(key)]);
 
   // the top bar: the brand, the languages and the big red play button
@@ -84,9 +85,9 @@
   nav.append(element('div', { class: 'hs-sub' }, MORE.map(pageLink)));
   nav.append(element('p', { class: 'hs-nav-badge', 'data-i18n': 'shell.badgeView' }, ['Best viewed 1024×768']));
 
-  // the phone's bar along the bottom: the same six places
+  // the phone's bar along the bottom: the same six places, by their short names (shell.tabs)
   const bottom = element('nav', { class: 'hs-bottom-nav', 'data-i18n-attr': 'aria-label:shell.menu' },
-    NAV.map((item) => navLink(item)));
+    NAV.map((item) => navLink(item, item.tab)));
 
   const layout = element('div', { class: 'hs-layout' });
   main.before(top, layout);

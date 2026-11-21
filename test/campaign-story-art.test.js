@@ -27,7 +27,7 @@ test('story art: the stars\' and events\' scenes are Norton\'s Event boards', ()
   const scenes = specs.flatMap((spec) => [spec.outroScene, ...(spec.events || []).map((event) => event.scene)]).filter(Boolean);
   assert.deepEqual(
     Object.fromEntries(specs.filter((spec) => spec.outroScene).map((spec) => [spec.id, path.basename(spec.outroScene, '.webp')])),
-    { ch04: 'southIslandLine', ch07: 'lightRail', ch12: 'tramway', ch14: 'kowloonWalledCity', ch16: 'firework02', ch17: 'firework1', ch18: '18DistrictCompleted' },
+    { ch04: 'southIslandLine', ch07: 'lightRail', ch12: 'tramway', ch14: 'cruiseTerminalOpening', ch16: 'firework02', ch17: 'firework1', ch18: '18DistrictCompleted' },
   );
   assert.equal(campaign.CAMPAIGN_CHAPTER_SPECS.ch12.events.find((event) => event.id === 'birthdayTram').scene, 'UI/campaign/events/singerBirthday.webp');
   scenes.forEach((scene) => assert.ok(exists(scene), scene));

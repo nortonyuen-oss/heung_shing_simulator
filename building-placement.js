@@ -581,6 +581,10 @@ function removeBuilding(scene, row, col, options = {}) {
     refreshHarborCoastTiles(scene, building.mapRow, building.mapCol, removedHarborSide);
   }
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
+  // 沙田馬場 is two halves: the other goes with it (racecourse.js)
+  if (record?.type === 'racecourse' && record.racecoursePartner && typeof removeRacecoursePartner === 'function') {
+    removeRacecoursePartner(scene, record.racecoursePartner, options);
+  }
   return true;
 }
 

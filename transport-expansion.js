@@ -198,6 +198,8 @@ const TRANSPORT_DESTINATION_UNITS = Object.freeze({
   container_port: 180,
   cruise_terminal: 220,
   walled_city_park: 160,
+  wetland_park: 90,
+  racecourse: 200,
 });
 
 const GAME_EXPANSION_REGISTRY = Object.freeze({

@@ -11,7 +11,7 @@ function getCouncilNewsOfficialDisplayName(officialId) {
   if (!official) return officialId;
   return typeof getCouncilOfficialDisplayName === 'function'
     ? getCouncilOfficialDisplayName(official)
-    : t(official.nameKey);
+    : (getCouncilPlayerMayorName(official) || t(official.nameKey));
 }
 
 function buildCouncilPolicyNewsEvent(policyId, action) {

@@ -348,6 +348,8 @@ function updateGameFrame(time, delta) {
   if (typeof updateFerries === 'function') updateFerries(this);
   // 郵輪碼頭: the terminals turned to the sea, and the cruise ships on their timetable (cruise-terminal.js)
   if (typeof updateCruiseShips === 'function') updateCruiseShips(this);
+  // 沙田馬場: its two halves' art, by how the map is turned (racecourse.js)
+  if (typeof updateRacecourses === 'function') updateRacecourses(this);
   // 地鐵 lines, stations and trains drawn over the map in Transport Mode (metro.js)
   if (typeof updateMetroOverlay === 'function') updateMetroOverlay(this);
   // and the trains on the surface track (metro-surface-lines.js)
@@ -680,6 +682,8 @@ function getBuildingTypeLabel(type) {
     community_centre: 'building.communityCentre',
     cruise_terminal: 'building.cruiseTerminal',
     walled_city_park: 'building.walledCityPark',
+    wetland_park: 'building.wetlandPark',
+    racecourse: 'building.racecourse',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',
@@ -2140,6 +2144,8 @@ function getSelectedPlacementFootprint() {
   if (landmarkType === HARBOR_BUILDING_TYPE) {
     return { footprintCols: HARBOR_FOOTPRINT_COLS, footprintRows: HARBOR_FOOTPRINT_ROWS };
   }
+  // 沙田馬場: its 6x12 lot, the long side as drawn at this turn of the map (racecourse.js)
+  if (landmarkType === 'racecourse' && typeof getRacecourseFootprint === 'function') return getRacecourseFootprint();
   if (landmarkType) {
     const model = SPECIAL_BUILDING_MODELS[landmarkType];
     return {

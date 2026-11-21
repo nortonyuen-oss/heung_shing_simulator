@@ -32,7 +32,7 @@ const CRUISE_TUNING = Object.freeze({
   coachLoadPerThousand: 6,     // traffic units a road tile near the terminal, per 1,000 by road a call
   roadReach: 2,                // a road within this many tiles of the lot
   shipLengthTiles: 7,          // 〔暫定〕 ~140 m drawn (a real one is twice that, as landmarks are pressed)
-  shipBeamTiles: 1.2,           // 〔暫定〕 the stand-in container ship's beam, stretched
+  shipBeamTiles: 0.9,           // Norton's cruise ship (2026-11-21) is 8 : 1, length to beam
   berthGapTiles: 0.15,
   historyMonths: 12,
 });
@@ -583,9 +583,28 @@ function getCruiseShipPoint(terminal, index, t = getCruiseSkyMinute()) {
   return { ...p, dir: CRUISE_OPPOSITE[p.dir], state: 'out' };
 }
 
-// The stand-in hull until the cruise ship is drawn: the container ship's art (vessel-visuals.js),
-// stretched to a cruise ship's length. Its views are by screen diagonal.
-const CRUISE_SHIP_STANDIN_SCALE = 0.78 * CRUISE_TUNING.shipLengthTiles / 3.2;
+// Norton's cruise ship (2026-11-21): two views squared by scripts/source-art/artDebt/fit_cruise_ship.py
+// and their mirrors, by where the bow points on screen. Each is placed by its hull's centre on the water
+// and scaled to the ship's length, both in the picture's own pixels - the packaged art may be shrunk and
+// padded (getModelTexturePixelMapping). It replaces the container ship stretched to a cruise ship's length.
+const CRUISE_SHIP_VIEWS = Object.freeze(Object.fromEntries([
+  ['se', 908, 510.5, 453.6],
+  ['sw', 908, 510.5, 453.6],
+  ['ne', 889, 500.0, 456.6],
+  ['nw', 889, 500.0, 456.6],
+].map(([heading, length, centreX, centreY]) => [heading, Object.freeze({
+  key: `cruise_ship_${heading}`, path: `Models/specialSites/cruiseShip/cruiseShip-${heading.toUpperCase()}.png`, length, centreX, centreY,
+})])));
+
+function fitCruiseShipSprite(sprite, view) {
+  const frame = sprite.frame;
+  const mapping = typeof getModelTexturePixelMapping === 'function'
+    ? getModelTexturePixelMapping(view.path, frame) : { resize: 1, offsetX: 0, offsetY: 0 };
+  sprite.setOrigin((view.centreX * mapping.resize + mapping.offsetX) / frame.width,
+    (view.centreY * mapping.resize + mapping.offsetY) / frame.height);
+  const tileWidth = typeof TILE_WIDTH === 'number' ? TILE_WIDTH : 100;
+  sprite.setScale(CRUISE_TUNING.shipLengthTiles * tileWidth / 2 / (view.length * mapping.resize));
+}
 
 function getCruiseShipScreenDir(dir, rotation) {
   const visual = typeof rotateDirection === 'function' ? rotateDirection(dir, rotation) : dir;
@@ -607,28 +626,33 @@ function updateCruiseShips(scene) {
   const live = new Set();
   const zoom = scene.cameras?.main?.zoom ?? 1;
   if (terminals.length && zoom >= 0.3) {
-    const ready = typeof vesselBundleIsReady === 'function' && vesselBundleIsReady(scene);
-    if (!ready && typeof requestVesselBundle === 'function') requestVesselBundle(scene);
     const t = getCruiseSkyMinute();
     terminals.forEach((terminal, index) => {
-      if (!ready) return;
       const point = getCruiseShipPoint(terminal, index, t);
       if (!point) return;
       const id = `cruise|${terminal.id}`;
       live.add(id);
-      const key = typeof getVesselTextureKey === 'function' ? getVesselTextureKey('empty', getCruiseShipScreenDir(point.dir, rotation)) : null;
-      if (!key || !scene.textures.exists(key)) return;
+      const view = CRUISE_SHIP_VIEWS[getCruiseShipScreenDir(point.dir, rotation)];
+      if (!scene.textures.exists(view.key)) {
+        // fetched on demand, desktop and web alike; the ship comes in on a later frame
+        if (typeof requestZoneModelTexture === 'function' && typeof resolveModelAssetPath === 'function') {
+          requestZoneModelTexture(scene, { key: view.key, path: resolveModelAssetPath(view.path) });
+        }
+        return;
+      }
       let rec = scene.cruiseShips.get(id);
       if (!rec) {
-        const sprite = scene.add.image(0, 0, key);
+        const sprite = scene.add.image(0, 0, view.key);
         if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite, 'objectLayer');
-        sprite.setOrigin(0.5, 0.5);
-        sprite.setScale(CRUISE_SHIP_STANDIN_SCALE);
         if (scene.worldMask) sprite.setMask(scene.worldMask);
-        rec = { sprite };
+        rec = { sprite, viewKey: '' };
         scene.cruiseShips.set(id, rec);
       }
-      if (rec.sprite.texture.key !== key) rec.sprite.setTexture(key);
+      if (rec.viewKey !== view.key) {
+        if (rec.sprite.texture.key !== view.key) rec.sprite.setTexture(view.key);
+        fitCruiseShipSprite(rec.sprite, view);
+        rec.viewKey = view.key;
+      }
       const at = typeof getVesselWaterSurfacePoint === 'function'
         ? getVesselWaterSurfacePoint(scene, point.r, point.c)
         : { ...isoToScreen(point.c, point.r), depthY: 0 };

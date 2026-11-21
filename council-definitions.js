@@ -405,6 +405,22 @@ function getCouncilResolutionDefinition(id) {
   return COUNCIL_RESOLUTION_DEFS.find((resolution) => resolution.id === id) ?? null;
 }
 
+// The face an official shows: the 行政長官 is the player's registered mayor (campaign.js getPlayerMayor,
+// Norton 2026-11-21: 市長名稱和圖片 hook up with 遊戲玩家設定的市長和名稱), everyone else their own.
+function getCouncilOfficialPortrait(official) {
+  if (official?.id === 'chief_executive' && typeof getPlayerMayor === 'function') {
+    const portrait = getPlayerMayor()?.portrait;
+    if (portrait) return portrait;
+  }
+  return official?.portrait ?? '';
+}
+
+// The registered mayor's name for the 行政長官, or null (a name given in the council window still wins)
+function getCouncilPlayerMayorName(official) {
+  if (official?.id !== 'chief_executive' || typeof getPlayerMayor !== 'function') return null;
+  return getPlayerMayor()?.name || null;
+}
+
 function getCouncilOfficialDefinition(id) {
   return COUNCIL_OFFICIAL_DEFS.find((official) => official.id === id) ?? null;
 }

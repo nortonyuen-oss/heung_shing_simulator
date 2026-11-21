@@ -4,7 +4,7 @@ let selectedCouncilResolutionId = 'cashHandout';
 let selectedCouncilItemType = 'policy';
 
 function getCouncilOfficialDisplayName(official) {
-  return city.council?.customNames?.[official.id] || t(official.nameKey);
+  return city.council?.customNames?.[official.id] || getCouncilPlayerMayorName(official) || t(official.nameKey);
 }
 
 function getCouncilRoleLabel(role) {
@@ -58,7 +58,7 @@ function renderCouncilRoster() {
     button.setAttribute('aria-pressed', String(official.id === selectedCouncilOfficialId));
 
     const portrait = document.createElement('img');
-    portrait.src = official.portrait;
+    portrait.src = getCouncilOfficialPortrait(official);
     portrait.alt = '';
     const name = document.createElement('span');
     name.className = 'council-person-card-name';
@@ -80,7 +80,7 @@ function renderCouncilOfficialDetail() {
   const head = document.createElement('div');
   head.className = 'council-detail-head';
   const portrait = document.createElement('img');
-  portrait.src = official.portrait;
+  portrait.src = getCouncilOfficialPortrait(official);
   portrait.alt = '';
   const identity = document.createElement('div');
   const name = document.createElement('h3');
@@ -211,7 +211,7 @@ function createCouncilPreviewPersonRow(officialId, stance, reasonText, rowClass)
   const row = document.createElement('div');
   row.className = rowClass;
   const portrait = document.createElement('img');
-  portrait.src = official?.portrait ?? '';
+  portrait.src = getCouncilOfficialPortrait(official);
   portrait.alt = '';
   const copy = document.createElement('div');
   const name = document.createElement('span');
@@ -285,7 +285,7 @@ function buildCouncilLawRow(item) {
   const mover = moverId ? getCouncilOfficialDefinition(moverId) : null;
   const chip = document.createElement('img');
   chip.className = 'mover-chip';
-  chip.src = mover?.portrait || '';
+  chip.src = mover ? getCouncilOfficialPortrait(mover) : '';
   chip.alt = '';
 
   const title = document.createElement('span');
@@ -357,7 +357,7 @@ function buildCouncilPodiumBand(categoryLabel, titleText, moverId) {
   row.className = 'podium-row';
   const avatar = document.createElement('img');
   avatar.className = 'podium-avatar';
-  avatar.src = mover?.portrait || '';
+  avatar.src = mover ? getCouncilOfficialPortrait(mover) : '';
   avatar.alt = '';
   const copy = document.createElement('div');
   copy.className = 'podium-copy';

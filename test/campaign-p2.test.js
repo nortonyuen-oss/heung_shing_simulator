@@ -66,7 +66,10 @@ test('P2: five chapters with their story in three languages, by known speakers, 
     if (speaker.portrait) assert.ok(fs.existsSync(path.join(ROOT, speaker.portrait)), speaker.portrait);
     else assert.ok(speaker.glyph, 'a speaker without art has a glyph');
   });
-  assert.equal(campaign.CAMPAIGN_SPEAKERS.tourism.portrait, 'UI/officials/councilMember-tourism.PNG');
+  // 2026-11-21 (Norton: 旅遊署用「康文署官員」就好啦)
+  assert.equal(campaign.CAMPAIGN_SPEAKERS.tourism.portrait, 'UI/officials/headOfLeisureAndCulturalService.PNG');
+  assert.equal(campaign.CAMPAIGN_SPEAKERS.aviation.portrait, 'UI/campaign/portraits/aviation.webp');
+  assert.equal(campaign.CAMPAIGN_SPEAKERS.aviation.name.en, 'Captain Cool');
   // the safety branch is told plainly: no forum joke goes with it
   assert.equal(specs.ch07.events.find((event) => event.id === 'nightSafety').forum, undefined);
 });

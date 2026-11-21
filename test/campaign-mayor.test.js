@@ -45,7 +45,14 @@ test('mayor: the player profile keeps the mayor, and starts without one', () => 
 test('mayor: every face of Heung Shing but Her Majesty, each picture once', () => {
   const officials = councilOfficials();
   const faces = campaign.getCampaignMayorFaces(officials);
-  assert.equal(faces[0].id, 'mayor', 'the default mayor first');
+  // Norton's six mayors first (2026-11-21), named the exam board's way; the default mayor among the speakers
+  assert.deepEqual(faces.slice(0, 6).map((face) => face.id), ['mayorLook1', 'mayorLook2', 'mayorLook3', 'mayorLook4', 'mayorLook5', 'mayorLook6']);
+  const names = faces.slice(0, 6).map((face) => face.name.zhHant);
+  assert.deepEqual(names, ['陳一心', '李幼羚', '張思賢', '黃念慈', '何向華', '林英秀']);
+  // every given name from the HKEAA's list for the Chinese writing paper
+  const examList = ['英秀', '一心', '幼羚', '家寶', '念慈', '思賢', '有容', '向華', '修端', '允行'];
+  names.forEach((name) => assert.ok(examList.includes(name.slice(1)), name));
+  assert.equal(faces[6].id, 'mayor', 'the default mayor first among the speakers');
   assert.ok(!faces.some((face) => face.id === 'queen' || /queen/i.test(face.portrait)));
   assert.equal(new Set(faces.map((face) => face.portrait)).size, faces.length);
   assert.equal(new Set(faces.map((face) => face.id)).size, faces.length);
@@ -87,4 +94,26 @@ test('市長日: the birthday month\'s evening, 20:00 to 20:30, called off by th
   const i18n = read('i18n.js');
   assert.equal((i18n.match(/'festival\.notice\.mayorDay': '(?:[^'\\]|\\.)*\{name\}/g) || []).length, 3, 'the notice names the mayor in all three languages');
   assert.equal((i18n.match(/'festival\.toast\.cancelled\.mayorDay':/g) || []).length, 3);
+});
+
+// 2026-11-21 (Norton: 市政官員部分，市長名稱和圖片還沒有 hook up with 遊戲玩家設定的市長): the council's 行政長官
+// is the player's registered mayor - in the council window, its bills, the newspaper and the fortunes.
+test('mayor: the council\'s chief executive is the registered mayor', () => {
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${read('council-definitions.js')};this.D = COUNCIL_OFFICIAL_DEFS; this.portrait = getCouncilOfficialPortrait; this.name = getCouncilPlayerMayorName;`, context);
+  const chief = context.D.find((d) => d.id === 'chief_executive');
+  const treasury = context.D.find((d) => d.id === 'treasury_head');
+  assert.equal(context.portrait(chief), 'UI/officials/chiefExecutive.PNG', 'no mayor registered: the default');
+  assert.equal(context.name(chief), null);
+  context.getPlayerMayor = () => ({ name: '陳一心', portrait: 'UI/campaign/portraits/mayorLook1.webp' });
+  assert.equal(context.portrait(chief), 'UI/campaign/portraits/mayorLook1.webp');
+  assert.equal(context.name(chief), '陳一心');
+  assert.equal(context.portrait(treasury), treasury.portrait, 'only the chief executive');
+  assert.equal(context.name(treasury), null);
+  const ui = read('council-ui.js');
+  assert.ok(ui.includes('city.council?.customNames?.[official.id] || getCouncilPlayerMayorName(official) || t(official.nameKey)'), 'a name given in the council still wins');
+  assert.ok(!/\.src = (official|mover)\??\.portrait/.test(ui), 'every council portrait goes through getCouncilOfficialPortrait');
+  assert.ok(read('newspaper.js').includes('portraitImg.src = getCouncilOfficialPortrait(official);'));
+  assert.ok(read('campaign.js').includes('getPlayerMayor: () => {'));
 });

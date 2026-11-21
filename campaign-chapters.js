@@ -44,8 +44,8 @@
     transport: { name: T('署長', 'Commissioner', '署長'), portrait: 'UI/campaign/portraits/transport.png', glyph: '🚌' },
     resident: { name: T('街坊', 'Resident', '住民'), portrait: 'UI/campaign/portraits/resident.png', glyph: '🧓' },
     engineer: { name: T('工程師', 'Engineer', '技師'), portrait: 'UI/campaign/portraits/engineer.png', glyph: '🛠' },
-    // 旅遊署代表 speaks with the council's tourism member's face until the campaign's own art
-    tourism: { name: T('旅遊署代表', 'Tourism Board', '観光局代表'), portrait: 'UI/officials/councilMember-tourism.PNG', glyph: '🧳' },
+    // 旅遊署代表 speaks with the 康文署官員's face (Norton 2026-11-21: 旅遊署用「康文署官員」就好啦)
+    tourism: { name: T('旅遊署代表', 'Tourism Board', '観光局代表'), portrait: 'UI/officials/headOfLeisureAndCulturalService.PNG', glyph: '🧳' },
     // for now (Norton 2026-11-19): the tram driver of the 黃又藍 news art, the host of the 中秋 live broadcast
     tram: { name: T('電車公司代表', 'Tramways', '電車会社代表'), portrait: 'UI/campaign/portraits/tram.png', glyph: '🚋' },
     anchor: { name: T('新聞主播', 'News Anchor', 'ニュースキャスター'), portrait: 'UI/campaign/portraits/anchor.png', glyph: '📺' },
@@ -84,8 +84,9 @@
     tycoon: { name: T('李超人', 'Superman Li', '李超人'), portrait: 'UI/campaign/portraits/tycoon.webp', glyph: '🏙' },
     barber: { name: T('醬爆', 'Jeung Bao', '醤爆'), portrait: 'UI/campaign/portraits/barber.webp', glyph: '✂' },
     // P4 phase 6 (chapters 10, 11, 14, 15): voices of the script without a board yet - a glyph
-    aviation: { name: T('航空署代表', 'Civil Aviation', '航空局代表'), glyph: '✈️' },
-    portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), glyph: '⚓' },
+    // 航空署代表 is Captain Cool (Norton 2026-11-21; scripts/source-art/campaign/portraits/aviation-source.png)
+    aviation: { name: T('Captain Cool', 'Captain Cool', 'キャプテン・クール'), portrait: 'UI/campaign/portraits/aviation.webp', glyph: '✈️' },
+    portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
     volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), glyph: '🙋' },
     producer: { name: T('製片人', 'Film Producer', '映画プロデューサー'), glyph: '🎬' },
     // 第 14 章《古大樂、共金寶、林豐開機》 (P4 phase 6)
@@ -100,6 +101,18 @@
   const CAMPAIGN_MAYOR_NAME_MAX = 12;
   const CAMPAIGN_MAYOR_DAYS_IN_MONTH = Object.freeze([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
   const CAMPAIGN_MAYOR_DEFAULT_FACE = 'mayor';
+  // Norton's six mayors (2026-11-21; scripts/source-art/campaign/portraits/mayorLook*-source.png): the
+  // faces the registration offers first, before the people of the story. Named from the exam board's list:
+  // the DSE Chinese writing paper allows only these given names, with any surname - 英秀 一心 幼羚 家寶 念慈
+  // 思賢 有容 向華 修端 允行 (HKEAA, CHI-SP-Paper2A-2024; Norton: 用考試局果個清單起名).
+  const CAMPAIGN_MAYOR_LOOKS = Object.freeze([
+    { id: 'mayorLook1', portrait: 'UI/campaign/portraits/mayorLook1.webp', name: T('陳一心', 'Chan Yat-sum', '陳一心') },
+    { id: 'mayorLook2', portrait: 'UI/campaign/portraits/mayorLook2.webp', name: T('李幼羚', 'Lee Yau-ling', '李幼羚') },
+    { id: 'mayorLook3', portrait: 'UI/campaign/portraits/mayorLook3.webp', name: T('張思賢', 'Cheung Sze-yin', '張思賢') },
+    { id: 'mayorLook4', portrait: 'UI/campaign/portraits/mayorLook4.webp', name: T('黃念慈', 'Wong Nim-chi', '黄念慈') },
+    { id: 'mayorLook5', portrait: 'UI/campaign/portraits/mayorLook5.webp', name: T('何向華', 'Ho Heung-wah', '何向華') },
+    { id: 'mayorLook6', portrait: 'UI/campaign/portraits/mayorLook6.webp', name: T('林英秀', 'Lam Ying-sau', '林英秀') },
+  ].map(Object.freeze));
 
   function normalizeCampaignMayorName(value) {
     // line breaks and tabs become a space; other control characters go
@@ -119,8 +132,8 @@
     return { name, birthMonth, birthDay, portrait };
   }
 
-  // The faces the mayor may take: every speaker with a portrait but Her Majesty (the default mayor's
-  // first), then the council's officials (council-definitions.js COUNCIL_OFFICIAL_DEFS: id, portrait,
+  // The faces the mayor may take: Norton's six mayors, every speaker with a portrait but Her Majesty
+  // (the default mayor's first among them), then the council's officials (council-definitions.js COUNCIL_OFFICIAL_DEFS: id, portrait,
   // nameKey) not already among them - one entry a picture.
   function getCampaignMayorFaces(officials = []) {
     const faces = [];
@@ -130,6 +143,7 @@
       seen.add(face.portrait);
       faces.push(Object.freeze(face));
     };
+    CAMPAIGN_MAYOR_LOOKS.forEach(add);
     Object.entries(CAMPAIGN_SPEAKERS).forEach(([id, speaker]) => {
       if (id === 'queen') return;
       add({ id, portrait: speaker.portrait, name: id === CAMPAIGN_MAYOR_DEFAULT_FACE ? T('預設市長', 'Default Mayor', '標準の市長') : speaker.name });
@@ -1067,7 +1081,7 @@
   });
 
   // CHAPTER 06 沙田《望子成龍》: middle-income families, schools, and the ground-level East Rail.
-  // The racecourse has no model yet: the big stadium stands in for it (〔暫代〕, until the art).
+  // The racecourse is Norton's 6x12 art (racecourse.js, 2026-11-21), after the big stadium stood in.
   const middleHomes = (s) => {
     const w = s.residentialByWealth || {};
     const total = num(w.L) + num(w.M) + num(w.H) + num(w.UH);
@@ -1106,8 +1120,8 @@
       {
         title: T('馬照跑，舞照跳', 'The Horses Run, the Dancing Goes On', '競馬は続く、ダンスも続く'),
         objectives: Object.freeze([
-          { id: 'racecourse', label: T('興建沙田馬場（暫用大球場代替，待美術）', 'Build the Sha Tin racecourse (the big stadium for now, until its art)', '沙田競馬場を建設（美術待ちの間は大スタジアムで代用）'),
-            check: (s) => built(s, 'football_stadium'), progress: (s) => tick(built(s, 'football_stadium')) },
+          { id: 'racecourse', label: T('興建沙田馬場', 'Build the Sha Tin Racecourse', '沙田競馬場を建設'),
+            check: (s) => built(s, 'racecourse'), progress: (s) => tick(built(s, 'racecourse')) },
           { id: 'raceDayRail', label: T('地面東鐵每月載客 5,000 人次', 'The ground-level East Rail carries 5,000 riders a month', '地上の東鉄の月間乗客5,000人'),
             check: (s) => num(s.metroSurfaceRiders) >= 5000, progress: (s) => `${fmt(s.metroSurfaceRiders)} / 5,000` },
           busRoutesObjective(4),
@@ -1134,7 +1148,7 @@
     events: Object.freeze([
       {
         id: 'wonderBoyBiu',
-        when: (s) => built(s, 'football_stadium'),
+        when: (s) => built(s, 'racecourse'),
         lines: Object.freeze([
           { speaker: 'anchor', text: T('今日開鑼，本台邀請咗著名旁述員「神童標」為大家講馬。', 'Racing is back, and we have the famous commentator "Wonder Boy Biu" to call it for you.', '本日開幕。名実況「神童標」にレースを実況していただきます。') },
           { speaker: 'commentator', text: T('起步！一號領先，二號緊貼，三號……三號都喺度，總之大家都好努力！', 'And they are off! Number one leads, number two close behind, number three... number three is also there, anyway everyone is trying very hard!', 'スタート！1番が先頭、2番がぴったり、3番は……3番もいます、とにかく皆よく頑張っています！') },
@@ -1142,7 +1156,7 @@
         ]),
         forum: {
           headline: T('神童標旁述爆紅：「聽落好似乜都講咗，又好似乜都冇講」', 'Wonder Boy Biu\'s commentary goes viral: "He said everything and nothing"', '神童標の実況が話題に「全部言ったようで何も言っていない」'),
-          body: T('沙田馬場臨時場地首日開鑼，旁述員風格引起熱議。', 'The first race day at Sha Tin\'s stand-in course, and the commentary has everyone talking.', '沙田の仮設競馬場で初開催、実況のスタイルが話題に。'),
+          body: T('沙田馬場首日開鑼，旁述員風格引起熱議。', 'The first race day at Sha Tin Racecourse, and the commentary has everyone talking.', '沙田競馬場で初開催、実況のスタイルが話題に。'),
           comment: T('旁述員係咪同我睇緊同一場賽事？', 'Is the commentator watching the same race as me?', '実況の人、俺と同じレースを見てる？'),
         },
       },
@@ -1167,7 +1181,7 @@
   });
 
   // CHAPTER 08 元朗《魚米之鄉》: estates and villages side by side, the light rail meeting the
-  // 屯馬綫, and the wetland kept. The wetland park has no model yet: the flagship park stands in.
+  // 屯馬綫, and the wetland kept. The wetland park is Norton's art (2026-11-21), after the flagship park stood in.
   const villagesKept = (s, base) => (num(base?.villageHouses) > 0 ? num(s.villageHouses) / num(base.villageHouses) : 1);
   const CH08 = Object.freeze({
     id: 'ch08',
@@ -1205,8 +1219,8 @@
         objectives: Object.freeze([
           { id: 'festival', label: T('開章後舉辦新春節慶（盆菜、點燈、舞獅）', 'Hold the Lunar New Year festival since the chapter began (poon choi, lanterns, lion dance)', '章の開始後に旧正月の祭り（盆菜・点灯・獅子舞）を開催'),
             check: (s, base) => heldSince(s, base, 'lunarNewYear') > 0, progress: (s, base) => tick(heldSince(s, base, 'lunarNewYear') > 0) },
-          { id: 'wetlandPark', label: T('興建濕地公園（暫用旗艦公園代替，待美術）', 'Build the wetland park (a flagship park for now, until its art)', '湿地公園を建設（美術待ちの間は旗艦公園で代用）'),
-            check: (s) => built(s, 'park_flagship'), progress: (s) => tick(built(s, 'park_flagship')) },
+          { id: 'wetlandPark', label: T('興建濕地公園', 'Build the Wetland Park', '湿地公園を建設'),
+            check: (s) => built(s, 'wetland_park'), progress: (s) => tick(built(s, 'wetland_park')) },
           { id: 'tourism', label: T('旅遊吸引力達 65', 'Tourism appeal of 65', '観光魅力度65'),
             check: (s) => num(s.tourismAppeal) >= 65, progress: (s) => `${fmt(s.tourismAppeal)} / 65` },
         ]),
@@ -2054,7 +2068,8 @@
         },
       },
     ]),
-    outroScene: 'UI/campaign/events/kowloonWalledCity.webp',
+    // the outro's news is the terminal opening: its ribbon cutting, and a casino ship in the harbour
+    outroScene: 'UI/campaign/events/cruiseTerminalOpening.webp',
     outro: Object.freeze([
       { speaker: 'tourism', text: T('啟德起飛，城寨重生，香城電影業前景無限！', 'Kai Tak takes off, the Walled City is reborn, and Heung Shing\'s films have a bright future!', '啓徳は飛び立ち、城砦はよみがえり、香城の映画の未来は無限大！') },
       { speaker: 'secretary', text: T('下一站深水埗。嗰邊啲居民唔係要求觀光地標，係要求安居。', 'Next stop Sham Shui Po. The people there are not asking for landmarks - they are asking for a safe home.', '次は深水埗。あそこの住民が求めるのは観光名所ではなく、安心して暮らせる家です。') },
@@ -2464,7 +2479,7 @@
     advanceCampaignRun, getCampaignMonthsLeft, createEmptyCampaignProfile, normalizeCampaignProfile,
     getCampaignTutorialStep, advanceCampaignTutorial, acknowledgeCampaignTutorialStep, skipCampaignTutorial,
     recordCampaignStars, isCampaignChapterUnlocked, getCampaignText, getCampaignChapterScene,
-    CAMPAIGN_MAYOR_NAME_MAX, CAMPAIGN_MAYOR_DAYS_IN_MONTH, CAMPAIGN_MAYOR_DEFAULT_FACE,
+    CAMPAIGN_MAYOR_NAME_MAX, CAMPAIGN_MAYOR_DAYS_IN_MONTH, CAMPAIGN_MAYOR_DEFAULT_FACE, CAMPAIGN_MAYOR_LOOKS,
     normalizeCampaignMayor, getCampaignMayorFaces,
   };
   Object.assign(root, api);

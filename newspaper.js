@@ -214,7 +214,7 @@ function showNewspaperExtra(eventId, params = {}) {
   if (portraitWrap && portraitImg) {
     portraitWrap.hidden = !official;
     if (official) {
-      portraitImg.src = official.portrait;
+      portraitImg.src = getCouncilOfficialPortrait(official);
       portraitImg.alt = getCouncilNewsOfficialDisplayName(official.id);
       setTextContent('newspaper-portrait-caption', t(def.portraitCaptionKey, textParams));
     }
@@ -1300,7 +1300,7 @@ function getAnnualFortuneOfficialName(officialId, fallback) {
     : null;
   if (!definition) return fallback;
   if (typeof getCouncilOfficialDisplayName === 'function') return getCouncilOfficialDisplayName(definition);
-  return city.council?.customNames?.[officialId] || (typeof t === 'function' ? t(definition.nameKey) : fallback);
+  return city.council?.customNames?.[officialId] || getCouncilPlayerMayorName(definition) || (typeof t === 'function' ? t(definition.nameKey) : fallback);
 }
 
 function maybeAnnounceAnnualCityFortune(monthIndex = getCityMonthIndex()) {
@@ -1833,6 +1833,8 @@ const BUILDING_UNLOCK_SPEAKER_IDS = Object.freeze({
   murray_house: 'councillor_tourism',
   ocean_park: 'councillor_tourism',
   football_stadium: 'councillor_tourism',
+  racecourse: 'councillor_tourism',
+  wetland_park: 'councillor_tourism',
   airport: 'councillor_business',
   container_port: 'councillor_business',
   science_park: 'councillor_liberty',

@@ -433,6 +433,7 @@ function getToolCategoryForTool(tool) {
     || tool === 'heritage-church'
     || tool === 'indoor-coliseum'
     || tool === 'football-stadium'
+    || tool === 'racecourse'
   ) return 'parks';
   if (
     tool === 'exhibition-center'
@@ -440,6 +441,7 @@ function getToolCategoryForTool(tool) {
     || tool === 'walled-city-park'
     || tool === 'murray-house'
     || tool === 'ocean-park'
+    || tool === 'wetland-park'
   ) return 'landmarks';
   if (tool === 'house') return 'buildings';
   return null;

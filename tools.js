@@ -45,6 +45,8 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
   'space-museum':      'space_museum',
   'buddha-statue':     'buddha_statue',
   'walled-city-park':  'walled_city_park',
+  'wetland-park':      'wetland_park',
+  'racecourse':        'racecourse',
   'heritage-temple':   'heritage_temple',
   'grand-temple':      'grand_temple',
   'heritage-church':   'heritage_church',
@@ -449,7 +451,7 @@ function getInfraPlacementQuote(row, col, buildingType, buildingModel) {
   const lock = getInfraPlacementLock(buildingType);
   if (!lock.unlocked) return { ok: false, reason: describeSpecialBuildingLockReason(lock) };
   if (!buildingModel) return { ok: false, reason: t('mobile.blocked') };
-  const { footprintCols, footprintRows } = buildingModel;
+  let { footprintCols, footprintRows } = buildingModel;
   const marine = typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(buildingType);
   let reason = '';
   if (buildingType === HARBOR_BUILDING_TYPE) {
@@ -458,6 +460,10 @@ function getInfraPlacementQuote(row, col, buildingType, buildingModel) {
     reason = whyNotTyphoonShelterBuilding(row, col, footprintCols, footprintRows) || '';
   } else if (buildingType === 'cruise_terminal' && typeof whyNotCruiseTerminal === 'function') {
     reason = whyNotCruiseTerminal(row, col) || '';
+  } else if (buildingType === 'racecourse' && typeof getRacecourseFootprint === 'function') {
+    // its 6x12 lot (racecourse.js), quoted whole so the touch preview shows all of it
+    ({ footprintCols, footprintRows } = getRacecourseFootprint());
+    reason = whyNotRacecourse(row, col) || '';
   } else if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) reason = t('mobile.blocked');
   if (!reason && buildingType === 'gold_coast_hotel') reason = whyNotGoldCoastHotel(row, col, footprintCols, footprintRows) || '';
   return { ok: !reason, reason, cost: INFRA_COSTS[buildingType], footprintCols, footprintRows };
@@ -477,6 +483,12 @@ function placeInfraBuilding(scene, row, col, buildingType, placementModel = null
   if (!spendBudget(cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
+  }
+  // 沙田馬場: two 6x6 halves on its 6x12 lot (racecourse.js)
+  if (buildingType === 'racecourse') {
+    placeRacecourse(scene, row, col);
+    refreshInfrastructureEffects(scene);
+    return true;
   }
 
   const key = buildingModel.spriteKey;

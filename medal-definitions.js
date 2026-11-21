@@ -26,6 +26,7 @@
     'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue', 'heritage_temple',
     'grand_temple', 'heritage_church', 'indoor_coliseum', 'murray_house', 'ocean_park',
     'football_stadium', 'yacht_club', 'gold_coast_hotel', 'floating_restaurant', 'walled_city_park',
+    'wetland_park', 'racecourse',
   ]);
   // B10 世界十大港口's waterfront tourist landmarks (待確認).
   const MEDAL_WATERFRONT_LANDMARK_TYPES = Object.freeze([

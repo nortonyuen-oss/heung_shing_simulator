@@ -350,6 +350,7 @@ const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_TYPES = Object.freeze([
   'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
   'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
   'murray_house', 'ocean_park', 'football_stadium', 'yacht_club', 'walled_city_park',
+  'wetland_park', 'racecourse',
 ]);
 // The flip side of the amenity requirement above: a cell within reach of a
 // noxious facility - industrial buildings, any power plant, the container
@@ -1051,10 +1052,11 @@ function selectServiceBuildingModel(buildingType, existingCount = 0, randomValue
 // placeInfraBuilding() pipeline as SERVICE_BUILDING_MODELS, but gated by
 // SPECIAL_BUILDING_UNLOCKS instead of budget alone.
 const SPECIAL_BUILDING_MODELS = {
-  // 社區中心 (welfare.js): the library's art until its own (Norton 2026-11-19: 社區中心用圖書館就得)
+  // 社區中心 (welfare.js): Norton's render (2026-11-21, scripts/source-art/artDebt/fit_square.py), after the
+  // library's art stood in. The sprite key stays, so centres already built take the new art.
   community_centre: {
     spriteKey: 'community_centre_2x2',
-    path: 'Models/government/2x2/library2-01.png',
+    path: 'Models/government/2x2/communityCentre2-01.png',
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -1244,6 +1246,28 @@ SPECIAL_BUILDING_MODELS.walled_city_park = {
   footprintCols: 4,
   footprintRows: 4,
 };
+// 濕地公園 (第 8 章): Norton's render (2026-11-21), drawn at 2:1 already (artDebt/fit_square.py), after the
+// flagship park stood in.
+SPECIAL_BUILDING_MODELS.wetland_park = {
+  spriteKey: 'wetland_park_4x4',
+  path: 'Models/specialSites/4x4/wetlandPark4-01.png',
+  footprintCols: 4,
+  footprintRows: 4,
+};
+// 沙田馬場 (第 6 章, racecourse.js): Norton's render (2026-11-21) cut in two 6x6 halves for its 6x12 lot
+// (artDebt/fit_racecourse.py). The model is the front half; RACECOURSE_HALF_MODELS hold the back half and
+// both mirrors, which racecourse.js picks by how the map is turned so the halves always join.
+SPECIAL_BUILDING_MODELS.racecourse = {
+  spriteKey: 'racecourse_6x6a',
+  path: 'Models/specialSites/6x6/racecourse6-01a.png',
+  footprintCols: 6,
+  footprintRows: 6,
+};
+const RACECOURSE_HALF_MODELS = Object.freeze([
+  ['racecourse_6x6b', 'Models/specialSites/6x6/racecourse6-01b.png'],
+  ['racecourse_6x6a_m', 'Models/specialSites/6x6/racecourse6-01a_m.png'],
+  ['racecourse_6x6b_m', 'Models/specialSites/6x6/racecourse6-01b_m.png'],
+].map(([spriteKey, path]) => Object.freeze({ spriteKey, path, footprintCols: 6, footprintRows: 6 })));
 // The terminal's other facings, by where the sea lies on screen (refreshCruiseTerminalSprites): the sea
 // view's mirror, and the land view (the berth behind) with its mirror.
 const CRUISE_TERMINAL_FACING_MODELS = Object.freeze([
@@ -1325,6 +1349,7 @@ function getAllSpecialBuildingModels(buildingType) {
   if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
   if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
   if (buildingType === 'cruise_terminal') return [...models, ...CRUISE_TERMINAL_FACING_MODELS];
+  if (buildingType === 'racecourse') return [...models, ...RACECOURSE_HALF_MODELS];
   return models;
 }
 
@@ -1562,6 +1587,9 @@ const SPECIAL_BUILDING_UNLOCKS = {
   community_centre:   { unlockPopulation: 3000 },
   cruise_terminal:    { unlockPopulation: 40000, maxCount: 2 },
   walled_city_park:   { unlockPopulation: 60000, maxCount: 1 },
+  wetland_park:       { unlockPopulation: 20000, maxCount: 1 },
+  // (its two halves are two records: one racecourse reaches the limit)
+  racecourse:         { unlockPopulation: 30000, maxCount: 1 },
   football_stadium:   { unlockPopulation: 40000, maxCount: 1 },
   airport:            { requiresResolution: 'roseGardenAirportProject', hideUntilApproved: true, maxCount: 1 },
   container_port:     { unlockPopulation: 15000 },
@@ -1582,6 +1610,13 @@ const SPECIAL_BUILDING_EFFECTS = {
   cruise_terminal:    { attractivenessBonus: 4, landValueBonus: 0.04, landValueRadius: 8, revenue: 300, upkeep: 1500 },
   // its tickets are its visitors' (walled-city.js); the upkeep is an old city's to keep standing
   walled_city_park:   { attractivenessBonus: 6, landValueBonus: 0.06, landValueRadius: 8, happinessBonus: 0.01, upkeep: 900 },
+  // the reed beds clean the air round them, as the stadium's green does
+  wetland_park:       {
+    attractivenessBonus: 4, landValueBonus: 0.06, landValueRadius: 8, happinessBonus: 0.012,
+    pollutionReductionRadius: 8, pollutionReductionStrength: 0.12, upkeep: 300,
+  },
+  // each of its two halves (racecourse.js): the whole is twice this - race days' takings, a big draw
+  racecourse:         { attractivenessBonus: 4, landValueBonus: 0.05, landValueRadius: 8, happinessBonus: 0.006, revenue: 450, upkeep: 400 },
   public_market:      { landValueBonus: 0.02, landValueRadius: 6, upkeep: 80 },
   exhibition_center: { attractivenessBonus: 6,  landValueBonus: 0.10, landValueRadius: 10, revenue: 260, upkeep: 900 },
   cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
@@ -1619,6 +1654,8 @@ const SPECIAL_BUILDING_COSTS = {
   community_centre:   1800,
   cruise_terminal:    40000,
   walled_city_park:   30000,
+  wetland_park:       8000,
+  racecourse:         24000,
   public_market:      3200,
   exhibition_center: 15000,
   cultural_center:    9000,
@@ -1726,6 +1763,8 @@ const BUILDING_POWER_DEMAND = {
   community_centre: 6,
   cruise_terminal: 24,
   walled_city_park: 10,
+  wetland_park: 4,
+  racecourse: 12,
   seafood_restaurant: 4,
   fish_loading_bay: 1,
   yacht_club: 5,

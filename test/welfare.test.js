@@ -104,7 +104,7 @@ test('welfare and 舊樓 in the game: bills, centre, costs, effects, panel and c
   });
   assert.match(cityState, /isWelfarePolicy\(policy\.id\)\) cost \+= getWelfareMonthlyCost/);
   assert.match(preview, /isWelfarePolicy\(policyId\)\) cost \+= getWelfareMonthlyCost/);
-  assert.match(constants, /community_centre: \{\s*spriteKey: 'community_centre_2x2',\s*path: 'Models\/government\/2x2\/library2-01\.png'/);
+  assert.match(constants, /community_centre: \{\s*spriteKey: 'community_centre_2x2',\s*path: 'Models\/government\/2x2\/communityCentre2-01\.png'/);
   assert.match(source('tools.js'), /'community-centre':\s+'community_centre'/);
   const sim = source('simulation.js');
   assert.match(sim, /WELFARE_TUNING\.youthEmploymentCut/);

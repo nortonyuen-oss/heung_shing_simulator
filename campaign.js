@@ -1157,7 +1157,7 @@
     if (typeof document === 'undefined') return Promise.resolve(false);
     document.getElementById('campaign-mayor')?.remove();
     const saved = runtime.profile.mayor;
-    const draft = saved ? { ...saved } : { name: '', birthMonth: 1, birthDay: 1, portrait: CAMPAIGN_MAYOR_DEFAULT_FACE };
+    const draft = saved ? { ...saved } : { name: '', birthMonth: 1, birthDay: 1, portrait: CAMPAIGN_MAYOR_LOOKS[0]?.id || CAMPAIGN_MAYOR_DEFAULT_FACE };
     let step = 'form';
     let error = '';
     const layer = document.createElement('div');
@@ -1665,5 +1665,10 @@
     startCampaignChapter, openCampaignSelect, closeCampaignSelect, onCampaignCityLoaded, exportCampaignStart,
     buildCampaignSnapshot, renderCampaignPanel, playCampaignDialogue, playCampaignPrologue, getCampaignPrologueScene,
     getCampaignProfile: () => runtime.profile, openCampaignMayorPanel,
+    // the registered mayor's name and face ({ name, portrait } or null): the council's 行政長官 is the player
+    getPlayerMayor: () => {
+      const mayor = runtime.profile.mayor;
+      return mayor ? { name: mayor.name, portrait: getMayorFace(mayor.portrait)?.portrait || null } : null;
+    },
   });
 })();

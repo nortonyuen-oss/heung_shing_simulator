@@ -393,7 +393,7 @@ function drawTouchPlacementPreview(scene, draft) {
   if (isTouchRangeDraft(draft)) {
     if (!scene.mobileEndpointLabels) {
       scene.mobileEndpointLabels = ['A', 'B'].map((text) => {
-        const label = scene.add.text(0, 0, text, { fontSize: '16px', fontStyle: 'bold', color: '#ffffff', backgroundColor: '#1f5fa8', padding: { x: 7, y: 4 } }).setOrigin(0.5, 1).setResolution(2);
+        const label = scene.add.text(0, 0, text, { fontSize: '16px', fontStyle: 'bold', color: '#ffffff', backgroundColor: '#1f6958', padding: { x: 7, y: 4 } }).setOrigin(0.5, 1).setResolution(2);
         addToRenderLayer(scene, label, 'effectLayer');
         return label;
       });

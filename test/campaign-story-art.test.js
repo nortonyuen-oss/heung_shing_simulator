@@ -124,7 +124,7 @@ test('story art: the chapter map on a phone is a grid of chapters under a map of
   assert.ok(runtime.includes('<div class="cs-grid" role="group"'));
   assert.ok(runtime.includes('class="cs-chip is-${state.key}'));
   assert.ok(runtime.includes('#campaign-select-dialog .cs-grid { display: none; }'), 'no grid on the desktop');
-  assert.match(runtime, /@media \(max-width: 640px\), \(max-height: 520px\) \{\s*#campaign-select-dialog \.cs-map img/);
+  assert.match(runtime, /@media \(max-width: 640px\), \(max-height: 520px\) \{[^@]*#campaign-select-dialog \.cs-map img \{ max-height: 40vh; \}/);
   assert.match(runtime, /#campaign-select-dialog \.cs-pin \{ width: 12px; height: 12px;[^}]*pointer-events: none;/);
   assert.ok(fs.readFileSync(path.join(ROOT, 'mobile-ui.css'), 'utf8').includes('button:not(.setup-overview-marker):not(.cs-pin)'),
     'the touch rule that makes dialog buttons 44px tall leaves the map dots alone');
@@ -143,4 +143,29 @@ test('story art: a phone opens the medals and turns the map', () => {
   assert.ok(fs.readFileSync(path.join(ROOT, 'topbar.js'), 'utf8').includes("case 'open-medal-cabinet':"));
   const css = fs.readFileSync(path.join(ROOT, 'mobile-ui.css'), 'utf8');
   assert.match(css, /#mobile-ui:is\(\.is-building, \.is-picking-route\) \.m-rotate, \[data-ui-profile="touch"\] #mobile-ui:has\(#mobile-panel:not\(\[hidden\]\)\) \.m-rotate \{ display: none; \}/);
+});
+
+// 2026-11-21 (Norton: 地圖框用返大航海時代4果套設計語言): the chapter map over his harbour at sunset, on the
+// dialogue's parchment in maroon and gold.
+test('story art: the chapter map sits over Norton\'s harbour, on parchment in maroon and gold', () => {
+  const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
+  assert.ok(runtime.includes("const CAMPAIGN_SELECT_BACKDROP = 'UI/campaign/select-backdrop.webp';"), 'a literal path, hashed by the web build');
+  assert.ok(exists('UI/campaign/select-backdrop.webp'));
+  assert.ok(exists('scripts/source-art/campaign/selectBackdrop-source.png'));
+  assert.ok(runtime.includes('style.backgroundImage = `url("${encodeURI(campaignImageSrc(CAMPAIGN_SELECT_BACKDROP))}")`'));
+  assert.match(runtime, /#campaign-select-dialog \.dialog-box \{[^}]*background: linear-gradient\(180deg, #fcf5e1 0%, #f2e4bf 100%\)/);
+  assert.match(runtime, /#campaign-select-dialog \.dialog-title-bar \{[^}]*background: linear-gradient\(180deg, #7a1f1f, #561313\)/);
+  assert.match(runtime, /#campaign-select-dialog \.dialog-body \{[^}]*background: transparent; \}/, 'the shared light grey body would cover the parchment');
+});
+
+// 2026-11-21 (Norton: 不要把城市通知出現在此版面 / 橫向手機，地圖在右，選區在左)
+test('story art: the chapter map keeps the city\'s notices out, and a phone held sideways has the map on the right', () => {
+  const runtime = fs.readFileSync(path.join(ROOT, 'campaign.js'), 'utf8');
+  assert.ok(runtime.includes('body.campaign-select-open #toast-container > :not(.campaign-toast) { display: none; }'));
+  assert.match(runtime, /dialog\.style\.display = 'flex';\s*setCampaignSelectOpen\(true\);/);
+  assert.match(runtime, /if \(dialog\) dialog\.style\.display = 'none';\s*setCampaignSelectOpen\(false\);/);
+  assert.ok(runtime.includes("lastElementChild?.classList.add('campaign-toast')"));
+  ['toast.stillLoading', '開局城市準備中', '開唔到呢一章', '歡迎上任'].forEach((text) =>
+    assert.match(runtime, new RegExp(`campaignToast\\([^\\n]*${text}`), text));
+  assert.match(runtime, /@media \(orientation: landscape\) and \(max-height: 520px\) \{[^@]*grid-template-areas: "top map" "grid map" "detail map";/);
 });

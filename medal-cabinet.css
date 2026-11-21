@@ -1,7 +1,7 @@
 /* A quiet display cabinet: the artwork carries the colour, the UI stays in navy and brass. */
 .toast.toast-medal { background: #754664; }
 #medal-cabinet-dialog {
-  --mc-bg: #111d2c; --mc-panel: #172536; --mc-line: #2c3c4d;
+  --mc-bg: #0f201c; --mc-panel: #142723; --mc-line: #283f3a;
   --mc-text: #eeeae1; --mc-muted: #9aa9ba; --mc-gold: #dec18a;
   color: var(--mc-text); font-family: 'Noto Sans TC', 'Segoe UI', sans-serif;
   padding: 24px; isolation: isolate;
@@ -48,17 +48,17 @@
 #medal-cabinet-dialog h2 { font-size: 16px; font-weight: 500; margin: 0; letter-spacing: 1px; }
 #medal-cabinet-dialog .mc-result-count { font-size: 10px; color: var(--mc-muted); }
 #medal-cabinet-dialog .mc-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-#medal-cabinet-dialog .mc-filters { display: flex; gap: 3px; background: #0a1421; padding: 3px; border-radius: 5px; }
+#medal-cabinet-dialog .mc-filters { display: flex; gap: 3px; background: #091612; padding: 3px; border-radius: 5px; }
 #medal-cabinet-dialog .mc-filter { padding: 6px 11px; border: 0; border-radius: 3px; color: #93a4b8; background: transparent; font-size: 11px; }
-#medal-cabinet-dialog .mc-filter[aria-pressed="true"] { background: #2c3a4a; color: #f0e8d8; }
-#medal-cabinet-dialog .mc-search { min-width: 100px; width: 120px; flex: 1; border: 1px solid var(--mc-line); border-radius: 5px; padding: 7px 9px; color: var(--mc-text); background: #0d1826; font-size: 11px; }
+#medal-cabinet-dialog .mc-filter[aria-pressed="true"] { background: #283d38; color: #f0e8d8; }
+#medal-cabinet-dialog .mc-search { min-width: 100px; width: 120px; flex: 1; border: 1px solid var(--mc-line); border-radius: 5px; padding: 7px 9px; color: var(--mc-text); background: #0b1a17; font-size: 11px; }
 #medal-cabinet-dialog .mc-search::placeholder { color: #8698ad; }
-#medal-cabinet-dialog .mc-sort { color: #aab7c7; background: #111d2c; border: 0; padding: 6px 0; max-width: 120px; font-size: 10px; }
+#medal-cabinet-dialog .mc-sort { color: #aab7c7; background: #0f201c; border: 0; padding: 6px 0; max-width: 120px; font-size: 10px; }
 #medal-cabinet-dialog .mc-scroll { overflow-y: auto; overflow-x: hidden; min-height: 0; flex: 1 1 0; padding: 3px 4px 22px; margin: 0 -4px; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #415064 transparent; overscroll-behavior: contain; touch-action: pan-y; }
 #medal-cabinet-dialog .medal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; align-content: start; }
-#medal-cabinet-dialog .medal-card { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; min-height: 184px; padding: 13px 9px 12px; border: 1px solid #2b3a4c; border-radius: 7px; background: linear-gradient(145deg, #1b2a3c, #152132); color: #aab7c7; text-align: center; transition: border-color .15s, background .15s; }
-#medal-cabinet-dialog .medal-card:hover { border-color: #738096; background: #203044; }
-#medal-cabinet-dialog .medal-card[aria-pressed="true"] { border-color: #dec18a; box-shadow: inset 0 0 0 1px #dec18a30; background: radial-gradient(ellipse at 50% 20%, #dec18a13, transparent 85%), #1d2b3b; }
+#medal-cabinet-dialog .medal-card { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; min-height: 184px; padding: 13px 9px 12px; border: 1px solid #273d38; border-radius: 7px; background: linear-gradient(145deg, #182d28, #12241f); color: #aab7c7; text-align: center; transition: border-color .15s, background .15s; }
+#medal-cabinet-dialog .medal-card:hover { border-color: #738096; background: #1c332e; }
+#medal-cabinet-dialog .medal-card[aria-pressed="true"] { border-color: #dec18a; box-shadow: inset 0 0 0 1px #dec18a30; background: radial-gradient(ellipse at 50% 20%, #dec18a13, transparent 85%), #1a2d29; }
 #medal-cabinet-dialog .mc-card-id { position: absolute; top: 9px; left: 10px; font-size: 8px; color: #8292a6; letter-spacing: 1px; }
 #medal-cabinet-dialog .mc-earned-mark { position: absolute; top: 8px; right: 9px; color: var(--mc-gold); font-size: 12px; }
 #medal-cabinet-dialog .medal-emblem { display: block; width: 91px; height: 97px; flex-shrink: 0; margin: 0 auto 6px; }
@@ -73,7 +73,7 @@
 #medal-cabinet-dialog .mc-card-progress { display: block; width: 66%; height: 2px; background: #ffffff0c; margin: 6px auto 0; }
 #medal-cabinet-dialog .mc-card-progress i { display: block; height: 100%; background: #aab7c7; width: var(--progress); }
 #medal-cabinet-dialog .mc-empty { grid-column: 1 / -1; text-align: center; padding: 70px 20px; color: var(--mc-muted); font-size: 12px; }
-#medal-cabinet-dialog .mc-detail { border-left: 1px solid var(--mc-line); background: #0d1825; min-width: 0; min-height: 0; overflow-y: auto; padding: 20px 23px 24px; scrollbar-width: thin; scrollbar-color: #415064 transparent; overscroll-behavior: contain; touch-action: pan-y; }
+#medal-cabinet-dialog .mc-detail { border-left: 1px solid var(--mc-line); background: #0c1a16; min-width: 0; min-height: 0; overflow-y: auto; padding: 20px 23px 24px; scrollbar-width: thin; scrollbar-color: #415064 transparent; overscroll-behavior: contain; touch-action: pan-y; }
 #medal-cabinet-dialog .mc-detail-top { display: flex; justify-content: space-between; align-items: center; font-size: 9px; letter-spacing: 1.5px; color: #8495a9; }
 #medal-cabinet-dialog .mc-detail-back { display: none; color: var(--mc-gold); background: transparent; border: 1px solid #dec18a40; border-radius: 4px; padding: 7px 10px; }
 #medal-cabinet-dialog .mc-detail-art { display: grid; place-items: center; height: 200px; margin: 10px -5px 4px; background: radial-gradient(ellipse, #dec18a0e 0%, transparent 66%); position: relative; }

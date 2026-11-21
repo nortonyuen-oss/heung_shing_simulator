@@ -1818,7 +1818,7 @@ function buildLocalizedChangelog(lang) {
 const SITE_TEXT = {
   "zh-HK": {
     meta: {
-      title: "香城模擬器 | The City of Heung Shing",
+      title: "香城模擬器 | Heung Shing Simulator",
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。免費遊玩，分享及再利用請參閱版權條款。",
       ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
@@ -1842,7 +1842,7 @@ const SITE_TEXT = {
       downloadLink: "揀你嘅版本，免費開始建城 →",
       ariaLabel: "分享及出處說明",
       creditLabel: "分享時請註明",
-      creditText: "《香城模擬器 / The City of Heung Shing》",
+      creditText: "《香城模擬器 / Heung Shing Simulator》",
       creditDesc: "分享官方連結、截圖同介紹時，請保留作品名稱及原始連結。影片、素材再利用同安裝包散布另依版權條款。",
     },
     trailer: {
@@ -1928,7 +1928,7 @@ const SITE_TEXT = {
   },
   "zh-TW": {
     meta: {
-      title: "香城模擬器 | The City of Heung Shing",
+      title: "香城模擬器 | Heung Shing Simulator",
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。免費遊玩，分享與再利用請參閱版權條款。",
       ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
@@ -1952,7 +1952,7 @@ const SITE_TEXT = {
       downloadLink: "選擇你的版本，免費開始建城 →",
       ariaLabel: "分享與出處說明",
       creditLabel: "分享時請註明",
-      creditText: "《香城模擬器 / The City of Heung Shing》",
+      creditText: "《香城模擬器 / Heung Shing Simulator》",
       creditDesc: "分享官方連結、截圖與介紹時，請保留作品名稱及原始連結。影片、素材再利用與安裝包散布另依版權條款。",
     },
     trailer: {
@@ -2038,14 +2038,14 @@ const SITE_TEXT = {
   },
   en: {
     meta: {
-      title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play; sharing and reuse are subject to the license.",
+      title: "Heung Shing Simulator | 香城模擬器",
+      description: "Download Heung Shing Simulator for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play; sharing and reuse are subject to the license.",
       ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download; see the license for sharing and reuse.",
     },
     nav: { home: "Home", trailer: "Trailer", gallery: "Gameplay & Screenshots", downloads: "Free Download", requirements: "Requirements", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
-      eyebrowPrefix: "The City of Heung Shing",
-      title: "The City of Heung Shing",
+      eyebrowPrefix: "Heung Shing Simulator",
+      title: "Heung Shing Simulator",
       versionBadge: "v6.0.6 — 【The 18 Districts】",
       versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong. 6.0.5 adds an Android app; 6.0.6 fixes the chapter map, medals and map turning on phones.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
@@ -2058,18 +2058,18 @@ const SITE_TEXT = {
     sharing: {
       eyebrow: "Made to be shared",
       title: "A city game made for everyone to enjoy",
-      desc: "The City of Heung Shing is a free personal project that brings together Hong Kong streets, civic life and the joy of classic city simulation. If it sounds interesting, download it and play—there is nothing to buy.",
+      desc: "Heung Shing Simulator is a free personal project that brings together Hong Kong streets, civic life and the joy of classic city simulation. If it sounds interesting, download it and play—there is nothing to buy.",
       downloadLink: "Choose your build and start for free →",
       ariaLabel: "Sharing and attribution information",
       creditLabel: "Please credit",
-      creditText: "The City of Heung Shing / 香城模擬器",
+      creditText: "Heung Shing Simulator / 香城模擬器",
       creditDesc: "Credit the game and include its official link when sharing screenshots and articles. Videos, asset reuse and installer redistribution are subject to the copyright terms.",
     },
     trailer: {
       eyebrow: "Trailer",
       title: "Watch the trailer",
-      intro: "The City of Heung Shing trailer on YouTube, made by Diablock Channel: see it in motion, then download for free.",
-      frameTitle: "The City of Heung Shing trailer",
+      intro: "Heung Shing Simulator trailer on YouTube, made by Diablock Channel: see it in motion, then download for free.",
+      frameTitle: "Heung Shing Simulator trailer",
       watch: "Watch on YouTube ↗",
     },
     film: {
@@ -2145,18 +2145,18 @@ const SITE_TEXT = {
       title: "Build, govern, iterate",
       desc: "Zone residential, commercial and industrial land, build roads, parks, public services and power plants, then a container port, an airport and your own bus company to make the city actually run. One displayed day is one game month: sunrise and sunset, weather, typhoons and council bills all keep the same clock, and after dark every building keeps its own lighting habits. Place bilingual signs to define districts, and let the forum, the newspapers and optional AI news tell your city's story.",
     },
-    footer: { tagline: "The City of Heung Shing · Free to play · Share official links", releaseInfo: "Release info", blog: "Dev blog" },
+    footer: { tagline: "Heung Shing Simulator · Free to play · Share official links", releaseInfo: "Release info", blog: "Dev blog" },
   },
   ja: {
     meta: {
-      title: "香城模擬器 | The City of Heung Shing",
-      description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。共有・再利用については利用条件をご確認ください。",
+      title: "香城シミュレーター | Heung Shing Simulator",
+      description: "『香城シミュレーター』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。共有・再利用については利用条件をご確認ください。",
       ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、共有・再利用については利用条件をご確認ください。",
     },
     nav: { home: "ホーム", trailer: "予告編", gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", requirements: "動作環境", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
-      eyebrowPrefix: "香城模擬器",
-      title: "香城模擬器",
+      eyebrowPrefix: "香城シミュレーター",
+      title: "香城シミュレーター",
       versionBadge: "v6.0.6 — 【18区をめぐる】",
       versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。6.0.5 で Android アプリを追加、6.0.6 でスマートフォンの章マップ・勲章・地図回転を改善。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
@@ -2169,18 +2169,18 @@ const SITE_TEXT = {
     sharing: {
       eyebrow: "Made to be shared",
       title: "みなさんと共有したい都市ゲーム",
-      desc: "香城模擬器は、香港の街路、都市運営、クラシックな都市シミュレーションの楽しさを一つにした無料の個人制作ゲームです。興味があれば、料金不要ですぐに遊べます。",
+      desc: "香城シミュレーターは、香港の街路、都市運営、クラシックな都市シミュレーションの楽しさを一つにした無料の個人制作ゲームです。興味があれば、料金不要ですぐに遊べます。",
       downloadLink: "バージョンを選んで無料で都市づくりを始める →",
       ariaLabel: "共有と出典表記について",
       creditLabel: "共有時のクレジット",
-      creditText: "『香城模擬器 / The City of Heung Shing』",
+      creditText: "『香城シミュレーター / Heung Shing Simulator』",
       creditDesc: "公式リンク、スクリーンショット、紹介記事には作品名と公式リンクを明記してください。動画、素材の再利用、インストーラーの配布には利用条件が適用されます。",
     },
     trailer: {
       eyebrow: "Trailer",
       title: "まずは予告編を",
-      intro: "Diablock Channel 制作の香城模擬器 YouTube 予告編：動く街を見てから、無料でダウンロード。",
-      frameTitle: "香城模擬器 予告編",
+      intro: "Diablock Channel 制作の香城シミュレーター YouTube 予告編：動く街を見てから、無料でダウンロード。",
+      frameTitle: "香城シミュレーター 予告編",
       watch: "YouTube で見る ↗",
     },
     film: {
@@ -2255,7 +2255,7 @@ const SITE_TEXT = {
       title: "建設・統治・改善を繰り返す",
       desc: "住宅・商業・工業地区を区画し、道路・公園・公共施設・発電所を建設。さらにコンテナ港、空港、自分のバス会社を作って街を本当に動かします。表示上の1日がゲーム内の1か月：日の出と日没、天気、台風、議会の法案はすべて同じ時計で進み、日が暮れれば建物ごとに灯りの習慣があります。バイリンガルの標識で地区を定め、フォーラムと新聞、任意の AI ニュースがあなたの街の物語を語ります。",
     },
-    footer: { tagline: "香城模擬器 · 無料プレイ・公式リンク共有歓迎", releaseInfo: "リリース情報", blog: "開発ブログ" },
+    footer: { tagline: "香城シミュレーター · 無料プレイ・公式リンク共有歓迎", releaseInfo: "リリース情報", blog: "開発ブログ" },
   },
 };
 
@@ -2272,7 +2272,7 @@ const SITE_COPYRIGHT = {
     "playTitle": "免費遊玩與個人備份",
     "play": "你可以喺自己控制嘅裝置安裝、遊玩同備份合法取得嘅遊戲，亦可分享自己嘅城市存檔。免費遊玩唔等於開源，公開原始碼亦唔代表可以重製或出售。",
     "shareTitle": "截圖、攻略與實況",
-    "share": "歡迎分享官方連結、截圖、攻略、評論同遊玩影片。就開發者有權授權嘅部分，容許影片或實況透過廣告、訂閱或觀眾贊助營利。請註明「香城模擬器／The City of Heung Shing」並附官方連結。",
+    "share": "歡迎分享官方連結、截圖、攻略、評論同遊玩影片。就開發者有權授權嘅部分，容許影片或實況透過廣告、訂閱或觀眾贊助營利。請註明「香城模擬器／Heung Shing Simulator」並附官方連結。",
     "musicTitle": "錄影前請留意音樂",
     "music": "目前背景音樂由 Suno 免費方案產生，本遊戲授權唔包含呢啲音軌嘅商用或影片／直播營利權。製作營利內容時請關閉背景音樂；保留嘅音效亦要符合各自權利範圍。自行錄音唔會自動取得當中旋律、廣播或表演嘅權利。",
     "reservedTitle": "需要另外授權嘅用途",
@@ -2297,7 +2297,7 @@ const SITE_COPYRIGHT = {
     "playTitle": "免費遊玩與個人備份",
     "play": "你可以在自己控制的裝置安裝、遊玩與備份合法取得的遊戲，也可分享自己的城市存檔。免費遊玩不等於開源，公開原始碼也不代表可以重製或出售。",
     "shareTitle": "截圖、攻略與實況",
-    "share": "歡迎分享官方連結、截圖、攻略、評論與遊玩影片。就開發者有權授權的部分，允許影片或實況透過廣告、訂閱或觀眾贊助營利。請註明「香城模擬器／The City of Heung Shing」並附官方連結。",
+    "share": "歡迎分享官方連結、截圖、攻略、評論與遊玩影片。就開發者有權授權的部分，允許影片或實況透過廣告、訂閱或觀眾贊助營利。請註明「香城模擬器／Heung Shing Simulator」並附官方連結。",
     "musicTitle": "錄影前請留意音樂",
     "music": "目前背景音樂由 Suno 免費方案產生，本遊戲授權不包含這些音軌的商用或影片／直播營利權。製作營利內容時請關閉背景音樂；保留的音效也要符合各自權利範圍。自行錄音不會自動取得其中旋律、廣播或表演的權利。",
     "reservedTitle": "需要另外授權的用途",
@@ -2312,7 +2312,7 @@ const SITE_COPYRIGHT = {
   },
   "en": {
     "title": "Copyright & usage",
-    "metaTitle": "Copyright & usage | The City of Heung Shing",
+    "metaTitle": "Copyright & usage | Heung Shing Simulator",
     "intro": "Free to play, and welcome to share your city stories. Check the permissions for the game, videos and individual assets before reusing them.",
     "version": "License v1.0 · 15 September 2026",
     "owner": "Rights reserved by nortonyuen-oss, the game developer, only for material the developer owns or is authorized to license.",
@@ -2322,7 +2322,7 @@ const SITE_COPYRIGHT = {
     "playTitle": "Free play & personal backups",
     "play": "You may install, play and back up a lawfully obtained copy on devices you control, and share your own city saves. Free play and publicly visible source code do not grant an open-source license or permission to reproduce or sell the game.",
     "shareTitle": "Screenshots, guides & streams",
-    "share": "Share official links, screenshots, guides, commentary and gameplay videos. For content the developer can license, videos and streams may earn advertising, subscription or viewer-support revenue. Credit The City of Heung Shing / 香城模擬器 and include the official link.",
+    "share": "Share official links, screenshots, guides, commentary and gameplay videos. For content the developer can license, videos and streams may earn advertising, subscription or viewer-support revenue. Credit Heung Shing Simulator / 香城模擬器 and include the official link.",
     "musicTitle": "Check the audio before recording",
     "music": "The current background tracks were generated with Suno’s free plan. This game license does not grant commercial or monetized video/streaming rights to those tracks. Turn off the background music for monetized content and check the rights to any remaining audio. Recording a sound yourself does not automatically clear an underlying melody, broadcast or performance.",
     "reservedTitle": "Uses requiring separate permission",
@@ -2337,7 +2337,7 @@ const SITE_COPYRIGHT = {
   },
   "ja": {
     "title": "著作権と利用条件",
-    "metaTitle": "著作権と利用条件 | 香城模擬器",
+    "metaTitle": "著作権と利用条件 | 香城シミュレーター",
     "intro": "無料で遊び、街の物語を紹介できます。ゲーム、動画、個別素材を利用する前に、それぞれの許可範囲をご確認ください。",
     "version": "ライセンス v1.0 · 2026年9月15日",
     "owner": "開発者 nortonyuen-oss が保有する、または許諾する権限を持つ部分に限り、権利を留保します。",
@@ -2347,7 +2347,7 @@ const SITE_COPYRIGHT = {
     "playTitle": "無料プレイと個人用バックアップ",
     "play": "適法に入手したゲームを、自分が管理する端末でインストール、プレイ、バックアップし、自分の都市セーブデータを共有できます。無料配布やソースコードの公開は、オープンソースの許諾や複製・販売の許可を意味しません。",
     "shareTitle": "スクリーンショット・攻略・配信",
-    "share": "公式リンク、スクリーンショット、攻略、レビュー、プレイ動画の共有を歓迎します。開発者が許諾できる部分については、広告、定期購読、視聴者の支援による動画・配信の収益化も可能です。「The City of Heung Shing / 香城模擬器」と公式リンクを明記してください。",
+    "share": "公式リンク、スクリーンショット、攻略、レビュー、プレイ動画の共有を歓迎します。開発者が許諾できる部分については、広告、定期購読、視聴者の支援による動画・配信の収益化も可能です。「Heung Shing Simulator / 香城シミュレーター」と公式リンクを明記してください。",
     "musicTitle": "録画前に音声をご確認ください",
     "music": "現在のBGMはSunoの無料プランで生成されています。本ゲームの許諾には、これらの音源の商用利用や動画・配信の収益化権は含まれません。収益化する場合はBGMをオフにし、残る効果音などの権利も確認してください。自分で録音しても、含まれる楽曲、放送、実演の権利まで取得できるわけではありません。",
     "reservedTitle": "別途許可が必要な利用",
@@ -2484,7 +2484,7 @@ const SITE_FEEDBACK = {
   },
   "en": {
     "title": "Heung Shing Lennon Wall",
-    "metaTitle": "Heung Shing Lennon Wall | The City of Heung Shing",
+    "metaTitle": "Heung Shing Lennon Wall | Heung Shing Simulator",
     "intro": "Trouble downloading or playing? Have an idea or a city story to share? Leave a message and help improve Heung Shing.",
     "newPost": "Write a question or comment",
     "publicNote": "Register as a neighbour to post. Posts and replies are public and show your neighbour name.",
@@ -2541,7 +2541,7 @@ const SITE_FEEDBACK = {
   },
   "ja": {
     "title": "香城レノンウォール",
-    "metaTitle": "香城レノンウォール | 香城模擬器",
+    "metaTitle": "香城レノンウォール | 香城シミュレーター",
     "intro": "ダウンロードやプレイで困っていますか？アイデアや感想も歓迎します。街のみなさんと一緒に香城をより良くしましょう。",
     "newPost": "質問・コメントを書く",
     "publicNote": "街坊会員に登録すると投稿できます。投稿と返信は公開され、あなたの街坊名で表示されます。",
@@ -2737,7 +2737,7 @@ const SITE_NEWS = {
   },
   "en": {
     "title": "Heung Shing Forum",
-    "metaTitle": "Heung Shing Forum | The City of Heung Shing",
+    "metaTitle": "Heung Shing Forum | Heung Shing Simulator",
     "eyebrow": "HEUNG SHING FORUM",
     "intro": "Official news and posts from fellow citizens show up together here. Pick a category to browse, or start a post of your own.",
     "forumNote": "Comments, new posts and emoji reactions all reach the game's Heung Shing Forum once the moderator approves them.",
@@ -2788,7 +2788,7 @@ const SITE_NEWS = {
   },
   "ja": {
     "title": "香城討論区",
-    "metaTitle": "香城討論区 | 香城模擬器",
+    "metaTitle": "香城討論区 | 香城シミュレーター",
     "eyebrow": "HEUNG SHING FORUM",
     "intro": "公式ニュースと市民の投稿がここに一緒に表示されます。カテゴリーを選んで見るか、新しい投稿を始めましょう。",
     "forumNote": "コメント、新規投稿、絵文字リアクションはすべて、モデレーターの承認後にゲーム内の香城討論区に反映されます。",
@@ -2901,7 +2901,7 @@ const SITE_ADS = {
   },
   "en": {
     "title": "Promo 2 – Zero-Speed Spread",
-    "metaTitle": "Promo 2 – Zero-Speed Spread | The City of Heung Shing",
+    "metaTitle": "Promo 2 – Zero-Speed Spread | Heung Shing Simulator",
     "eyebrow": "PROMO 2 · ZERO-SPEED SPREAD",
     "intro": "Submit an ad, and once the moderator approves it, it'll rotate through the in-game news ticker alongside the other Heung Shing brands.",
     "newAd": "Submit an ad",
@@ -2928,7 +2928,7 @@ const SITE_ADS = {
   },
   "ja": {
     "title": "プロモ2・ゼロ速拡散",
-    "metaTitle": "プロモ2・ゼロ速拡散 | 香城模擬器",
+    "metaTitle": "プロモ2・ゼロ速拡散 | 香城シミュレーター",
     "eyebrow": "PROMO 2 · ZERO-SPEED SPREAD",
     "intro": "広告を投稿すると、モデレーターの承認後にゲーム内のニュースティッカーで他の香城ブランドと一緒に流れます。",
     "newAd": "広告を投稿する",
@@ -3166,7 +3166,7 @@ const SITE_MEMBER = {
   },
   "en": {
     "title": "Heung Shing Neighbourhood Association",
-    "metaTitle": "Neighbourhood Association | The City of Heung Shing",
+    "metaTitle": "Neighbourhood Association | Heung Shing Simulator",
     "eyebrow": "NEIGHBOURHOOD ASSOCIATION",
     "intro": "Join the Association to post, comment or react in the Heung Shing Forum, and to post on the Heung Shing Lennon Wall — joining gives you a fixed neighbour identity that future Association perks will build on.",
     "joinTitle": "Join / Sign in",
@@ -3202,7 +3202,7 @@ const SITE_MEMBER = {
   },
   "ja": {
     "title": "香城街坊福利会",
-    "metaTitle": "香城街坊福利会 | 香城模擬器",
+    "metaTitle": "香城街坊福利会 | 香城シミュレーター",
     "eyebrow": "NEIGHBOURHOOD ASSOCIATION",
     "intro": "街坊会員に登録すると、【香城討論区】で投稿・コメント・絵文字リアクションができ、【香城レノンウォール】にも投稿できます——登録すると固定の街坊（隣人）アイデンティティが手に入り、今後の福利会の特典はこの上に追加されていきます。",
     "joinTitle": "登録 / ログイン",
@@ -3595,10 +3595,10 @@ const SITE_GUIDE = {
     ],
   },
   en: {
-    metaTitle: "Game Guide | The City of Heung Shing",
-    metaDescription: "A complete rules guide for The City of Heung Shing: zoning density, taxes and economy, the Legislative Council, typhoon weather, special-building unlocks and the transport system, all in one place.",
+    metaTitle: "Game Guide | Heung Shing Simulator",
+    metaDescription: "A complete rules guide for Heung Shing Simulator: zoning density, taxes and economy, the Legislative Council, typhoon weather, special-building unlocks and the transport system, all in one place.",
     pageTitle: "Game Guide",
-    pageIntro: "This page walks through every core mechanic in The City of Heung Shing - from zoning and construction to Legislative Council votes, from the stock market to Typhoon Signal No. 8. For a quick lookup of building unlock numbers, jump straight to",
+    pageIntro: "This page walks through every core mechanic in Heung Shing Simulator - from zoning and construction to Legislative Council votes, from the stock market to Typhoon Signal No. 8. For a quick lookup of building unlock numbers, jump straight to",
     pageIntroManualLink: "Special Building Unlock Specs",
     pageIntroSuffix: ".",
     toc: "Contents",
@@ -3769,10 +3769,10 @@ const SITE_GUIDE = {
     ],
   },
   ja: {
-    metaTitle: "ゲームガイド | 香城模擬器",
-    metaDescription: "香城模擬器の完全ルールガイド：区画の密度、経済・税制、立法会、台風天候、特殊建築の解禁、交通システムをこのページで一挙解説。",
+    metaTitle: "ゲームガイド | 香城シミュレーター",
+    metaDescription: "香城シミュレーターの完全ルールガイド：区画の密度、経済・税制、立法会、台風天候、特殊建築の解禁、交通システムをこのページで一挙解説。",
     pageTitle: "ゲームガイド",
-    pageIntro: "このページでは香城模擬器のすべての基本システムを解説します——区画・建設から立法会の投票、株式市場から台風シグナル8号まで。建築の解禁数値をすぐに調べたい場合は",
+    pageIntro: "このページでは香城シミュレーターのすべての基本システムを解説します——区画・建設から立法会の投票、株式市場から台風シグナル8号まで。建築の解禁数値をすぐに調べたい場合は",
     pageIntroManualLink: "特殊建築の解禁条件",
     pageIntroSuffix: "をご覧ください。",
     toc: "目次",

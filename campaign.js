@@ -15,6 +15,8 @@
   const CAMPAIGN_START_FILE_FORMAT = 'heung-shing-campaign-start';
   // ch05 shares the 九龍城 map: its pin sits up by the 黃大仙 temple (HK1980 grid metres)
   const CAMPAIGN_PIN_OFFSETS = { ch05: { de: -500, dn: 2200 } };
+  // the chapter map's backdrop (Norton 2026-11-21; scripts/source-art/campaign/selectBackdrop-source.png)
+  const CAMPAIGN_SELECT_BACKDROP = 'UI/campaign/select-backdrop.webp';
 
   const runtime = {
     profile: createEmptyCampaignProfile(),
@@ -50,6 +52,18 @@
   // The browser build serves the art under content-hashed names. A literal path in a script is
   // rewritten when it is built - but not one under UI/news/ (kept logical for forum posts in saves),
   // so the prologue's letter (UI/news/phase0.webp) is resolved here, as every picture is.
+  // A campaign toast: it shows over the chapter map, where the city's own notices are kept out of the
+  // way (Norton 2026-11-21: 不要把城市通知出現在此版面).
+  function campaignToast(message, type = 'info') {
+    if (typeof showToast !== 'function' || typeof document === 'undefined') return;
+    showToast(message, type);
+    document.getElementById('toast-container')?.lastElementChild?.classList.add('campaign-toast');
+  }
+
+  function setCampaignSelectOpen(open) {
+    document.body?.classList.toggle('campaign-select-open', open);
+  }
+
   function campaignImageSrc(path) {
     return typeof resolveBundledAssetPath === 'function' ? resolveBundledAssetPath(path) : path;
   }
@@ -546,14 +560,14 @@
     const spec = CAMPAIGN_CHAPTER_SPECS[chapterId];
     if (!chapter || !spec) return false;
     if (typeof gameReady !== 'undefined' && !gameReady) {
-      if (typeof showToast === 'function') showToast(t('toast.stillLoading'), 'warning');
+      campaignToast(t('toast.stillLoading'), 'warning');
       return false;
     }
     const file = await fetchCampaignStartFile(spec.startFile);
     if (!file && (spec.requiresStartFile || !spec.fresh)) {
       runtime.startFileReady[chapterId] = false;
       renderCampaignSelect();
-      if (typeof showToast === 'function') showToast(say(L(`第 ${chapter.number} 章嘅開局城市準備中。`, `Chapter ${chapter.number}'s starting city is still being built.`, `第${chapter.number}章の開始都市は準備中です。`)), 'warning');
+      campaignToast(say(L(`第 ${chapter.number} 章嘅開局城市準備中。`, `Chapter ${chapter.number}'s starting city is still being built.`, `第${chapter.number}章の開始都市は準備中です。`)), 'warning');
       return false;
     }
     if (isCityInPlay() && !window.confirm(say(L(
@@ -564,7 +578,7 @@
     closeCampaignSelect();
     const started = file ? await loadCampaignStartFile(file) : await startFreshCampaignCity(chapter, spec);
     if (!started) {
-      if (typeof showToast === 'function') showToast(say(L('開唔到呢一章。', 'This chapter could not start.', 'この章を開始できませんでした。')), 'danger');
+      campaignToast(say(L('開唔到呢一章。', 'This chapter could not start.', 'この章を開始できませんでした。')), 'danger');
       return false;
     }
     await loadCampaignProfile();
@@ -1224,7 +1238,7 @@
         if (!mayor) { step = 'form'; render(); return; }
         runtime.profile.mayor = mayor;
         scheduleCampaignProfileSave();
-        if (typeof showToast === 'function') showToast(say(L(`歡迎上任，${mayor.name}市長！`, `Welcome to office, Mayor ${mayor.name}!`, `ようこそ、${mayor.name}市長！`)), 'success');
+        campaignToast(say(L(`歡迎上任，${mayor.name}市長！`, `Welcome to office, Mayor ${mayor.name}!`, `ようこそ、${mayor.name}市長！`)), 'success');
         finish(true);
       };
       const onKey = (event) => {
@@ -1279,6 +1293,8 @@
         </div>
         <div class="dialog-body campaign-plain" data-cs-body></div>
       </div>`;
+    // Norton's harbour at sunset behind the chart (2026-11-21), the story's look rather than the city's windows
+    dialog.querySelector('.dialog-overlay').style.backgroundImage = `url("${encodeURI(campaignImageSrc(CAMPAIGN_SELECT_BACKDROP))}")`;
     document.body.appendChild(dialog);
     dialog.addEventListener('click', (event) => {
       if (event.target.closest('[data-cs-close]')) { closeCampaignSelect(); return; }
@@ -1300,6 +1316,7 @@
     }
     const dialog = ensureCampaignSelect();
     dialog.style.display = 'flex';
+    setCampaignSelectOpen(true);
     renderCampaignSelect();
     await Promise.all([loadCampaignProfile(), checkCampaignStartFiles()]);
     renderCampaignSelect();
@@ -1308,6 +1325,7 @@
   function closeCampaignSelect() {
     const dialog = document.getElementById('campaign-select-dialog');
     if (dialog) dialog.style.display = 'none';
+    setCampaignSelectOpen(false);
   }
 
   // ── Export a chapter's start (development only) ───────────────────────────
@@ -1341,15 +1359,16 @@
     style.id = 'campaign-styles';
     style.textContent = `
       #campaign-panel { position: fixed; right: 16px; top: 150px; width: 280px; max-height: calc(100vh - 430px); min-height: 60px; overflow-y: auto;
-        z-index: 20; background: #e4eaf1; border: 1px solid #8794a3; border-radius: 6px; box-shadow: 0 6px 16px rgba(27,40,55,0.2);
+        z-index: 20; background: #f1f4f8; border: 1px solid #9aa8b8; border-radius: 6px; box-shadow: 0 6px 16px rgba(27,40,55,0.2);
         font: 12px/1.45 Arial, sans-serif; color: #1e2427; }
-      #campaign-panel .cp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #1e5cb3; color: #fff; font-weight: 700; position: sticky; top: 0; }
+      /* the game's own look (Norton 2026-11-21): deep green and grey-white, as the top bar and the ticker */
+      #campaign-panel .cp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #123f38; color: #fff; font-weight: 700; position: sticky; top: 0; }
       #campaign-panel .cp-head span:first-child { flex: 1; }
       #campaign-panel .cp-head button { border: none; background: rgba(255,255,255,0.18); color: #fff; width: 22px; height: 20px; border-radius: 3px; cursor: pointer; font: inherit; }
       .cp-stars span { color: #a3acb5; } .cp-stars span.is-on { color: #f2b51d; }
       #campaign-panel .cp-head .cp-stars span { color: rgba(255,255,255,0.45); } #campaign-panel .cp-head .cp-stars span.is-on { color: #ffd34d; }
       #campaign-panel .cp-title { padding: 6px 10px 0; font-size: 13px; font-weight: 700; }
-      #campaign-panel .cp-section { margin: 8px 10px 4px; font-weight: 700; color: #1e5cb3; }
+      #campaign-panel .cp-section { margin: 8px 10px 4px; font-weight: 700; color: #1a6f5a; }
       #campaign-panel .cp-status { margin: 4px 10px 0; color: #8e1b5b; font-weight: 700; }
       #campaign-panel .cp-tutorial { margin: 6px 8px 0; padding: 0 0 6px; background: #fff8e1; border: 1px solid #e0c46c; border-radius: 5px; }
       #campaign-panel .cp-tutor { display: flex; gap: 8px; padding: 0 8px; }
@@ -1357,7 +1376,7 @@
       #campaign-panel .cp-tutor-name { font-weight: 700; }
       #campaign-panel .cp-tutorial-actions { display: flex; gap: 6px; justify-content: flex-end; padding: 6px 8px 0; }
       #campaign-panel .cp-tutorial-actions button { font: inherit; padding: 2px 8px; border-radius: 3px; border: 1px solid #8794a3; background: #f4f7fa; cursor: pointer; }
-      #campaign-panel .cp-tutorial-actions .cp-ack { background: #1e5cb3; color: #fff; border-color: #1e5cb3; }
+      #campaign-panel .cp-tutorial-actions .cp-ack { background: #1a6f5a; color: #fff; border-color: #105746; }
       #campaign-panel .cp-tutorial-actions .cp-look { background: #fff; color: #8a2f12; border-color: #c2410c; }
       #campaign-panel .cp-objectives { list-style: none; margin: 0 8px; padding: 0; }
       #campaign-panel .cp-objectives li { display: grid; grid-template-columns: 16px 1fr; column-gap: 4px; padding: 3px 2px; border-bottom: 1px solid #cdd5de; }
@@ -1371,7 +1390,8 @@
          open on the right). The chapter's title goes, the guide's face shrinks, the objectives fold
          to one line, and the buttons grow to a finger's size. */
       #campaign-panel.is-touch { top: calc(var(--mobile-top, 44px) + var(--mobile-ticker, 24px) + env(safe-area-inset-top) + 6px);
-        left: max(6px, env(safe-area-inset-left)); right: auto; width: min(360px, calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+        left: auto; right: 0; width: min(360px, calc(100vw - env(safe-area-inset-left))); padding-right: env(safe-area-inset-right); box-sizing: border-box;
+        border-right: 0; border-radius: 6px 0 0 6px;
         max-height: min(46dvh, calc(100dvh - var(--mobile-top, 44px) - var(--mobile-ticker, 24px) - var(--mobile-nav, 52px) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px));
         min-height: 0; overscroll-behavior: contain; font-size: 12.5px; line-height: 1.4; }
       #campaign-panel.is-touch .cp-head { min-height: 34px; padding: 2px 4px 2px 10px; }
@@ -1385,13 +1405,13 @@
       #campaign-panel.is-touch .cp-tutorial-actions button, #campaign-panel.is-touch .cp-foot button { min-height: 32px; padding: 2px 12px; }
       #campaign-panel.is-touch .cp-status { margin: 4px 8px 0; font-size: 11.5px; }
       #campaign-panel.is-touch .cp-fold { display: flex; gap: 6px; align-items: center; width: calc(100% - 12px); margin: 4px 6px 6px; min-height: 34px;
-        padding: 2px 8px; border: 1px solid #b7c3d0; border-radius: 4px; background: #f4f7fa; font: inherit; font-weight: 700; color: #1e5cb3; text-align: left; cursor: pointer; }
+        padding: 2px 8px; border: 1px solid #9aa8b8; border-radius: 4px; background: #fff; font: inherit; font-weight: 700; color: #1a6f5a; text-align: left; cursor: pointer; }
       #campaign-panel.is-touch .cp-fold span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       #campaign-panel.is-touch .cp-count { flex: none; color: #5b6570; font-weight: 400; }
       #campaign-panel.is-touch .cp-foot { padding: 6px 8px; }
       body:has(#mobile-ui.ticker-hidden) #campaign-panel.is-touch { --mobile-ticker: 0px; }
       @media (orientation: portrait) and (max-width: 560px) {
-        #campaign-panel.is-touch { width: auto; right: max(6px, env(safe-area-inset-right)); }
+        #campaign-panel.is-touch { width: auto; left: 0; right: 0; border-left: 0; border-radius: 0; }
       }
       /* held sideways the column is clear of the menu handle (bottom centre): it may run down the side */
       @media (orientation: landscape) {
@@ -1470,43 +1490,93 @@
       .campaign-plain.dialog-body { white-space: normal; font-family: Arial, sans-serif; line-height: 1.55; }
       /* over the title screen (z-index 400), as the save list is */
       #campaign-select-dialog, #campaign-failure-dialog { z-index: 500; }
-      #campaign-select-dialog .cs-summary { margin-bottom: 8px; color: #3a4148; }
+      /* the chapter map (Norton 2026-11-21: 地圖框用返大航海時代4果套設計語言): over his harbour at sunset, a
+         sheet of the dialogue's parchment in maroon and gold, its title on a plate, the chart in a framed
+         inset; the pins and the chapter buttons in the same colours (gold: starred, maroon: to play) */
+      #campaign-select-dialog .dialog-overlay { background: #0b1620 center 35% / cover no-repeat; }
+      #campaign-select-dialog .dialog-overlay::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(8,12,18,0.05) 30%, rgba(8,12,18,0.45) 100%); }
+      #campaign-select-dialog .dialog-box { box-sizing: border-box; padding: 0; max-height: 94vh; color: #3b2414; background: linear-gradient(180deg, #fcf5e1 0%, #f2e4bf 100%);
+        border: 3px solid #c9a227; border-radius: 6px; box-shadow: 0 0 0 5px #6e1a1a, 0 0 0 7px #c9a227, 0 22px 54px rgba(0,0,0,0.6), inset 0 0 32px rgba(140,96,36,0.22);
+        font: 15px/1.5 "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+      #campaign-select-dialog .dialog-box::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(160,118,30,0.5); border-radius: 3px; pointer-events: none; }
+      #campaign-select-dialog .dialog-title-bar { position: static; justify-content: center; margin: 12px auto 0; padding: 3px 28px; background: linear-gradient(180deg, #7a1f1f, #561313);
+        border: 2px solid #c9a227; border-radius: 3px; color: #f6d77a; font-size: 18px; letter-spacing: 3px; box-shadow: 0 3px 8px rgba(0,0,0,0.25); }
+      #campaign-select-dialog .dialog-close-btn { position: absolute; top: 10px; right: 12px; z-index: 2; width: 34px; height: 34px; padding: 0; line-height: 1; font-size: 16px;
+        color: #6e1a1a; background: #fffaf0; border: 2px solid #c9a227; border-radius: 4px; }
+      /* (the windows' shared light grey body would cover the parchment) */
+      #campaign-select-dialog .dialog-body { font: inherit; color: inherit; padding: 12px 20px 18px; white-space: normal; background: transparent; }
+      #campaign-select-dialog .cs-summary { margin-bottom: 8px; color: #6b4a2a; font-weight: 700; }
       /* the map no taller than the screen allows, so the chapter's details and 開始 stay in view */
-      #campaign-select-dialog .cs-map { position: relative; width: fit-content; margin: 0 auto; }
-      #campaign-select-dialog .cs-map img { display: block; max-width: 100%; max-height: 58vh; width: auto; border-radius: 4px; }
+      #campaign-select-dialog .cs-map { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; padding: 4px; background: #4a2a18;
+        border: 3px solid #c9a227; border-radius: 4px; box-shadow: 0 0 0 3px #6e1a1a, 0 6px 16px rgba(0,0,0,0.35); box-sizing: border-box; }
+      #campaign-select-dialog .cs-map img { display: block; max-width: 100%; max-height: min(56vh, calc(94vh - 330px)); width: auto; border-radius: 2px; filter: sepia(0.18) saturate(0.95); }
       #campaign-select-dialog .cs-pin { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%;
-        border: 2px solid #fff; font: 700 11px Arial, sans-serif; color: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.45); padding: 0; }
-      #campaign-select-dialog .cs-pin.is-open { background: #1e5cb3; }
-      #campaign-select-dialog .cs-pin.is-cleared { background: #c9a227; }
-      #campaign-select-dialog .cs-pin.is-soon, #campaign-select-dialog .cs-pin.is-preparing { background: #6f7f90; }
-      #campaign-select-dialog .cs-pin.is-locked { background: #3d444b; opacity: 0.8; }
-      #campaign-select-dialog .cs-pin.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; z-index: 2; }
+        border: 2px solid #fcf5e1; font: 700 11px Arial, sans-serif; color: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.5); padding: 0; }
+      #campaign-select-dialog .cs-pin.is-open { background: #8e1b5b; }
+      #campaign-select-dialog .cs-pin.is-cleared { background: #c9a227; color: #3b2414; }
+      #campaign-select-dialog .cs-pin.is-soon, #campaign-select-dialog .cs-pin.is-preparing { background: #7d6f5c; }
+      #campaign-select-dialog .cs-pin.is-locked { background: #4a3f36; opacity: 0.85; }
+      #campaign-select-dialog .cs-pin.is-selected { outline: 3px solid #f6d77a; outline-offset: 1px; box-shadow: 0 0 0 6px rgba(110,26,26,0.55), 0 0 14px rgba(246,215,122,0.9); z-index: 2; }
       #campaign-select-dialog .cs-grid { display: none; }
+      body.campaign-select-open #toast-container > :not(.campaign-toast) { display: none; }
+      [data-ui-profile="touch"] #campaign-select-dialog .dialog-title-bar { min-height: 0; position: static; }
+      [data-ui-profile="touch"] #campaign-select-dialog .dialog-close-btn { width: 44px; height: 44px; top: 6px; right: 8px; }
       /* a phone (Norton 2026-11-21: 手機版啲數字堆埋一齊): 18 pins of 28px pile up on a map some 330px
          wide - Kowloon and the island are a heap. The map stays as an overview of small dots, the chosen
          chapter's large with its number, and the chapters are a grid of buttons under it. */
       @media (max-width: 640px), (max-height: 520px) {
-        #campaign-select-dialog .cs-map img { max-height: 42vh; }
+        #campaign-select-dialog .dialog-body { padding: 10px 12px 14px; }
+        #campaign-select-dialog .dialog-title-bar { font-size: 16px; letter-spacing: 2px; padding: 2px 18px; }
+        #campaign-select-dialog .cs-map img { max-height: 40vh; }
         #campaign-select-dialog .cs-pin { width: 12px; height: 12px; border-width: 1px; font-size: 0; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.45); }
         #campaign-select-dialog .cs-pin.is-selected { width: 26px; height: 26px; border-width: 2px; font-size: 10px; }
-        #campaign-select-dialog .cs-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 8px; }
+        #campaign-select-dialog .cs-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
         #campaign-select-dialog .cs-chip { min-height: 44px; padding: 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-          border: 2px solid #fff; border-radius: 6px; color: #fff; font: 700 14px/1.1 Arial, sans-serif; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }
+          border: 2px solid #c9a227; border-radius: 4px; color: #fcf5e1; font: 700 14px/1.1 Arial, sans-serif; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }
         #campaign-select-dialog .cs-chip span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 10px/1.2 "PingFang TC", "Noto Sans TC", Arial, sans-serif; }
-        #campaign-select-dialog .cs-chip.is-open { background: #1e5cb3; }
-        #campaign-select-dialog .cs-chip.is-cleared { background: #c9a227; }
-        #campaign-select-dialog .cs-chip.is-soon, #campaign-select-dialog .cs-chip.is-preparing { background: #6f7f90; }
-        #campaign-select-dialog .cs-chip.is-locked { background: #3d444b; opacity: 0.8; }
-        #campaign-select-dialog .cs-chip.is-selected { outline: 3px solid #f2b51d; outline-offset: 1px; }
+        #campaign-select-dialog .cs-chip.is-open { background: linear-gradient(180deg, #a3256d, #6e1240); }
+        #campaign-select-dialog .cs-chip.is-cleared { background: linear-gradient(180deg, #e0bd45, #b58f1c); color: #3b2414; }
+        #campaign-select-dialog .cs-chip.is-soon, #campaign-select-dialog .cs-chip.is-preparing { background: #7d6f5c; }
+        #campaign-select-dialog .cs-chip.is-locked { background: #4a3f36; border-color: #8a7550; opacity: 0.85; }
+        #campaign-select-dialog .cs-chip.is-selected { outline: 3px solid #6e1a1a; outline-offset: 1px; box-shadow: 0 0 0 5px #f6d77a; }
       }
-      #campaign-select-dialog .cs-detail { margin-top: 10px; }
-      #campaign-select-dialog .cs-detail-title { font-size: 15px; font-weight: 700; }
-      #campaign-select-dialog .cs-detail-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+      /* a phone held sideways (Norton 2026-11-21: 地圖在右，選區在左): the chapters on the left, the map
+         on the right, as tall as the screen allows */
+      @media (orientation: landscape) and (max-height: 520px) {
+        [data-ui-profile="touch"] #campaign-select-dialog .dialog-box, #campaign-select-dialog .dialog-box { width: min(860px, 100%); max-width: 100% !important; }
+        #campaign-select-dialog [data-cs-body] { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "top map" "grid map" "detail map";
+          grid-template-rows: auto auto 1fr; column-gap: 14px; row-gap: 8px; align-items: start; }
+        #campaign-select-dialog .cs-top { grid-area: top; margin: 0; }
+        #campaign-select-dialog .cs-map { grid-area: map; margin: 0; align-self: center; }
+        #campaign-select-dialog .cs-map img { max-height: calc(100dvh - 110px); }
+        #campaign-select-dialog .cs-grid { grid-area: grid; margin: 0; }
+        #campaign-select-dialog .cs-map img { max-height: calc(100dvh - 128px); }
+        /* the chapter's name and its 開始 side by side, so the column fits the short screen */
+        #campaign-select-dialog .cs-detail { grid-area: detail; margin: 0; padding: 6px 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto;
+          grid-template-areas: "title actions" "meta actions"; column-gap: 10px; align-items: center; }
+        #campaign-select-dialog .cs-detail-title { grid-area: title; font-size: 15px; line-height: 1.3; }
+        #campaign-select-dialog .cs-detail-meta { grid-area: meta; font-size: 13px; }
+        #campaign-select-dialog .cs-detail-actions { grid-area: actions; margin: 0; flex-direction: column; }
+        #campaign-select-dialog .dialog-title-bar { margin-top: 8px; font-size: 15px; }
+        #campaign-select-dialog .cs-map img { max-width: 46vw; }
+        #campaign-select-dialog .cs-top { gap: 6px 10px; }
+        #campaign-select-dialog .cs-top .cs-summary { font-size: 13px; }
+        /* (the touch UI's 44px buttons, by a more specific rule: !important) */
+        #campaign-select-dialog .cs-chip { min-height: 38px !important; }
+      }
+      #campaign-select-dialog .cs-detail { margin-top: 12px; padding: 8px 12px; background: rgba(255,250,240,0.7); border: 1px solid rgba(160,118,30,0.55); border-radius: 4px; }
+      #campaign-select-dialog .cs-detail-title { font-size: 17px; font-weight: 700; color: #6e1a1a; }
+      #campaign-select-dialog .cs-detail-meta { color: #5b3b22; }
+      #campaign-select-dialog .cs-detail-meta .cp-stars span { color: #b8a27a; } #campaign-select-dialog .cs-detail-meta .cp-stars span.is-on { color: #c9a227; }
+      #campaign-select-dialog .cs-detail-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+      #campaign-select-dialog .cs-detail-actions button { min-height: 40px; padding: 4px 20px; margin: 0; font: inherit; font-weight: 700; border-radius: 4px; cursor: pointer;
+        color: #3b2414; background: #fffaf0; border: 2px solid #c9a227; }
+      #campaign-select-dialog .cs-detail-actions .dialog-ok-btn { color: #f6d77a; background: linear-gradient(180deg, #7a1f1f, #561313); }
       #campaign-select-dialog .cs-detail-actions button[disabled] { opacity: 0.45; cursor: default; }
       #campaign-select-dialog .cs-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
       #campaign-select-dialog .cs-top .cs-summary { margin: 0; }
       #campaign-select-dialog .cs-mayor { display: flex; align-items: center; gap: 8px; padding: 3px 10px 3px 3px; border: 2px solid #c9a227; border-radius: 4px;
-        background: linear-gradient(180deg, #fcf5e1, #f2e4bf); color: #3b2414; font: inherit; text-align: left; cursor: pointer; }
+        background: linear-gradient(180deg, #fffaf0, #f6e8c4); color: #3b2414; font: inherit; text-align: left; cursor: pointer; box-shadow: 0 0 0 2px #6e1a1a; }
       #campaign-select-dialog .cs-mayor img { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; border: 1px solid #6e1a1a; background: #4a2a18; }
       #campaign-select-dialog .cs-mayor strong, #campaign-select-dialog .cs-mayor small { display: block; }
       #campaign-select-dialog .cs-mayor small { color: #7a1f1f; font-size: 11px; }

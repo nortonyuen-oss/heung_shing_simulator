@@ -414,38 +414,38 @@ function createTyphoonShelterDom() {
     style.id = 'ts-plan-style';
     style.textContent = `
       #ts-modebar{position:fixed;top:92px;left:50%;transform:translateX(-50%);z-index:900;display:flex;gap:6px;align-items:center;
-        background:rgba(12,24,38,.92);border:1px solid #3f6f8c;border-radius:10px;padding:6px 10px;color:#eaf6ff;
+        background:rgba(11,26,22,.92);border:1px solid #3e7367;border-radius:10px;padding:6px 10px;color:#eaf6ff;
         font:13px/1.3 system-ui,-apple-system,"PingFang HK","Noto Sans TC",sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35)}
       #ts-modebar[hidden],#ts-panel[hidden]{display:none!important}
-      #ts-modebar button,#ts-panel button{border:1px solid #3f7f9c;border-radius:7px;padding:4px 10px;color:#eaf6ff;background:#123243;font:inherit;cursor:pointer}
+      #ts-modebar button,#ts-panel button{border:1px solid #418474;border-radius:7px;padding:4px 10px;color:#eaf6ff;background:#13342d;font:inherit;cursor:pointer}
       #ts-modebar button[data-active="true"]{background:#1f9d5c;border-color:#7ce8a8;color:#06210f}
       #ts-modebar button{white-space:nowrap;flex:none}
       #ts-modebar b{white-space:nowrap}
-      #ts-modebar .ts-hint{color:#9bb8cc;font-size:12px;margin-left:4px;max-width:300px}
+      #ts-modebar .ts-hint{color:#90bdb3;font-size:12px;margin-left:4px;max-width:300px}
       #ts-modebar .ts-confirm{background:#1f9d5c;border-color:#7ce8a8;color:#06210f;font-weight:700;margin-left:8px}
-      #ts-modebar .ts-confirm:disabled{background:#2a3a48;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
+      #ts-modebar .ts-confirm:disabled{background:#273c38;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
       #ts-modebar .ts-confirm-note{color:#ffd27a;font-size:12px;max-width:320px}
       #ts-modebar .ts-cancel{margin-left:4px}
-      #ts-panel .ts-expand{background:#1f6f9d;border-color:#7cc8e8;color:#eaf6ff;font-weight:700}
+      #ts-panel .ts-expand{background:#237662;border-color:#5dd1b6;color:#eaf6ff;font-weight:700}
       #ts-panel .ts-promenade{background:#6b5a2f;border-color:#e0c27a;color:#fff6dd;font-weight:700}
-      #ts-panel .ts-promenade:disabled{background:#2a3a48;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
+      #ts-panel .ts-promenade:disabled{background:#273c38;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
       #ts-modebar .ts-confirm-note.ok{color:#9be89b}
-      #ts-panel{position:fixed;top:140px;right:16px;width:300px;z-index:900;background:rgba(12,24,38,.95);border:1px solid #3f6f8c;
+      #ts-panel{position:fixed;top:140px;right:16px;width:300px;z-index:900;background:rgba(11,26,22,.95);border:1px solid #3e7367;
         border-radius:12px;padding:12px 14px;color:#eaf6ff;font:13px/1.5 system-ui,-apple-system,"PingFang HK","Noto Sans TC",sans-serif;
         box-shadow:0 12px 36px rgba(0,0,0,.4)}
       #ts-panel h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:6px}
-      #ts-panel input[type=text]{flex:1;min-width:0;background:#0d2232;color:#eaf6ff;border:1px solid #2f5a72;border-radius:6px;padding:3px 6px;font:inherit}
+      #ts-panel input[type=text]{flex:1;min-width:0;background:#0d251f;color:#eaf6ff;border:1px solid #2f5e53;border-radius:6px;padding:3px 6px;font:inherit}
       #ts-panel .ts-chip{font-size:11px;padding:1px 7px;border-radius:9px;white-space:nowrap}
       #ts-panel .ts-chip.ok{background:#1f9d5c;color:#06210f}#ts-panel .ts-chip.bad{background:#c0392b}
       #ts-panel dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0}
-      #ts-panel dt{color:#9bb8cc}#ts-panel dd{margin:0;text-align:right}
+      #ts-panel dt{color:#90bdb3}#ts-panel dd{margin:0;text-align:right}
       #ts-panel ul{margin:4px 0;padding-left:18px}#ts-panel li.bad{color:#ff9a9a}#ts-panel li.warn{color:#ffd27a}
       #ts-panel .ts-note{color:#7f9db3;font-size:11px}
       #ts-panel .ts-row{display:flex;gap:6px;align-items:center;margin-top:8px}
-      #ts-panel .ts-works{border-top:1px solid #2a4a60;margin-top:10px;padding-top:4px}
+      #ts-panel .ts-works{border-top:1px solid #294e45;margin-top:10px;padding-top:4px}
       #ts-panel .ts-works-block{color:#ffd27a}
       #ts-panel .ts-approve{background:#1f9d5c;border-color:#7ce8a8;color:#06210f;font-weight:700}
-      #ts-panel .ts-approve:disabled{background:#2a3a48;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
+      #ts-panel .ts-approve:disabled{background:#273c38;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
     `;
     document.head.appendChild(style);
   }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="ui-profile.js"></script>
-  <title>香城模擬器 | The City of Heung Shing v6.0.6 — 【玩轉18區】</title>
+  <title>香城模擬器 | Heung Shing Simulator v6.0.6 — 【玩轉18區】</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -608,7 +608,7 @@
       position: relative;
       font-family: inherit;
     }
-    .menu-drop-item:hover { background: #1e5cb3; color: #fff; }
+    .menu-drop-item:hover { background: #1d6958; color: #fff; }
     .menu-drop-item.menu-checked::before {
       content: '✓';
       position: absolute;
@@ -719,7 +719,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 6px 10px;
-      background: #1e5cb3;
+      background: #123f38;
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -750,55 +750,38 @@
     .dialog-body h3 {
       font-size: 13px;
       margin: 10px 0 4px;
-      color: #1e5cb3;
+      color: #1d6958;
       font-family: Arial, sans-serif;
     }
-    .about-links {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 14px;
-    }
-    .about-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 92px;
-      padding: 4px 10px;
-      color: #123c78;
-      background: #ece7d4;
-      border: 2px solid #6f6b60;
-      border-radius: 3px;
-      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
-      font-family: Arial, sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.3;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .about-link:hover {
-      background: #f8f0d2;
-      color: #0d2d5b;
-    }
-    .about-app-icon {
-      display: block;
-      margin: 8px auto;
-      padding: 0;
-      border: 0;
-      color: inherit;
-      background: transparent;
-      font: inherit;
-      font-size: 48px;
-      line-height: 1;
-      cursor: default;
-      user-select: none;
-    }
-    .about-app-icon:focus-visible {
-      outline: 2px solid #1e5cb3;
-      outline-offset: 3px;
-      border-radius: 4px;
+    /* 關於 (Norton 2026-11-21): a short card - the icon in a 大航海時代4 frame (parchment, gold, maroon)
+       beside the name, the links and OK as the game's buttons (deep green and grey-white) */
+    #about-dialog .about-box { max-width: 520px; }
+    #about-dialog .about-body { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "portrait text" "links links";
+      gap: 16px 20px; align-items: center; padding: 20px 22px 16px; white-space: normal; font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: #f1f4f8; }
+    .about-portrait { grid-area: portrait; padding: 7px; border-radius: 6px; background: linear-gradient(180deg, #fcf5e1 0%, #f2e4bf 100%);
+      border: 3px solid #c9a227; box-shadow: 0 0 0 3px #6e1a1a, 0 0 0 5px #c9a227, 0 10px 22px rgba(0,0,0,0.3), inset 0 0 14px rgba(140,96,36,0.25); }
+    .about-app-icon { display: block; margin: 0; padding: 0; border: 0; border-radius: 22%; background: transparent; cursor: default; user-select: none; line-height: 0; }
+    .about-app-icon img { display: block; width: 128px; height: 128px; }
+    .about-app-icon:focus-visible { outline: 3px solid #1a6f5a; outline-offset: 3px; }
+    .about-text { grid-area: text; min-width: 0; display: grid; gap: 4px; justify-items: start; text-align: left; }
+    .about-name { font-size: 24px; font-weight: 900; letter-spacing: 2px; color: #123f38; line-height: 1.2; }
+    .about-english { font-size: 13px; color: #606a77; font-family: Georgia, "Times New Roman", serif; font-style: italic; }
+    .about-version { margin-top: 4px; padding: 2px 10px; border-radius: 999px; background: #123f38; color: #fff; font-size: 12px; font-weight: 700; }
+    .about-inspired { margin-top: 6px; font-size: 13px; color: #22242a; }
+    .about-motto { font-size: 12px; letter-spacing: 3px; color: #1a6f5a; font-weight: 700; }
+    .about-links { grid-area: links; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding-top: 14px; border-top: 1px solid #c3ccd7; }
+    .about-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 140px; min-height: 38px; padding: 6px 16px;
+      color: #1a6f5a; background: #fff; border: 1.5px solid #1a6f5a; border-radius: 8px; box-shadow: 0 1px 3px rgba(32,42,54,0.12);
+      font-size: 14px; font-weight: 700; line-height: 1.2; text-decoration: none; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+    .about-link:hover, .about-link:focus-visible { background: #1a6f5a; color: #fff; outline: none; }
+    #about-dialog .dialog-footer { background: #f1f4f8; border-top: 1px solid #c3ccd7; }
+    #about-dialog .about-ok { min-width: 96px; min-height: 36px; padding: 6px 22px; color: #fff; background: #1a6f5a; border: 1.5px solid #105746; border-radius: 8px; font-size: 14px; }
+    #about-dialog .about-ok:hover { background: #105746; }
+    @media (max-width: 480px) {
+      #about-dialog .about-body { grid-template-columns: 1fr; grid-template-areas: "portrait" "text" "links"; justify-items: center; }
+      .about-text { justify-items: center; text-align: center; }
+      .about-portrait { justify-self: center; }
     }
     #visual-route-calibration-test-mode-label {
       color: #b03a2e;
@@ -856,7 +839,7 @@
     }
     .dialog-text-input:focus {
       outline: none;
-      border-color: #1e5cb3;
+      border-color: #1d6958;
       background: #fff;
     }
 
@@ -905,8 +888,8 @@
     }
 
     .plate-color-swatch.is-selected {
-      border-color: #1e5cb3;
-      box-shadow: 0 0 0 2px #1e5cb3, inset 1px 1px 0 rgba(255,255,255,0.25);
+      border-color: #1d6958;
+      box-shadow: 0 0 0 2px #1d6958, inset 1px 1px 0 rgba(255,255,255,0.25);
     }
 
     /* ── Newspaper extra (tabloid front page) ─────────────────────────────── */
@@ -1091,7 +1074,7 @@
     .newspaper-box.is-forum .newspaper-masthead-bar {
       align-items: center;
       padding: 14px 50px 14px 18px;
-      background: #172133;
+      background: #132420;
       border: 0;
     }
     .newspaper-box.is-forum .newspaper-masthead {
@@ -1130,7 +1113,7 @@
     }
     .newspaper-box.is-forum .newspaper-headline {
       margin: 2px 0 5px;
-      color: #172133;
+      color: #132420;
       font-family: Arial, 'Noto Sans TC', sans-serif;
       font-size: 21px;
       line-height: 1.25;
@@ -1144,7 +1127,7 @@
     }
     .newspaper-box.is-forum .newspaper-columns {
       clear: both;
-      color: #283548;
+      color: #233934;
       font-family: Arial, 'Noto Sans TC', sans-serif;
       font-size: 13px;
       line-height: 1.55;
@@ -1159,8 +1142,8 @@
       border-radius: 9px;
       font-family: Arial, 'Noto Sans TC', sans-serif;
     }
-    .newspaper-box.is-forum .newspaper-quote p { color: #25364f; font-size: 13px; font-style: normal; }
-    .newspaper-box.is-forum .newspaper-quote cite { color: #2865b1; text-transform: none; }
+    .newspaper-box.is-forum .newspaper-quote p { color: #203a34; font-size: 13px; font-style: normal; }
+    .newspaper-box.is-forum .newspaper-quote cite { color: #25715f; text-transform: none; }
     .newspaper-box.is-forum .forum-engagement { display: block; clear: both; margin-top: 12px; }
     .forum-reactions {
       display: flex;
@@ -1174,18 +1157,18 @@
       font-weight: 700;
     }
     .forum-comments { display: grid; gap: 7px; margin-top: 10px; }
-    .forum-comment { padding: 8px 10px; background: #f2f4f7; border-radius: 10px; color: #29384c; font-size: 12px; line-height: 1.4; }
-    .forum-comment strong { color: #1f5f9f; margin-right: 6px; }
+    .forum-comment { padding: 8px 10px; background: #f2f4f7; border-radius: 10px; color: #253c36; font-size: 12px; line-height: 1.4; }
+    .forum-comment strong { color: #1f6857; margin-right: 6px; }
     .forum-ai-badge { display: inline-block; margin-right: 6px; padding: 1px 4px; color: #6b3aa5; background: #eee4fb; border: 1px solid #d5c0ef; border-radius: 3px; font-size: 8px; font-weight: 800; vertical-align: 1px; }
-    .forum-official-badge { display: inline-block; margin-right: 6px; padding: 1px 4px; color: #0f5c8a; background: #dbeeff; border: 1px solid #b7d9f4; border-radius: 3px; font-size: 8px; font-weight: 800; vertical-align: 1px; }
+    .forum-official-badge { display: inline-block; margin-right: 6px; padding: 1px 4px; color: #176351; background: #cef3eb; border: 1px solid #95e3d1; border-radius: 3px; font-size: 8px; font-weight: 800; vertical-align: 1px; }
     .newspaper-box.is-forum .newspaper-footer { background: #eef1f5; border-top: 1px solid #dce1e8; }
-    .forum-history-box { max-width: 760px; width: 94vw; max-height: 88vh; padding: 0; overflow: hidden; background: #e9edf2; border: 2px solid #172133; }
-    .forum-history-header { padding: 14px 18px; color: #fff; background: #172133; }
+    .forum-history-box { max-width: 760px; width: 94vw; max-height: 88vh; padding: 0; overflow: hidden; background: #e9edf2; border: 2px solid #132420; }
+    .forum-history-header { padding: 14px 18px; color: #fff; background: #132420; }
     .forum-history-header h2 { margin: 0; font-size: 23px; }
     .forum-history-header p { margin: 4px 0 0; color: #aeb8c8; font-size: 11px; }
-    .forum-history-nav { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 12px; color: #fff; background: #27354b; font-size: 11px; }
-    .forum-history-nav button { padding: 4px 9px; color: #fff; background: #34455f; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
-    .forum-history-nav button:hover { background: #476080; }
+    .forum-history-nav { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 12px; color: #fff; background: #223833; font-size: 11px; }
+    .forum-history-nav button { padding: 4px 9px; color: #fff; background: #2e4a43; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
+    .forum-history-nav button:hover { background: #40655d; }
     .forum-history-nav button.is-active { background: #e65f2b; }
     .forum-filter-count { margin-left: 3px; opacity: .72; }
     .forum-history-list { max-height: calc(88vh - 150px); padding: 10px; overflow-y: auto; }
@@ -1196,12 +1179,12 @@
     .forum-thread summary::-webkit-details-marker { display: none; }
     .forum-thread[open] summary { background: #f5f7fa; border-bottom: 1px solid #d8dee7; }
     .forum-thread-category { align-self: start; padding: 3px 5px; color: #fff; background: #e65f2b; border-radius: 3px; font-size: 10px; text-align: center; }
-    .forum-thread-title { color: #163e72; font-size: 14px; font-weight: 800; }
+    .forum-thread-title { color: #15463a; font-size: 14px; font-weight: 800; }
     .forum-thread-stats { color: #6a7687; font-size: 10px; white-space: nowrap; }
     .forum-thread-meta { grid-column: 2 / 4; color: #7d8794; font-size: 10px; }
     .forum-thread summary.has-image .forum-thread-meta { grid-column: 3 / 5; }
     .forum-thread-thumb { grid-column: 2; grid-row: 1 / 3; width: 72px; height: 50px; object-fit: cover; border-radius: 3px; background: #dfe4ea; }
-    .forum-thread-content { padding: 12px 16px; color: #283548; font-size: 13px; line-height: 1.55; }
+    .forum-thread-content { padding: 12px 16px; color: #233934; font-size: 13px; line-height: 1.55; }
     .forum-thread-content p { margin: 0 0 8px; }
     .forum-thread-image { display: block; width: auto; max-width: 100%; height: auto; max-height: 65vh; margin: 0 auto 12px; object-fit: contain; border: 1px solid #cbd2dc; border-radius: 5px; background: #dfe4ea; }
     .forum-thread-image.is-link { cursor: pointer; }
@@ -1229,7 +1212,7 @@
     .ai-news-toggle-label input {
       width: 16px;
       height: 16px;
-      accent-color: #1e5cb3;
+      accent-color: #1d6958;
     }
     #ai-news-provider,
     #ai-news-model,
@@ -1268,7 +1251,7 @@
     .ai-news-key-link {
       display: inline-block;
       margin-top: 4px;
-      color: #123c78;
+      color: #124539;
       font-size: 11px;
     }
     .ai-news-status-wrap {
@@ -1322,7 +1305,7 @@
     #territory-warning-dialog { z-index: 500; }
 
     #save-list-modal .dialog-overlay {
-      background: rgba(8, 14, 20, 0.62);
+      background: rgba(8,15,14, 0.62);
       backdrop-filter: blur(4px) saturate(0.9);
     }
 
@@ -1335,7 +1318,7 @@
     }
 
     #save-list-modal .dialog-title-bar {
-      background: linear-gradient(90deg, #136249 0%, #0f5a57 52%, #114b67 100%);
+      background: linear-gradient(90deg, #136249 0%, #0f5a57 52%, #123f38 100%);
       color: #ebf8f1;
       border-radius: 0;
       min-height: 38px;
@@ -1346,7 +1329,7 @@
 
     #save-list-modal .dialog-close-btn {
       border: 1px solid rgba(213, 239, 228, 0.45);
-      background: rgba(5, 39, 46, 0.38);
+      background: rgba(9,40,32, 0.38);
       color: #ecf8f2;
       border-radius: 8px;
       width: 26px;
@@ -1358,7 +1341,7 @@
     }
 
     #save-list-modal .dialog-close-btn:hover {
-      background: rgba(7, 51, 60, 0.72);
+      background: rgba(12,52,43, 0.72);
     }
 
     .save-list-items {
@@ -1466,7 +1449,7 @@
       border: 1px solid #5f7477;
       border-radius: 8px;
       background: #f3f5f1;
-      color: #173137;
+      color: #19312c;
       box-shadow: 0 2px 0 rgba(16, 46, 42, 0.2);
       padding: 5px 16px;
     }
@@ -1491,7 +1474,7 @@
       background: linear-gradient(180deg, #dce2eb 0%, #cbd4e1 52%, #c1cad8 100%);
       border: 1px solid #8f9daf;
       border-radius: 14px;
-      box-shadow: 0 4px 16px rgba(35, 47, 63, 0.24), inset 0 1px 0 rgba(255,255,255,0.55);
+      box-shadow: 0 4px 16px rgba(31,50,45, 0.24), inset 0 1px 0 rgba(255,255,255,0.55);
       overflow: visible;
       overflow-x: hidden;
       overflow-y: auto;
@@ -1505,8 +1488,8 @@
       min-height: 48px;
       padding: 6px;
       border-radius: 10px;
-      border: 1px solid #182334;
-      background: linear-gradient(180deg, #1e2c3e 0%, #111a28 100%);
+      border: 1px solid #142522;
+      background: linear-gradient(180deg, #1b2f2a 0%, #0f1d19 100%);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
     }
 
@@ -1519,7 +1502,7 @@
       border: 1px solid #8e9fb5;
       border-radius: 8px;
       background: #eef3f9;
-      color: #2e4567;
+      color: #284b42;
       cursor: pointer;
       font-size: 16px;
       font-weight: 800;
@@ -1532,7 +1515,7 @@
       border: 1px solid #8e9fb5;
       border-radius: 8px;
       background: #eef3f9;
-      color: #2e4567;
+      color: #284b42;
       font-size: 16px;
       line-height: 1;
       padding: 0;
@@ -1560,7 +1543,7 @@
       margin-top: 3px;
       font-size: 10px;
       font-weight: 700;
-      color: #d9e2ef;
+      color: #cfe6e1;
       letter-spacing: 0.45px;
       text-transform: uppercase;
     }
@@ -1657,14 +1640,14 @@
 
     .tool-category-button:hover {
       background: #ffffff;
-      border-color: #8fa4c1;
+      border-color: #7aaca0;
     }
 
     .tool-category-button.is-open,
     .tool-category-button.is-active {
       background: #ffffff;
-      border-color: #3a6299;
-      box-shadow: inset 0 0 0 1px rgba(58,98,153,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
+      border-color: #326b5d;
+      box-shadow: inset 0 0 0 1px rgba(50,107,93,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
     .tool-category-button[data-tool="bulldoze"].is-active,
@@ -1737,8 +1720,8 @@
       width: 20px;
       height: 20px;
       border-radius: 4px;
-      border: 1px solid #2b4f8a;
-      background: #3e6fb4;
+      border: 1px solid #24584c;
+      background: #357a6a;
       color: #fff;
       font-size: 11px;
       font-weight: 900;
@@ -1758,18 +1741,18 @@
 
     .tool-category-button[data-tool-category] .tool-category-hotkey,
     .tool-category-button[data-tool] .tool-category-hotkey {
-      background: #3e6fb4;
-      border-color: #2b4f8a;
+      background: #357a6a;
+      border-color: #24584c;
     }
 
     .tool-category-button[data-tool="bulldoze"] .tool-category-hotkey {
       background: #4d5f79;
-      border-color: #39495e;
+      border-color: #334c47;
     }
 
     .tool-category-button.is-active .tool-category-accent,
     .tool-category-button.is-open .tool-category-accent {
-      background: #3d6cb1;
+      background: #347667;
     }
 
     .tool-category-button[data-tool="bulldoze"].is-active .tool-category-accent,
@@ -1793,7 +1776,7 @@
       padding: 4px 6px;
       border-radius: 6px;
       background: #edf2f8;
-      border: 1px solid #c3cfde;
+      border: 1px solid #b9d4cd;
       font-size: 11px;
     }
 
@@ -1803,7 +1786,7 @@
     }
 
     .tool-flyout-metric span:last-child {
-      color: #253549;
+      color: #213933;
       font-weight: 800;
       white-space: nowrap;
     }
@@ -1919,7 +1902,7 @@
     }
 
     .tool-group-row.has-active-tool {
-      box-shadow: inset 3px 0 0 #3d6cb1, inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      box-shadow: inset 3px 0 0 #347667, inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
     }
 
     .tool-group-chevron {
@@ -1962,7 +1945,7 @@
       padding: 3px 4px;
       border: 1px solid #7f8d9d;
       background: #dde5ee;
-      color: #26313d;
+      color: #233330;
       font: inherit;
       font-size: 12px;
       font-weight: 700;
@@ -1974,8 +1957,8 @@
     }
 
     .metro-height-picker button.is-active {
-      background: #3d6cb1;
-      border-color: #2b4f86;
+      background: #347667;
+      border-color: #24584c;
       color: #fff;
     }
 
@@ -2178,7 +2161,7 @@
     .city-minimap-modes { display: flex; gap: 2px; margin-left: auto; }
     .city-minimap-modes[hidden], .city-minimap-location[hidden] { display: none; }
     .city-minimap-modes button { min-width: 33px; padding: 1px 4px; border: 1px solid #a9b6bd; border-radius: 3px; font: inherit; color: #43535e; background: #eef2f4; cursor: pointer; }
-    .city-minimap-modes button.is-active { color: #fff; background: #3b6685; border-color: #3b6685; }
+    .city-minimap-modes button.is-active { color: #fff; background: #386b5f; border-color: #386b5f; }
     .city-minimap-location { height: 15px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; color: #52616b; }
     #city-minimap.is-collapsed .city-minimap-modes, #city-minimap.is-collapsed .city-minimap-location { display: none; }
 
@@ -2204,7 +2187,7 @@
       height: 128px;
       overflow: hidden;
       border-radius: 5px;
-      background: #1f2c33;
+      background: #1e2d2a;
       cursor: crosshair;
       touch-action: none;
     }
@@ -2366,7 +2349,7 @@
       align-items: center;
       gap: 6px;
       padding: 5px 8px;
-      background: #1e5cb3;
+      background: #123f38;
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -2969,7 +2952,7 @@
     }
 
     .hud-info-value {
-      color: #243038;
+      color: #23312e;
       font-weight: 800;
       white-space: nowrap;
     }
@@ -3145,7 +3128,7 @@
     .tool-popup,
     .house-size-menu {
       border-color: #8794a3;
-      box-shadow: 0 6px 16px rgba(27, 40, 55, 0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+      box-shadow: 0 6px 16px rgba(24,42,38, 0.2), inset 0 1px 0 rgba(255,255,255,0.7);
     }
 
     .hud-panel {
@@ -3324,12 +3307,12 @@
 
     #status-pill .demand-bar-track-horizontal {
       height: 7px;
-      border-color: rgba(35, 48, 64, 0.25);
-      background: rgba(35, 48, 64, 0.16);
+      border-color: rgba(31,50,46, 0.25);
+      background: rgba(31,50,46, 0.16);
     }
 
     #status-pill .demand-bar-track-horizontal::after {
-      background: rgba(35, 48, 64, 0.45);
+      background: rgba(31,50,46, 0.45);
     }
 
     #status-index-main-title {
@@ -3536,7 +3519,7 @@
       align-items: center;
       gap: 8px;
       padding: 6px 9px;
-      background: #1e5cb3;
+      background: #123f38;
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -3774,7 +3757,7 @@
     }
 
     .road-tile-set-option.is-active {
-      border-color: #1e5cb3;
+      border-color: #1d6958;
       background: #f1c65d;
       box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
     }
@@ -3859,7 +3842,7 @@
     }
 
     .budget-window-table tr.budget-total-row {
-      background: rgba(30,92,179,0.12);
+      background: rgba(29,105,88,0.12);
     }
 
     .stock-list-table td {
@@ -3924,11 +3907,11 @@
       min-width: 34px;
       padding: 2px 6px;
       border-radius: 999px;
-      border: 1px solid #1e5cb3;
-      color: #1e5cb3;
+      border: 1px solid #1d6958;
+      color: #1d6958;
       font-size: 10px;
       font-weight: 800;
-      background: rgba(30,92,179,0.10);
+      background: rgba(29,105,88,0.10);
     }
 
     .stock-change-up { color: #207245; }
@@ -4262,9 +4245,9 @@
        in place of the official's usual core-belief line - see
        showOfficialInterviewQuote() in council-ui.js. */
     .council-belief-interview {
-      border-left-color: #2c6cb2;
-      background: rgba(44,108,178,0.10);
-      color: #1d3a5c;
+      border-left-color: #297764;
+      background: rgba(41,119,100,0.10);
+      color: #1a4037;
     }
 
     .council-focus-label { color: #5a4f3f; font-size: 10px; font-weight: 900; text-transform: uppercase; }
@@ -4453,7 +4436,7 @@
       white-space: nowrap;
     }
 
-    .toast.toast-info    { background: #3a5a8a; }
+    .toast.toast-info    { background: #123f38; }
     .toast.toast-warning { background: #b07000; }
     .toast.toast-danger  { background: #aa2222; }
     .toast.toast-fade    { opacity: 0; }
@@ -4493,7 +4476,7 @@
       line-height: 1.7;
     }
 
-    #tile-debug .dbg-title      { color: #aaddff; font-weight: bold; margin-bottom: 2px; }
+    #tile-debug .dbg-title      { color: #93e6d2; font-weight: bold; margin-bottom: 2px; }
     #tile-debug .dbg-sprite-key { color: #f5e14a; font-family: monospace; font-size: 10px; margin-bottom: 3px; }
     #tile-debug .dbg-ok         { color: #66dd66; }
     #tile-debug .dbg-fail       { color: #ff6666; }
@@ -4530,14 +4513,14 @@
       padding: 7px 10px;
       border-bottom: 1px solid #3a4050;
     }
-    .insp-header-title { font-weight: bold; color: #aaddff; font-size: 12px; }
+    .insp-header-title { font-weight: bold; color: #93e6d2; font-size: 12px; }
     .insp-close {
       background: none; border: none; color: #888; font-size: 14px;
       cursor: pointer; padding: 0 2px; line-height: 1;
     }
     .insp-close:hover { color: #fff; }
     #inspect-content { padding: 8px 10px 10px; }
-    .insp-coord      { color: #aaddff; font-weight: bold; margin-bottom: 2px; }
+    .insp-coord      { color: #93e6d2; font-weight: bold; margin-bottom: 2px; }
     .insp-sprite-key { color: #f5e14a; font-family: monospace; font-size: 10px; margin-bottom: 5px; }
     .insp-section { margin-top: 8px; padding-top: 6px; border-top: 1px solid #333; }
     .insp-bldg-name { font-weight: bold; font-size: 12px; margin: 4px 0; }
@@ -4546,16 +4529,16 @@
     .insp-row { line-height: 1.6; }
     .insp-action-btn {
       width: 100%;
-      background: #2c6cb2;
+      background: #297764;
       color: #eef6ff;
-      border: 1px solid #4f8ecf;
+      border: 1px solid #399a83;
       border-radius: 4px;
       font-size: 11px;
       font-family: 'Courier New', monospace;
       padding: 5px 7px;
       cursor: pointer;
     }
-    .insp-action-btn:hover { background: #3a7ec8; }
+    .insp-action-btn:hover { background: #348976; }
     .insp-ok    { color: #66dd66; }
     .insp-warn  { color: #ffbb33; }
     .insp-fail  { color: #ff6666; }
@@ -4573,7 +4556,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(20, 28, 38, 0.8);
+      background: rgba(18,29,27, 0.8);
       backdrop-filter: blur(4px);
     }
 
@@ -4593,7 +4576,7 @@
     }
 
     .landing-icon   { font-size: 56px; line-height: 1; margin-bottom: 10px; }
-    .landing-title  { font-size: 30px; font-weight: 900; color: #1b2838; margin: 0 0 4px; }
+    .landing-title  { font-size: 30px; font-weight: 900; color: #182a26; margin: 0 0 4px; }
     .landing-tagline { font-size: 13px; color: #5d6a79; margin: 0 0 28px; letter-spacing: 0.8px; }
 
     .landing-actions { display: flex; flex-direction: column; gap: 10px; }
@@ -4609,15 +4592,15 @@
       font-family: Arial, Helvetica, sans-serif;
     }
     .landing-btn.primary {
-      background: #5f7da8;
+      background: #528579;
       color: #f5f8fd;
-      box-shadow: inset 1px 1px 0 #9db6d8, inset -1px -1px 0 #3f5a7f;
+      box-shadow: inset 1px 1px 0 #7fc0b1, inset -1px -1px 0 #386057;
     }
-    .landing-btn.primary:hover  { background: #6b8ab7; }
-    .landing-btn.primary:active { background: #4b6790; }
+    .landing-btn.primary:hover  { background: #549385; }
+    .landing-btn.primary:active { background: #416e63; }
     .landing-btn.secondary {
       background: #e8edf4;
-      color: #24364d;
+      color: #203a33;
       box-shadow: inset 1px 1px 0 #f8fbff, inset -1px -1px 0 #aeb8c6;
     }
     .landing-btn.secondary:hover { background: #f2f6fb; }
@@ -4643,7 +4626,7 @@
       letter-spacing: 0.2px;
     }
 
-    #landing-load-status.status-ok      { color: #3f6b96; font-style: normal; }
+    #landing-load-status.status-ok      { color: #3a7164; font-style: normal; }
     #landing-load-status.status-error   { color: #aa4444; font-style: normal; }
 
     .landing-preload-panel {
@@ -4667,7 +4650,7 @@
 
     #landing-preload-percent {
       font-weight: 700;
-      color: #3a4f6c;
+      color: #33544d;
       min-width: 38px;
       text-align: right;
     }
@@ -4686,7 +4669,7 @@
       width: 0%;
       height: 100%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #50719e 0%, #7898c0 45%, #a9c2de 100%);
+      background: linear-gradient(90deg, #46786d 0%, #59a391 45%, #90cbbd 100%);
       transition: width 120ms linear;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
     }
@@ -4748,7 +4731,7 @@
       position: absolute;
       inset: 0;
       z-index: 0;
-      background: #0b1118 url('UI/backgroundTitle.webp') center center / cover no-repeat;
+      background: #0a1211 url('UI/backgroundTitle.webp') center center / cover no-repeat;
       transition: opacity 1.2s ease;
       pointer-events: none;
     }
@@ -4770,7 +4753,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(15, 22, 30, 0.18) 0%, rgba(4, 8, 13, 0.42) 100%);
+      background: linear-gradient(180deg, rgba(14,24,21, 0.18) 0%, rgba(4, 8, 13, 0.42) 100%);
       pointer-events: none;
       z-index: 1;
     }
@@ -4786,7 +4769,7 @@
       align-items: center;
       justify-content: center;
       border-top: 1px solid rgba(123, 219, 176, 0.4);
-      background: linear-gradient(90deg, rgba(11, 62, 52, 0.95) 0%, rgba(10, 75, 70, 0.92) 38%, rgba(9, 53, 70, 0.94) 100%);
+      background: linear-gradient(90deg, rgba(11, 62, 52, 0.95) 0%, rgba(10, 75, 70, 0.92) 38%, rgba(13,56,46, 0.94) 100%);
       color: rgba(214, 247, 231, 0.95);
       font: 700 12px/1.2 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
       letter-spacing: 0.08em;
@@ -4891,8 +4874,8 @@
       position: relative;
       border: none;
       border-radius: 9px;
-      background: #040a14;
-      color: #121a22;
+      background: #030b0a;
+      color: #111c19;
       font-size: 20px;
       font-weight: 800;
       min-height: 86px;
@@ -4930,8 +4913,8 @@
 
     #landing-menu .landing-btn.primary,
     #landing-menu .landing-btn.secondary {
-      background: #040a14;
-      color: #121a22;
+      background: #030b0a;
+      color: #111c19;
       border-color: transparent;
     }
 
@@ -4965,7 +4948,7 @@
       font-size: clamp(16px, 1.45vw, 22px);
       font-weight: 900;
       letter-spacing: 0.03em;
-      color: #111a22;
+      color: #101c19;
       opacity: 1;
     }
 
@@ -5100,7 +5083,7 @@
     #landing-setup {
       --setup-paper: #f4f2ea;
       --setup-paper-deep: #e9e5d8;
-      --setup-ink: #1b2a2e;
+      --setup-ink: #1c2b27;
       --setup-muted: #5c6a6c;
       --setup-line: #c9c4b4;
       --setup-green: #1a6f5a;
@@ -6055,7 +6038,7 @@
       box-shadow: 0 1px 3px rgba(0,0,0,.25);
     }
     #play-mode-switch button[data-play-mode="transport"].is-active {
-      background: #14506e;
+      background: #185546;
       color: #ffffff;
     }
     #play-mode-switch button.is-locked { opacity: .55; }
@@ -6063,8 +6046,8 @@
     .tool-menu-guide { cursor: pointer; }
     .tool-menu-guide:hover .tool-guide-rail { background: #ffffff; }
     body.transport-mode .tool-menu-guide {
-      border-color: #0d3a52;
-      background: linear-gradient(180deg, #14506e 0%, #0b2e42 100%);
+      border-color: #103e33;
+      background: linear-gradient(180deg, #185546 0%, #0d3028 100%);
     }
 
     /* §5/§10/§11: the six Transport Company operation windows (routes,
@@ -6091,10 +6074,10 @@
       font-weight: 700;
       white-space: nowrap;
       height: 30px;
-      border: 1px solid #164f6e;
+      border: 1px solid #195446;
       border-radius: 6px;
       background: #eef3f9;
-      color: #14506e;
+      color: #185546;
       font-size: 13px;
       line-height: 1;
       cursor: pointer;
@@ -6105,8 +6088,8 @@
     }
 
     #transport-topbar-tools button.is-open {
-      background: #236c91;
-      border-color: #123f58;
+      background: #277260;
+      border-color: #154238;
       color: #ffffff;
       box-shadow: inset 0 1px 3px rgba(0,0,0,.35);
     }
@@ -6269,7 +6252,7 @@
       height: 28px;
       padding: 0 8px;
       gap: 7px;
-      background: #1e5cb3;
+      background: #123f38;
       cursor: move;
       flex-shrink: 0;
       user-select: none;
@@ -6333,7 +6316,7 @@
     .chart-series-group-title {
       font-size: 11px;
       font-weight: 800;
-      color: #14506e;
+      color: #185546;
     }
     .chart-line-toggle {
       display: flex;
@@ -6346,7 +6329,7 @@
     .chart-line-toggle input {
       width: 14px;
       height: 14px;
-      accent-color: #1e5cb3;
+      accent-color: #1d6958;
     }
     #chart-canvas-wrap {
       position: relative;
@@ -6383,7 +6366,7 @@
       text-overflow: ellipsis;
     }
     .chart-metric-value {
-      color: #202a3a;
+      color: #1c2c29;
       font-weight: 800;
       white-space: nowrap;
       flex-shrink: 0;
@@ -6443,7 +6426,7 @@
       height: 28px;
       padding: 0 8px;
       gap: 7px;
-      background: #1e5cb3;
+      background: #123f38;
       cursor: move;
       flex-shrink: 0;
       user-select: none;
@@ -6999,28 +6982,32 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <!-- ── About dialog ───────────────────────────────────────────────────── -->
   <div id="about-dialog" class="sim-dialog">
     <div class="dialog-overlay"></div>
-    <div class="dialog-box" style="max-width:340px">
+    <div class="dialog-box about-box">
       <div class="dialog-title-bar">
-        <span data-i18n="dialog.aboutTitle">About The City of Heung Shing</span>
+        <span data-i18n="dialog.aboutTitle">About Heung Shing Simulator</span>
         <button class="dialog-close-btn" data-close-dialog="about-dialog">✕</button>
       </div>
-      <div class="dialog-body" style="text-align:center; font-family:Arial,sans-serif">
-        <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
-        <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 6.0.6 — 【玩轉18區】</div>
-        <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
-        <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v6.0.6 — 【玩轉18區】<br>Plan · Build · Govern · Thrive</span>
+      <!-- (Norton 2026-11-21) the game's icon in a 大航海時代4 frame beside its name; the rest is the game's
+           own look. The icon stays a button: clicking it a few times unlocks the test mode. -->
+      <div class="dialog-body about-body">
+        <div class="about-portrait">
+          <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false"><img src="UI/app-icon.webp" alt="" width="128" height="128"></button>
+        </div>
+        <div class="about-text">
+          <div class="about-name" data-i18n="app.name">Heung Shing Simulator</div>
+          <div class="about-english" data-i18n="dialog.aboutEnglishName">Heung Shing Simulator</div>
+          <div class="about-version" data-i18n="dialog.version">Version 6.0.6 — 【玩轉18區】</div>
+          <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
+          <div class="about-inspired" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
+          <div class="about-motto" data-i18n="dialog.aboutMotto">Plan · Build · Govern · Thrive</div>
         </div>
         <div class="about-links">
-          <a class="about-link" href="https://nortonyuen-oss.github.io/heung_shing_simulator/" target="_blank" rel="noopener noreferrer" data-i18n="dialog.websiteLink">Official Website</a>
-          <a class="about-link" href="https://heungshingsimulator.blogspot.com/" target="_blank" rel="noopener noreferrer" data-i18n="dialog.blogLink">Development Blog</a>
+          <a class="about-link" href="https://nortonyuen-oss.github.io/heung_shing_simulator/" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">🌐</span><span data-i18n="dialog.websiteLink">Official Website</span></a>
+          <a class="about-link" href="https://heungshingsimulator.blogspot.com/" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">✍️</span><span data-i18n="dialog.blogLink">Development Blog</span></a>
         </div>
       </div>
       <div class="dialog-footer">
-        <button class="dialog-ok-btn" data-close-dialog="about-dialog" data-i18n="dialog.ok">OK</button>
+        <button class="dialog-ok-btn about-ok" data-close-dialog="about-dialog" data-i18n="dialog.ok">OK</button>
       </div>
     </div>
   </div>
@@ -7172,14 +7159,14 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   </div>
 
   <!-- ── Landing screen ─────────────────────────────────────────────────── -->
-  <div id="landing-screen" role="dialog" aria-label="The City of Heung Shing welcome screen" data-i18n-aria="app.name">
+  <div id="landing-screen" role="dialog" aria-label="Heung Shing Simulator welcome screen" data-i18n-aria="app.name">
     <div id="landing-backdrop" aria-hidden="true"></div>
     <div class="landing-card">
 
       <!-- Main menu state -->
       <div id="landing-menu">
         <div class="landing-icon">🏙️</div>
-        <h1 class="landing-title" data-i18n="app.name">The City of Heung Shing</h1>
+        <h1 class="landing-title" data-i18n="app.name">Heung Shing Simulator</h1>
         <p class="landing-tagline" data-i18n="landing.tagline">Start from one tile, raise a city.</p>
         <div class="landing-actions">
           <button id="btn-campaign" class="landing-btn primary" data-i18n-html="landing.campaign"><span class="landing-btn-main">The 18 Districts</span><span class="landing-btn-sub">Story Campaign</span></button>
@@ -7843,8 +7830,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </svg>
     </button>
     <button class="tool-button" type="button" data-tool="police-station" title="Police Station ($800)" aria-label="Police Station" data-i18n-title="tool.policeStation" data-i18n-aria="tool.policeStation">
-      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#2255aa">
-        <path d="M16 6l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10v-6z" fill="#2255aa" opacity="0.2"/>
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#1e6353">
+        <path d="M16 6l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10v-6z" fill="#1e6353" opacity="0.2"/>
         <path d="M12 16l3 3 5-6"/>
       </svg>
     </button>

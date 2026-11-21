@@ -15,7 +15,7 @@ const LANGUAGES = {
 
 const I18N = {
   en: {
-    'app.name': 'The City of Heung Shing',
+    'app.name': 'Heung Shing Simulator',
     'city.defaultName': 'My City',
     'topbar.cityPlate': 'City name plate',
     'topbar.currentDate': 'Current date',
@@ -1064,16 +1064,17 @@ const I18N = {
     'menu.volume': 'Volume',
     'menu.ambientVolume': 'City Ambience',
     'menu.howToPlay': '📖 How to Play',
-    'menu.about': 'ℹ️ About The City of Heung Shing',
+    'menu.about': 'ℹ️ About Heung Shing Simulator',
     'menu.noNews': 'No news yet.<br>Found a city to get started!',
-    'dialog.helpTitle': 'The City of Heung Shing — How to Play',
+    'dialog.helpTitle': 'Heung Shing Simulator — How to Play',
     'dialog.helpBody': '<h3>🏗 Building Your City</h3>🛣  Roads ($10) — Connect zones; roads are required for growth\n🟩  Zone R ($50) — Residential: citizens live here\n🟦  Zone C ($60) — Commercial: shops &amp; offices\n🟨  Zone I ($50) — Industrial: factories\n⚡  Power Line ($5) — Carry electricity across tiles\n🏭  Coal Plant ($3,000) — Generates power; causes pollution\n🌞  Solar Plant ($6,000) — Clean power, no pollution\n🚒  Fire Station ($1,000) — Fire protection; boosts happiness\n👮  Police ($800) — Reduces crime; boosts happiness\n🌳  Parks — Choose open ground, playground, or large 3×3 park; boosts nearby residential happiness\n🔨  Bulldoze ($5) — Remove buildings, zones, roads\n\n<h3>💡 Growth Rules</h3>• Zones must be adjacent to a road to grow\n• Power makes zones grow 5× faster (unpowered zones still grow at 20% rate)\n• Balance R / C / I demand — watch the bars in the top-right HUD\n• High taxes suppress residential demand\n• Fire stations &amp; police improve happiness, which boosts all demand\n• Parks make nearby residential areas happier and more valuable\n\n<h3>⌨ Controls</h3>Left-drag    Paint selected tool\nRight-drag   Pan the camera\nScroll       Zoom in / out\nHover tile   Debug tooltip shows growth conditions\nSpace        Pause / unpause simulation\nCtrl+S       Save game\nCtrl+O       Load game (open saves list)',
     'dialog.unlockRules': '<h3>🔓 Special Building Unlocks</h3>• Community Temple: population 3,000 (max 4)\n• Church: population 5,000 (max 2)\n• Legislative Council: population 10,000 (one only)\n• Big Buddha: population 12,000\n• Grand Temple: population 12,000 + attractiveness 35\n• Space Museum: population 15,000 + Science Development Act\n• Container Port: population 15,000 + continuous four-tile waterfront; beach backed by water is valid\n• Cultural Centre: population 20,000\n• Exhibition Centre / Indoor Coliseum: population 30,000\n• Ocean Park: Council, population 35,000, monthly income $6,000, surplus $1,000, economy 50, then project approval (proposal $10,000; 8×8 construction $22,000)\n• League Stadium: population 40,000\n• Stock Exchange: Council, population 50,000 + Stock Exchange Act\n• Murray House: attractiveness 60\n• Airport: Council, population 80,000, monthly income $12,000, surplus $2,000, economy 65, then Rose Garden project approval (proposal $25,000; 12×12 construction $150,000)\n\n<h3>🏙 Special Zone Models</h3>• Science Parks: higher education ≥0.80 and industrial footprint ≥2×2; Science Development Act raises the chance\n• H homes: quality ≥0.55, land ≥0.50, environment ≥0.45, health ≥0.45, economy ≥0.45\n• UH homes: low density only; quality ≥0.76, land ≥0.72, scenery ≥0.55, environment ≥0.68, health ≥0.62, economy ≥0.65, pollution ≤0.20\n• H offices: quality ≥0.56, land ≥0.50, environment ≥0.40, economy ≥0.52\n• UH towers: high density only; quality ≥0.78, land ≥0.70, scenery ≥0.35, environment ≥0.55, economy ≥0.72, pollution ≤0.25, with both Stock Exchange and Airport\n• H/UH eligibility is assessed per site; nearby tower saturation suppresses repeats',
-    'dialog.aboutTitle': 'About The City of Heung Shing',
-    'dialog.aboutEnglishName': 'The City of Heung Shing',
+    'dialog.aboutTitle': 'About Heung Shing Simulator',
+    'dialog.aboutEnglishName': '香城模擬器',
     'dialog.version': 'Version {version} — {theme}',
     'dialog.aboutInspired': 'A Hong Kong-themed city simulation brand title',
-    'dialog.aboutBuilt': 'The City of Heung Shing v{version} — {theme}<br>Plan · Build · Govern · Thrive',
+    'dialog.aboutMotto': 'Plan · Build · Govern · Thrive',
+    'dialog.aboutBuilt': 'Heung Shing Simulator v{version} — {theme}<br>Plan · Build · Govern · Thrive',
     'dialog.websiteLink': 'Official Website',
     'dialog.blogLink': 'Development Blog',
     'dialog.ok': 'OK',
@@ -3560,9 +3561,10 @@ const I18N = {
     'dialog.helpBody': '<h3>🏗 建設你的城市</h3>🛣  道路（$10）— 連接分區；分區需要道路才會成長\n🟩  住宅區 R（$50）— 市民居住的地方\n🟦  商業區 C（$60）— 商店與辦公室\n🟨  工業區 I（$50）— 工廠\n⚡  電線（$5）— 將電力送到其他地格\n🏭  燃煤發電廠（$3,000）— 發電，但會造成污染\n🌞  太陽能發電廠（$6,000）— 乾淨發電，無污染\n🚒  消防局（$1,000）— 提供消防保護，提升幸福度\n👮  警察局（$800）— 降低犯罪，提升幸福度\n🌳  公園 — 選擇空地、遊樂場或 3×3 大型公園；提升附近住宅幸福度\n🔨  推土機（$5）— 移除建築、分區與道路\n\n<h3>💡 成長規則</h3>• 分區必須靠近道路才會成長\n• 電力讓分區成長速度提升 5 倍（無電仍以 20% 速度成長）\n• 平衡 R / C / I 需求 — 注意右上角 HUD 的需求條\n• 高稅率會壓低住宅需求\n• 消防局與警察局提升幸福度，進而提升所有需求\n• 公園讓附近住宅區更幸福、土地價值更高\n\n<h3>⌨ 操作</h3>左鍵拖曳    使用目前工具塗刷\n右鍵拖曳    平移鏡頭\n滾輪        放大 / 縮小\n滑過地格    偵錯提示顯示成長條件\n空白鍵      暫停 / 繼續模擬\nCtrl+S      儲存遊戲\nCtrl+O      載入遊戲（開啟存檔列表）',
     'dialog.unlockRules': '<h3>🔓 特殊建築解鎖</h3>• 社區廟宇：人口 3,000（最多 4 座）\n• 教堂：人口 5,000（最多 2 座）\n• 立法會：人口 10,000（只限 1 座）\n• 大佛：人口 12,000\n• 大型廟宇：人口 12,000＋吸引力 35\n• 太空館：人口 15,000＋科研發展法生效\n• 貨櫃碼頭：人口 15,000＋連續四格海岸；沙灘後方緊接海水亦可\n• 文化中心：人口 20,000\n• 會展中心／紅磡體育館：人口 30,000\n• 海洋公園：立法會、人口 35,000、月收入 $6,000、月盈餘 $1,000、經濟 50；提案費 $10,000，獲批後以 $22,000 興建 8×8 項目\n• 城超聯主場：人口 40,000\n• 股票交易所：立法會、人口 50,000＋股票交易所法案生效\n• 美利樓：吸引力 60\n• 機場：立法會、人口 80,000、月收入 $12,000、月盈餘 $2,000、經濟 65；提案費 $25,000，通過【我愛玫瑰園計劃】後以 $150,000 興建 12×12 機場\n\n<h3>🏙 特殊分區模型</h3>• 科學園：高等教育 ≥0.80、工業 footprint ≥2×2；科研發展法提高機率\n• H 富人住宅：質素 ≥0.55、地價 ≥0.50、環境 ≥0.45、健康 ≥0.45、經濟 ≥0.45\n• UH 富豪住宅：只限低密度；質素 ≥0.76、地價 ≥0.72、景觀 ≥0.55、環境 ≥0.68、健康 ≥0.62、經濟 ≥0.65、污染 ≤0.20\n• H 甲級寫字樓：質素 ≥0.56、地價 ≥0.50、環境 ≥0.40、經濟 ≥0.52\n• UH 世界級摩天大樓：只限高密度；質素 ≥0.78、地價 ≥0.70、景觀 ≥0.35、環境 ≥0.55、經濟 ≥0.72、污染 ≤0.25，並且同時有股票交易所及機場\n• H／UH 逐個地段評分，附近高樓過密會壓低出現機率',
     'dialog.aboutTitle': '關於香城模擬器',
-    'dialog.aboutEnglishName': 'The City of Heung Shing',
+    'dialog.aboutEnglishName': 'Heung Shing Simulator',
     'dialog.version': '版本 {version} — {theme}',
     'dialog.aboutInspired': '香港主題城市經營品牌作品',
+    'dialog.aboutMotto': '規劃 · 建設 · 治理 · 繁榮',
     'dialog.aboutBuilt': '香城模擬器 v{version} — {theme}<br>規劃 · 建設 · 治理 · 繁榮',
     'dialog.websiteLink': '官方網站',
     'dialog.blogLink': '開發blog',
@@ -3616,7 +3618,7 @@ const I18N = {
     'roadTileSet.classicDesc': '原本的 Kenney 道路與橋樑圖塊。',
     'roadTileSet.new': '標線道路',
     'roadTileSet.newDesc': '新的標線道路與橋樑圖塊。',
-    'landing.tagline': 'I go to school by bus.',
+    'landing.tagline': 'Heung Shing Simulator',
     'landing.campaign': '<span class="landing-btn-main">The 18 Districts</span><span class="landing-btn-sub">玩轉18區</span>',
     'landing.newGame': '<span class="landing-btn-main">New City</span><span class="landing-btn-sub">新城市</span>',
     'landing.loadSaved': '<span class="landing-btn-main">Load Save</span><span class="landing-btn-sub">載入存檔</span>',
@@ -4995,7 +4997,7 @@ const I18N = {
     'month.12': '12月',
   },
   ja: {
-    'app.name': 'The City of Heung Shing',
+    'app.name': '香城シミュレーター',
     'toolGroup.safetyHealth': '安全・医療',
     'toolGroup.education': '教育施設',
     'toolGroup.governmentEconomy': '行政・経済',
@@ -5883,16 +5885,17 @@ const I18N = {
     'menu.volume': '音量',
     'menu.ambientVolume': '都市の環境音量',
     'menu.howToPlay': '📖 遊び方',
-    'menu.about': 'ℹ️ The City of Heung Shing について',
+    'menu.about': 'ℹ️ 香城シミュレーターについて',
     'menu.noNews': 'まだニュースはありません。<br>まずは都市を作りましょう！',
-    'dialog.helpTitle': 'The City of Heung Shing — 遊び方',
+    'dialog.helpTitle': '香城シミュレーター — 遊び方',
     'dialog.helpBody': '<h3>🏗 都市を作る</h3>🛣  道路（$10）— 区画を接続します。成長には道路が必要です\n🟩  住宅区 R（$50）— 市民が住む場所\n🟦  商業区 C（$60）— 店舗とオフィス\n🟨  工業区 I（$50）— 工場\n⚡  送電線（$5）— 電力をタイルへ送ります\n🏭  石炭発電所（$3,000）— 電力を生みますが汚染も発生します\n🌞  太陽光発電所（$6,000）— クリーンな電力、汚染なし\n🚒  消防署（$1,000）— 防火と幸福度を向上\n👮  警察署（$800）— 犯罪を減らし幸福度を向上\n🌳  公園 — 空き地、遊び場、3×3 の大きな公園を選択。近くの住宅の幸福度を上げます\n🔨  ブルドーザー（$5）— 建物、区画、道路を撤去\n\n<h3>💡 成長ルール</h3>• 区画は道路に隣接していると成長します\n• 電力があると成長速度が 5 倍になります（無電力でも 20% で成長）\n• R / C / I 需要のバランスを取り、右上 HUD のバーを確認しましょう\n• 高い税率は住宅需要を下げます\n• 消防署と警察署は幸福度を上げ、すべての需要を後押しします\n• 公園は近くの住宅地の幸福度と地価を上げます\n\n<h3>⌨ 操作</h3>左ドラッグ    選択中のツールで配置\n右ドラッグ    カメラ移動\nスクロール    ズームイン / アウト\nタイルにホバー 成長条件のデバッグ表示\nSpace         シミュレーションの一時停止 / 再開\nCtrl+S        保存\nCtrl+O        読み込み（保存リストを開く）',
     'dialog.unlockRules': '<h3>🔓 特殊建築の解除</h3>• 地域寺院：人口3,000（最大4棟）\n• 教会：人口5,000（最大2棟）\n• 立法会：人口10,000（1棟のみ）\n• 大仏：人口12,000\n• 大寺院：人口12,000＋魅力度35\n• 宇宙博物館：人口15,000＋科学開発法\n• コンテナ港：人口15,000＋連続4タイルの海岸\n• 文化センター：人口20,000\n• 展示センター／屋内コロシアム：人口30,000\n• オーシャンパーク：立法会、人口35,000、月収$6,000、黒字$1,000、経済50、議会承認\n• リーグ競技場：人口40,000\n• 証券取引所：立法会、人口50,000＋証券取引所法\n• マレーハウス：魅力度60\n• 空港：立法会、人口80,000、月収$12,000、黒字$2,000、経済65、議会承認\n\n<h3>🏙 特殊ゾーンモデル</h3>• 高等教育0.80で2×2以上の工業区にサイエンスパークが出現可能\n• UH高級住宅は条件を満たす低密度住宅区のみ\n• UH超高層ビルは証券取引所と空港がある高密度商業区のみ\n• H／UHは敷地ごとに評価され、周辺の高層密度が高いと抑制されます',
-    'dialog.aboutTitle': 'The City of Heung Shing について',
-    'dialog.aboutEnglishName': 'The City of Heung Shing',
+    'dialog.aboutTitle': '香城シミュレーターについて',
+    'dialog.aboutEnglishName': 'Heung Shing Simulator',
     'dialog.version': 'バージョン {version} — {theme}',
     'dialog.aboutInspired': '香港テーマの都市経営ブランド作品',
-    'dialog.aboutBuilt': 'The City of Heung Shing v{version} — {theme}<br>計画 · 建設 · 統治 · 繁栄',
+    'dialog.aboutMotto': '計画 · 建設 · 統治 · 繁栄',
+    'dialog.aboutBuilt': '香城シミュレーター v{version} — {theme}<br>計画 · 建設 · 統治 · 繁栄',
     'dialog.websiteLink': '公式サイト',
     'dialog.blogLink': '開発ブログ',
     'dialog.ok': 'OK',
@@ -7606,7 +7609,7 @@ function t(key, params = {}) {
 }
 
 function applyAppVersion() {
-  document.title = `香城模擬器 | The City of Heung Shing v${appVersion} — ${localizedReleaseTheme()}`;
+  document.title = `香城模擬器 | Heung Shing Simulator v${appVersion} — ${localizedReleaseTheme()}`;
   applyTranslations();
 }
 
@@ -7650,7 +7653,7 @@ function setLanguage(language) {
 }
 
 function applyTranslations(root = document) {
-  document.title = `香城模擬器 | The City of Heung Shing v${appVersion} — ${localizedReleaseTheme()}`;
+  document.title = `香城模擬器 | Heung Shing Simulator v${appVersion} — ${localizedReleaseTheme()}`;
   document.documentElement.lang = currentLanguage === 'zhHant' ? 'zh-Hant' : currentLanguage;
 
   root.querySelectorAll('[data-i18n]').forEach((el) => {

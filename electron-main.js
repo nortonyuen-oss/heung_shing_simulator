@@ -213,7 +213,7 @@ async function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     backgroundColor: '#0b1118',
-    title: 'The City of Heung Shing',
+    title: 'Heung Shing Simulator',
     show: false,
     webPreferences: {
       contextIsolation: true,

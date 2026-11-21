@@ -89,21 +89,21 @@ function ensureVehicleTrackerStyle() {
       border-radius:5px; box-shadow:0 10px 26px rgba(0,0,0,.46); font:12px/1.35 Arial,sans-serif;
       overflow:hidden; background:transparent; user-select:none;
     }
-    .vehicle-tracker-window.is-focused { border-color:#173f57; box-shadow:0 12px 30px rgba(0,0,0,.55); }
-    .vehicle-tracker-head { display:flex; align-items:center; gap:7px; min-height:31px; padding:5px 6px 5px 8px; background:#263a48; color:#fff; cursor:move; }
+    .vehicle-tracker-window.is-focused { border-color:#184339; box-shadow:0 12px 30px rgba(0,0,0,.55); }
+    .vehicle-tracker-head { display:flex; align-items:center; gap:7px; min-height:31px; padding:5px 6px 5px 8px; background:#253c37; color:#fff; cursor:move; }
     .vehicle-tracker-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:800; }
     .vehicle-tracker-head button { width:24px; height:22px; border:1px solid rgba(255,255,255,.32); border-radius:3px; padding:0; background:rgba(255,255,255,.08); color:#fff; cursor:pointer; font:bold 14px/18px Arial,sans-serif; }
     .vehicle-tracker-head button:hover { background:rgba(255,255,255,.22); }
     .vehicle-tracker-body { display:flex; align-items:stretch; }
-    .vehicle-tracker-tabs { display:flex; flex-direction:column; flex:0 0 30px; width:30px; background:#1b242b; border-right:1px solid #313b43; }
+    .vehicle-tracker-tabs { display:flex; flex-direction:column; flex:0 0 30px; width:30px; background:#1a2523; border-right:1px solid #313b43; }
     .vehicle-tracker-tabs button { width:30px; height:30px; border:0; border-bottom:1px solid rgba(255,255,255,.1); background:transparent; color:#cfd8dc; cursor:pointer; font-size:14px; line-height:1; padding:0; display:flex; align-items:center; justify-content:center; }
     .vehicle-tracker-tabs button:hover { background:rgba(255,255,255,.1); }
-    .vehicle-tracker-tabs button.is-active { background:#2f5a76; color:#fff; }
+    .vehicle-tracker-tabs button.is-active { background:#2e5f53; color:#fff; }
     .vehicle-tracker-viewport { position:relative; width:320px; height:180px; background:#161d21; pointer-events:none; overflow:hidden; flex:0 0 320px; }
     .vehicle-tracker-surface { position:absolute; inset:0; z-index:0; display:block; width:320px; height:180px; background:#161d21; }
-    .vehicle-tracker-unavailable { position:absolute; inset:0; z-index:1; display:grid; place-items:center; padding:20px; text-align:center; color:#fff; background:rgba(31,42,49,.86); font-weight:800; }
+    .vehicle-tracker-unavailable { position:absolute; inset:0; z-index:1; display:grid; place-items:center; padding:20px; text-align:center; color:#fff; background:rgba(30,44,40,.86); font-weight:800; }
     .vehicle-tracker-unavailable[hidden] { display:none !important; }
-    .vehicle-tracker-banner { position:absolute; left:6px; top:6px; z-index:1; max-width:calc(100% - 12px); padding:2px 7px; border-radius:3px; background:rgba(20,30,38,.78); color:#fff; font-weight:700; font-size:11px; }
+    .vehicle-tracker-banner { position:absolute; left:6px; top:6px; z-index:1; max-width:calc(100% - 12px); padding:2px 7px; border-radius:3px; background:rgba(19,32,29,.78); color:#fff; font-weight:700; font-size:11px; }
     .vehicle-tracker-banner[hidden] { display:none !important; }
     .vehicle-tracker-panel { display:grid; gap:4px; padding:7px 8px; background:#ece7d8; border-top:1px solid #777064; }
     .vehicle-tracker-panel[hidden] { display:none !important; }
@@ -112,7 +112,7 @@ function ensureVehicleTrackerStyle() {
     .vehicle-tracker-status-row strong { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; }
     .vehicle-tracker-actions { display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap; padding:5px 8px; border-top:1px solid #c8c0ad; background:#ece7d8; }
     .vehicle-tracker-actions:empty { display:none; }
-    .vehicle-tracker-actions button { border:1px solid #52636f; border-radius:4px; padding:3px 7px; background:#f7f3e8; color:#26323a; cursor:pointer; font:inherit; }
+    .vehicle-tracker-actions button { border:1px solid #52636f; border-radius:4px; padding:3px 7px; background:#f7f3e8; color:#253330; cursor:pointer; font:inherit; }
     .vehicle-tracker-actions button.danger { color:#8b1f1f; border-color:#a75a5a; }
     .vehicle-tracker-window.is-minimized { width:250px; }
     .vehicle-tracker-window.is-minimized .vehicle-tracker-body,

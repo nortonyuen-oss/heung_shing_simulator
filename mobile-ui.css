@@ -17,10 +17,10 @@
 [data-ui-profile="touch"] #mobile-ui :is(button, select, input) { font: inherit; color: inherit; }
 [data-ui-profile="touch"] #mobile-ui :is(button, select) { min-height: 44px; min-width: 44px; border: 1px solid #9aa8b8; border-radius: 10px; background: #fff; padding: 4px 10px; cursor: pointer; touch-action: manipulation; }
 [data-ui-profile="touch"] #mobile-ui button:disabled { opacity: .6; cursor: default; }
-[data-ui-profile="touch"] #mobile-ui :is(button, select):focus-visible { outline: 3px solid #1f5fa8; outline-offset: -3px; }
+[data-ui-profile="touch"] #mobile-ui :is(button, select):focus-visible { outline: 3px solid #1f6958; outline-offset: -3px; }
 [data-ui-profile="touch"] #mobile-ui .m-primary { background: #1f8c4a; color: #fff; border-color: #166b37; font-weight: 700; }
 [data-ui-profile="touch"] #mobile-ui .m-danger { background: #c0302f; color: #fff; border-color: #8d1f1e; font-weight: 700; }
-[data-ui-profile="touch"] #mobile-ui [aria-pressed="true"] { background: #dbe7f6; box-shadow: inset 0 -3px #3b6ea5; }
+[data-ui-profile="touch"] #mobile-ui [aria-pressed="true"] { background: #cbede5; box-shadow: inset 0 -3px #357767; }
 [data-ui-profile="touch"] #mobile-ui small { font-size: 11px; color: #4d5968; }
 [data-ui-profile="touch"] .m-top { position: absolute; top: 0; left: 0; right: 0; height: calc(var(--mobile-top) + env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left)); background: linear-gradient(#f1f4f8, #e2e8ef); border-bottom: 1px solid #9aa8b8; box-shadow: 0 2px 8px #202a3624; pointer-events: auto; }
 [data-ui-profile="touch"] #mobile-ui .m-city { border: 1px solid #73918c; border-radius: 9px; background: #123f38; color: #ecf4f0; width: 84px; min-width: 60px; padding: 0 6px; height: 36px; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; font-weight: 800; }
@@ -73,7 +73,9 @@
    folded); out of the way while a tool drafts, a line is picked or a panel is open. */
 [data-ui-profile="touch"] #mobile-ui .m-rotate { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 10px); display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
 [data-ui-profile="touch"] #mobile-ui.nav-open .m-rotate { bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom) + 12px); }
-[data-ui-profile="touch"] #mobile-ui .m-rotate button { width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 50%; border: none; background: rgba(241, 244, 248, 0.82); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(20, 30, 28, 0.25); font-size: 22px; line-height: 1; color: #22303a; }
+/* held sideways the right side has the objectives panel and the menus: the buttons go to the left */
+@media (orientation: landscape) { [data-ui-profile="touch"] #mobile-ui .m-rotate { right: auto; left: max(8px, env(safe-area-inset-left)); } }
+[data-ui-profile="touch"] #mobile-ui .m-rotate button { width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 50%; border: none; background: rgba(241, 244, 248, 0.82); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(20, 30, 28, 0.25); font-size: 22px; line-height: 1; color: #20322e; }
 [data-ui-profile="touch"] #mobile-ui:is(.is-building, .is-picking-route) .m-rotate, [data-ui-profile="touch"] #mobile-ui:has(#mobile-panel:not([hidden])) .m-rotate { display: none; }
 /* a territory's minimap sits at the lower right: the buttons go above it */
 [data-ui-profile="touch"]:has(#city-minimap[data-world-map="true"]:not([style*="display: none"])) #mobile-ui .m-rotate { bottom: calc(var(--mobile-nav) + var(--mobile-ticker) + env(safe-area-inset-bottom) + 230px); }
@@ -93,7 +95,7 @@
 [data-ui-profile="touch"] .m-nudge-pad [data-nudge="ne"] { right: 0; top: 0; }
 [data-ui-profile="touch"] .m-nudge-pad [data-nudge="sw"] { left: 0; bottom: 0; }
 [data-ui-profile="touch"] .m-nudge-pad [data-nudge="se"] { right: 0; bottom: 0; }
-[data-ui-profile="touch"] #mobile-ui .m-nudge-pad .m-end-toggle { left: 47px; top: 47px; background: #dbe7f6; font-size: 13px; }
+[data-ui-profile="touch"] #mobile-ui .m-nudge-pad .m-end-toggle { left: 47px; top: 47px; background: #cbede5; font-size: 13px; }
 [data-ui-profile="touch"] #mobile-ui label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 [data-ui-profile="touch"] .m-overview-row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid #c3ccd7; padding: 8px 0; }
 [data-ui-profile="touch"] #inspect-panel { position: fixed !important; left: auto !important; right: 0 !important; top: calc(var(--mobile-top) + env(safe-area-inset-top)) !important; bottom: auto !important; height: calc(100dvh - var(--mobile-top) - env(safe-area-inset-top) - var(--mobile-inspect-bottom) - env(safe-area-inset-bottom)); transform: none !important; width: calc(clamp(260px, 40vw, 360px) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); max-height: none; z-index: 1200; overflow-y: auto; touch-action: pan-y; }
@@ -112,7 +114,7 @@
 [data-ui-profile="touch"] .landing-tagline { margin: 0; font-size: 12px; }
 [data-ui-profile="touch"] #landing-menu { gap: 8px; }
 [data-ui-profile="touch"] #landing-menu .landing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(560px, 100%); margin: 0; }
-[data-ui-profile="touch"] #landing-menu .landing-btn { height: auto; min-height: 62px; border: 1px solid #647687; border-radius: 12px; background: #0b1218; padding: 6px 12px; width: 100%; font-size: 17px; }
+[data-ui-profile="touch"] #landing-menu .landing-btn { height: auto; min-height: 62px; border: 1px solid #647687; border-radius: 12px; background: #0a1211; padding: 6px 12px; width: 100%; font-size: 17px; }
 [data-ui-profile="touch"] #landing-menu .landing-btn, [data-ui-profile="touch"] #landing-menu .landing-btn-main { color: #fff; }
 [data-ui-profile="touch"] #landing-menu .landing-btn-sub { color: #b9c4cf; font-size: 13px; }
 [data-ui-profile="touch"] #landing-menu .landing-btn.primary { background: linear-gradient(#1f8c4a, #166b37); }
@@ -206,7 +208,7 @@
    menus, its buttons a finger's size. */
 [data-ui-profile="touch"] #ts-modebar { display: none !important; }
 [data-ui-profile="touch"] #ts-panel { top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top) + 8px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); width: auto; max-height: calc(100dvh - var(--mobile-top) - var(--mobile-ticker) - var(--mobile-nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px); overflow-y: auto; overscroll-behavior: contain; z-index: 1050; font-size: 14px; }
-[data-ui-profile="touch"] #ts-panel { background: #0c1826; }
+[data-ui-profile="touch"] #ts-panel { background: #0b1a16; }
 [data-ui-profile="touch"] #ts-panel button { min-height: 44px; padding: 6px 12px; }
 [data-ui-profile="touch"] #ts-panel .ts-close { min-width: 44px; }
 [data-ui-profile="touch"] #ts-panel .ts-row { flex-wrap: wrap; }
@@ -222,7 +224,7 @@
 @media (orientation: portrait) {
   [data-ui-profile="touch"] #mobile-ui #mobile-route-picker { bottom: calc(var(--mobile-nav) + 8px + env(safe-area-inset-bottom)); }
 }
-[data-ui-profile="touch"] #mobile-ui .m-native button.primary { background: #236c91; color: white; border-color: #164f6e; }
+[data-ui-profile="touch"] #mobile-ui .m-native button.primary { background: #277260; color: white; border-color: #195446; }
 [data-ui-profile="touch"] #mobile-ui #budget-detail .tax-row { width: 100%; margin: 0; }
 [data-ui-profile="touch"] #mobile-ui #budget-detail :is(#tax-slider, .budget-slider) { width: 100%; }
 [data-ui-profile="touch"] #mobile-ui #budget-detail .budget-stat { flex-direction: row; justify-content: space-between; width: 100%; padding: 4px; }
@@ -242,7 +244,7 @@
 [data-ui-profile="touch"] #mobile-ui .m-city { flex-direction: column; line-height: 14px; }
 [data-ui-profile="touch"] #mobile-ui .m-city #mobile-city-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 [data-ui-profile="touch"] #mobile-ui .m-city .m-beta { color: #ffe7b0; font-size: 9px; line-height: 10px; font-weight: 800; }
-[data-ui-profile="touch"] #mobile-build-funding { display: block; line-height: 14px; color: #155f86; }
+[data-ui-profile="touch"] #mobile-build-funding { display: block; line-height: 14px; color: #1a6553; }
 [data-ui-profile="touch"] #mobile-stop-options { display: inline-flex; flex-shrink: 0; gap: 4px; }
 [data-ui-profile="touch"] #mobile-recreation-select { min-width: 0; max-width: min(280px, 55vw); }
 [data-ui-profile="touch"] #mobile-housing-select { min-width: 0; max-width: min(160px, 38vw); flex-shrink: 0; }

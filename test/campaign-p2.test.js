@@ -305,3 +305,13 @@ test('龍舟場地教學 runtime: the snapshot reads the venue by the race\'s ow
   context.buildCampaignSnapshot();
   assert.equal(blockedChecked, 2, 'searched again only after a while or a change');
 });
+
+// 2026-11-21 (Norton's phone: 污染低於 30% · 2920%): city.pollution is 0-100, not 0-1
+test('P2: chapter 3\'s third star reads pollution as a percentage', () => {
+  const spec = campaign.CAMPAIGN_CHAPTER_SPECS.ch03;
+  const item = spec.stars.flatMap((star) => star.objectives).find((objective) => objective.label.zhHant === '污染低於 30%');
+  assert.ok(item);
+  assert.equal(item.check({ pollution: 29.2 }), true);
+  assert.equal(item.check({ pollution: 30.5 }), false);
+  assert.equal(item.progress({ pollution: 29.2 }), '29% / 30%');
+});

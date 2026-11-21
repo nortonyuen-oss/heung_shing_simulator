@@ -533,7 +533,9 @@
           { id: 'tourism', label: T('旅遊吸引力達 80', 'Tourism appeal of 80', '観光魅力度80'),
             check: (s) => num(s.tourismAppeal) >= 80, progress: (s) => `${fmt(s.tourismAppeal)} / 80` },
           { id: 'environment', label: T('污染低於 30%', 'Pollution under 30%', '汚染30%未満'),
-            check: (s) => num(s.pollution) < 0.3, progress: (s) => pct(s.pollution) },
+            // city.pollution is 0-100 (as in the P3 chapters' < 40 and < 30); read as 0-1 it showed 2920%
+            // and asked for less than 0.3% (Norton 2026-11-21)
+            check: (s) => num(s.pollution) < 30, progress: (s) => `${fmt(s.pollution)}% / 30%` },
           { id: 'traffic', label: T('交通擠塞指數不高於 40%', 'Traffic congestion at 40% or less', '交通渋滞指数40%以下'),
             check: (s) => num(s.trafficIndex) <= 0.4, progress: (s) => pct(s.trafficIndex) },
           balanceObjective(0.7),

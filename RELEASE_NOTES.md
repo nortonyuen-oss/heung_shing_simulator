@@ -1,3 +1,37 @@
+# Heung Shing Simulator v6.0.7 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 統一視覺：遊戲深綠、劇情大航海；名稱
+
+- **兩套視覺**：
+  - 遊戲嘅視窗、面板、按鈕同通知統一用深綠同灰白，冇晒藍色標題列。
+  - 《玩轉18區》劇情就用羊皮紙、酒紅同金色。
+  - 分區、圖表、路線等功能顏色不變。
+- **章節地圖**：
+  - 背景換成維港日落插畫，框用大航海時代風格。
+  - 打開時唔會彈城市通知。
+  - 手機打橫時左邊揀章、右邊地圖。
+- **主線目標面板**：改用深綠灰白。手機上貼邊：直向橫跨全闊，橫向貼右邊。
+- **關於頁**：重新排版，短咗一半。遊戲圖示放喺大航海時代相框入面，按鈕亦美化咗。
+- **遊戲圖示**：四周黑框改為透明，Android 啟動圖示同開機畫面一齊更新。
+- **名稱**：英文統一叫 Heung Shing Simulator，日文叫香城シミュレーター；中文標題下面亦改為 Heung Shing Simulator。
+- **修正第 3 章三星**：「污染低於 30%」之前顯示 2920%，條件亦錯咗，所以攞唔到。而家判斷正確，顯示例如「29% / 30%」。
+
+**台灣中文：** 統一視覺：遊戲的視窗、面板、按鈕與通知改用深綠與灰白，不再有藍色標題列；《玩轉18區》劇情使用羊皮紙、酒紅與金色。章節地圖換上維港日落插畫背景並採用大航海時代風格外框，開啟時不顯示城市通知，手機橫向時左選章、右地圖。主線目標面板改為深綠灰白，手機上貼齊螢幕邊緣。關於頁重新排版，遊戲圖示放入大航海時代相框；圖示四周黑框改為透明。英文名稱統一為 Heung Shing Simulator，日文為香城シミュレーター。修正第 3 章三星「污染低於 30%」顯示 2920% 且無法達成的問題。
+
+**English:** One look for the game and one for the story. The game's windows, panels, buttons and notices are its own deep green and grey-white, with no more blue title bars; The 18 Districts keeps its parchment, maroon and gold. Functional colours (zones, charts, transit lines) are unchanged. The chapter map sits over a painting of the harbour at sunset in an Uncharted Waters-style frame, keeps the city's notices off it, and on a phone held sideways puts the chapters on the left and the map on the right. The objectives panel is deep green and grey-white and docks against the screen edge on a phone. The About card is half as tall, with the game's icon in a framed portrait and new buttons, and the icon has lost its black corners (the Android icons too). The game is now called Heung Shing Simulator in English and 香城シミュレーター in Japanese. Fixed chapter 3's "Pollution under 30%" objective, which showed 2920% and could not be met.
+
+**日本語:** 見た目を二つに統一しました。ゲームのウィンドウ、パネル、ボタン、通知は深緑とグレーホワイトに（青いタイトルバーはなくなりました）、「18区をめぐる」のストーリーは羊皮紙・えんじ・金です。区画やグラフ、路線などの機能色は変わりません。章マップは夕暮れの港の絵を背景に大航海時代風の枠で表示し、都市の通知は出さず、スマートフォン横向きでは左に章、右に地図を並べます。目標パネルは深緑とグレーホワイトになり、スマートフォンでは画面の端に寄せます。「香城シミュレーターについて」は半分の高さになり、ゲームのアイコンを額縁に収め、ボタンも新しくしました。アイコンの黒い角は透明に（Android のアイコンも）。ゲーム名は英語で Heung Shing Simulator、日本語で香城シミュレーターに統一しました。第3章の「汚染30%未満」が 2920% と表示され達成できなかった問題を修正しました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v6.0.6 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

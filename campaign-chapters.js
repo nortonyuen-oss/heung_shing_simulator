@@ -90,6 +90,8 @@
     // 航空署代表 is Captain Cool (Norton 2026-11-21; scripts/source-art/campaign/portraits/aviation-source.png)
     aviation: { name: T('Captain Cool', 'Captain Cool', 'キャプテン・クール'), portrait: 'UI/campaign/portraits/aviation.webp', glyph: '✈️' },
     portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
+    // 第 10 章離島's own face, the one district that had none (art-prompts.md B18; Norton chose her 2026-11-21)
+    taiOGranny: { name: T('大澳阿婆', 'Tai O Granny', '大澳のおばあちゃん'), portrait: 'UI/campaign/portraits/taiOGranny.webp', glyph: '🦐' },
     volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), portrait: 'UI/campaign/portraits/volunteer.webp', glyph: '🙋' },
     producer: { name: T('製片人', 'Film Producer', '映画プロデューサー'), portrait: 'UI/campaign/portraits/producer.webp', glyph: '🎬' },
     // 第 14 章《古大樂、共金寶、林豐開機》 (P4 phase 6)
@@ -1793,6 +1795,7 @@
     intro: Object.freeze([
       { speaker: 'aviation', text: T('香城已具備國際級機場硬件！', 'Heung Shing has a world-class airport!', '香城には国際級の空港設備がそろいました！') },
       { speaker: 'treasurer', text: T('咁客喺邊？', 'So where are the passengers?', 'で、乗客はどこに？') },
+      { speaker: 'taiOGranny', text: T('飛機日日喺頭頂飛過，我喺大澳賣咗成朝蝦膏，一個遊客都見唔到！', 'Planes fly over my head every day, and I sold shrimp paste in Tai O all morning without seeing a single tourist!', '毎日頭の上を飛行機が飛んでいくのに、大澳で朝から蝦醤を売って観光客は一人も来ない！') },
       { speaker: 'resident', text: T('我住東涌，飛機日日起飛，但我坐巴士出城仲要轉兩次。', 'I live in Tung Chung. Planes take off every day, but getting into town by bus takes me two changes.', '東涌に住んでいます。飛行機は毎日飛ぶのに、バスで街に出るには2回乗り換え。') },
       { speaker: 'engineer', text: T('東涌綫同機場快綫要由地圖邊出市區：機場同新市鎮都要有站。', 'The Tung Chung line and the Airport Express run off the map into town - the airport and the new town both need stations.', '東涌線とエアポートエクスプレスは地図の端から市街へ。空港にもニュータウンにも駅が要る。') },
       { card: T('任務開始：離島《飛越香城》', 'Mission start: Islands - "Flying Over Heung Shing"', '任務開始：離島「香城を飛び越えて」'),
@@ -1859,6 +1862,7 @@
         lines: Object.freeze([
           { speaker: 'tourism', text: T('天壇大佛開幕！下一步，我哋建議起一條纜車上山——「昂坪衫碌玲」！', 'The Big Buddha is open! Next, we propose a cable car up the mountain - the "Ngong Ping Sam Luk Ling"!', '天壇大仏が開幕！次は山へのロープウェイ、「昂坪サンロッリン」を提案します！') },
           { speaker: 'resident', text: T('昂坪衫碌玲係咪新款衫褲品牌？', 'Is the Ngong Ping Sam Luk Ling a new clothing brand?', '昂坪サンロッリンって新しい服のブランド？') },
+          { speaker: 'taiOGranny', text: T('起乜都好，記得有架巴士落大澳！我啲鹹魚唔識自己搭纜車㗎！', 'Build what you like - just make sure a bus comes down to Tai O! My salted fish cannot ride a cable car by themselves!', '何を建ててもいいけど、大澳まで来るバスを忘れずに！うちの塩漬け魚は自分でロープウェイに乗れないんだよ！') },
           { speaker: 'secretary', text: T('纜車屬未來擴充項目，暫時唔計入任何目標。', 'The cable car is a future expansion and counts towards nothing for now.', 'ロープウェイは将来の拡張計画で、今のところ目標には入りません。') },
         ]),
         forum: {

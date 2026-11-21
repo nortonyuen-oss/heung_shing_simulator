@@ -23,7 +23,7 @@ const PORTRAITS = [
   ['chanHoNam', 'chanHoNam', 0.46, 0.31, 0.64],
   ['barber', 'cheungBao', 0.5, 0.29, 0.64],
   ['playboy', 'flirtingMan', 0.46, 0.27, 0.64],
-  ['commentator', 'horseRacer', 0.45, 0.3, 0.64],
+  // (神童標 left the boards 2026-11-21: his new portrait is drawn square, scripts/source-art/campaign/portraits)
   ['foodie', 'hungryViviane', 0.44, 0.29, 0.64],
   ['bankGirl', 'iBankKongGirl', 0.5, 0.32, 0.64],
   ['singh', 'indianSingh', 0.44, 0.33, 0.64],

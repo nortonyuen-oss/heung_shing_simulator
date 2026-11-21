@@ -41,7 +41,7 @@ test('story art: the stars\' and events\' scenes are Norton\'s Event boards', ()
 
 test('story art: Norton\'s NPCs have their faces and lines', () => {
   const npcs = ['minibus', 'scientist', 'foodie', 'railFan', 'busFan', 'jaydenMum', 'jayden', 'police', 'uncleBus', 'villager',
-    'commentator', 'chanHoNam', 'playboy', 'mkGirl', 'singh', 'goddess', 'bankGirl', 'tycoon', 'barber', 'filmStar'];
+    'commentator', 'chanHoNam', 'playboy', 'mkGirl', 'singh', 'goddess', 'bankGirl', 'tycoon', 'barber', 'filmStar', 'taiOGranny'];
   const said = new Set(specs.flatMap((spec) => [...spec.intro, ...spec.outro, ...spec.failure, ...(spec.events || []).flatMap((event) => event.lines)])
     .map((line) => line.speaker).filter(Boolean));
   npcs.forEach((id) => {

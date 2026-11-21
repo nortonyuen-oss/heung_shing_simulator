@@ -11,7 +11,7 @@
 
 已完成：市長六款樣貌（陳一心、李幼羚、張思賢、黃念慈、何向華、林英秀，名字用考評局中文寫作卷指定名單）、B1 旅遊署代表、B2 Captain Cool。
 
-2026-11-21 第二批已完成：A1 沙田馬場（6×12，切開兩個 6×6 半邊加鏡像，`racecourse.js`）、A2 濕地公園、A3 社區中心、A4 啟德郵輪（日間）、B3 碼頭主任，另加第 14 章結尾插圖（郵輪碼頭開幕同賭船，`UI/campaign/events/cruiseTerminalOpening.webp`）。仲欠：A1 夜間、A4 夜間、A5、B12–B19、C1–C2（B4–B11 喺同日第三批完成）。
+2026-11-21 第二批已完成：A1 沙田馬場（6×12，切開兩個 6×6 半邊加鏡像，`racecourse.js`）、A2 濕地公園、A3 社區中心、A4 啟德郵輪（日間）、B3 碼頭主任，另加第 14 章結尾插圖（郵輪碼頭開幕同賭船，`UI/campaign/events/cruiseTerminalOpening.webp`）。仲欠：A1 夜間、A4 夜間、A5、B12–B17、C1–C2（B4–B11、B18、B19 喺同日第三、四批完成）。
 
 ---
 
@@ -205,14 +205,14 @@ Character: a TV news anchor, a polished woman in her thirties with sleek hair an
 - **議員甲**：`a reform-minded legislator, a young man in a simple suit holding a thick folder of open-data printouts, earnest expression. Background: Legislative Council chamber.`
 - **議員乙**：`a cautious veteran legislator, an older woman in a tailored qipao-style jacket holding a procedure manual, measured expression. Background: Legislative Council chamber.`
 
-### B18. 離島地區代表人物（新角色，第 10 章；要你揀）
+### ~~B18. 離島地區代表人物~~（2026-11-21 完成：大澳阿婆，第 10 章開場同纜車事件各一句）
 
 其他 17 區都有一個代表人物，離島冇。建議兩個選擇，你揀一個，或者話我知你心目中嘅人物：
 
 - **大澳阿婆**：`a sun-tanned grandmother from Tai O in a wide straw hat, selling shrimp paste and salted fish from a wooden stall, laughing. Background: Tai O stilt houses over the water.`
 - **東涌機場地勤**：`a young airport ground crew member in ear defenders and a high-vis vest, waving marshalling wands. Background: Chek Lap Kok runway with a plane landing.`
 
-### B19. 神童標名牌修正
+### ~~B19. 神童標名牌修正~~（2026-11-21 完成：換咗新頭像，冇名牌）
 
 附上 `UI/storyBoardGraphics/NPC/horseRacer.png`（或者現有 `UI/campaign/portraits/commentator.webp`）：
 

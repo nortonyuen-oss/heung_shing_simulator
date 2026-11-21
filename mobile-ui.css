@@ -225,6 +225,9 @@
   [data-ui-profile="touch"] #mobile-ui #mobile-route-picker { bottom: calc(var(--mobile-nav) + 8px + env(safe-area-inset-bottom)); }
 }
 [data-ui-profile="touch"] #mobile-ui .m-native button.primary { background: #277260; color: white; border-color: #195446; }
+/* the jukebox's mode (全部循環／隨機播放／單曲循環) marked as the phone marks a pressed button: the white of every
+   phone button had hidden which one was on */
+[data-ui-profile="touch"] #mobile-ui .jukebox-loop-btn.is-active { background: #cbede5; box-shadow: inset 0 -3px #357767; border-color: #357767; }
 [data-ui-profile="touch"] #mobile-ui #budget-detail .tax-row { width: 100%; margin: 0; }
 [data-ui-profile="touch"] #mobile-ui #budget-detail :is(#tax-slider, .budget-slider) { width: 100%; }
 [data-ui-profile="touch"] #mobile-ui #budget-detail .budget-stat { flex-direction: row; justify-content: space-between; width: 100%; padding: 4px; }

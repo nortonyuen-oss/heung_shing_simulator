@@ -5,9 +5,46 @@
 let activeMusic = null;
 let activeTrackIndex = 0;
 let isMusicPlaying = false;
-// Browser sessions repeat the selected track until the player chooses another,
-// so an idle city cannot gradually download the entire music library.
-let musicLoopMode = globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? 'one' : 'all';
+// 'all' plays the tracks in order, 'shuffle' in a random order (every track once before any repeats),
+// 'one' loops the current track; the player's choice is remembered on the device. The browser version
+// (phones and the Android app with it) starts on shuffle - Norton v6.0.9: 「手機版次次都單曲重播，我想隨機
+// 播放，而且會切歌」. It used to loop one track so an idle city could not download the whole library
+// (about 48 MB); now each track is fetched the first time it comes up, and the browser keeps it.
+const MUSIC_LOOP_MODES = Object.freeze(['all', 'shuffle', 'one']);
+const MUSIC_LOOP_STORAGE_KEY = 'citybuilder.musicLoopMode';
+function getStoredMusicLoopMode() {
+  try {
+    const stored = globalThis.localStorage?.getItem(MUSIC_LOOP_STORAGE_KEY);
+    if (MUSIC_LOOP_MODES.includes(stored)) return stored;
+  } catch { /* private mode */ }
+  return globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? 'shuffle' : 'all';
+}
+let musicLoopMode = getStoredMusicLoopMode();
+let musicShuffleBag = [];   // the shuffle's tracks still to come
+let musicHistory = [];      // tracks played before, for ⏮ in shuffle
+
+// The track after (direction 1) or before (-1) the current one, by the loop mode. Shuffle draws from a
+// bag of every gameplay track but the current one (the title theme stays the title screen's), and ⏮
+// goes back through what was played.
+function stepMusicTrack(direction = 1) {
+  const count = MUSIC_TRACKS.length;
+  if (!count) return activeTrackIndex;
+  if (musicLoopMode !== 'shuffle' || count < 2) return (activeTrackIndex + direction + count) % count;
+  if (direction < 0) return musicHistory.length ? musicHistory.pop() : (activeTrackIndex - 1 + count) % count;
+  musicHistory.push(activeTrackIndex);
+  if (musicHistory.length > 30) musicHistory.shift();
+  if (!musicShuffleBag.length) {
+    let pool = MUSIC_TRACKS.map((_, index) => index)
+      .filter((index) => index !== activeTrackIndex && MUSIC_TRACKS[index].key !== TITLE_MUSIC_TRACK_KEY);
+    if (!pool.length) pool = MUSIC_TRACKS.map((_, index) => index).filter((index) => index !== activeTrackIndex);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    musicShuffleBag = pool;
+  }
+  return musicShuffleBag.pop();
+}
 const TITLE_MUSIC_TRACK_KEY = 'music_title';
 let titleLoadingAudio = null;
 
@@ -334,14 +371,19 @@ function enterGameplayAudioMode() {
   }
 
   if (MUSIC_TRACKS[activeTrackIndex]?.key === TITLE_MUSIC_TRACK_KEY) {
-    activeTrackIndex = getFirstGameplayMusicTrackIndex();
+    // shuffle starts a city on a random track too
+    activeTrackIndex = musicLoopMode === 'shuffle' ? stepMusicTrack(1) : getFirstGameplayMusicTrackIndex();
+    musicHistory = [];
   }
 
   playTrack(activeTrackIndex);
 }
 
 function setMusicLoopMode(mode) {
+  if (!MUSIC_LOOP_MODES.includes(mode)) return;
   musicLoopMode = mode;
+  musicShuffleBag = [];
+  try { globalThis.localStorage?.setItem(MUSIC_LOOP_STORAGE_KEY, mode); } catch { /* private mode */ }
   // Re-apply to the currently-playing track so it takes effect immediately
   if (activeMusic && isMusicPlaying) {
     playTrack(activeTrackIndex);
@@ -369,7 +411,7 @@ function toggleMusic() {
 }
 
 function changeTrack(direction) {
-  activeTrackIndex = (activeTrackIndex + direction + MUSIC_TRACKS.length) % MUSIC_TRACKS.length;
+  activeTrackIndex = stepMusicTrack(direction);
   if (isMusicPlaying || activeMusic) playTrack(activeTrackIndex);
   updateJukeboxUi();
 }
@@ -403,7 +445,7 @@ function playTrack(trackIndex) {
   const volume = getMusicOutputVolume(getCurrentMusicVolume());
 
   // 'Loop One': Phaser loops the track natively.
-  // 'Loop All': play once, then advance on 'complete'.
+  // 'Loop All' / 'Shuffle': play once, then advance on 'complete'.
   const loopNatively = (musicLoopMode === 'one');
   activeMusic = activeScene.sound.add(MUSIC_TRACKS[trackIndex].key, {
     loop: loopNatively,
@@ -413,7 +455,7 @@ function playTrack(trackIndex) {
   if (!loopNatively) {
     // Auto-advance to the next track when the current one finishes
     activeMusic.once('complete', () => {
-      activeTrackIndex = (activeTrackIndex + 1) % MUSIC_TRACKS.length;
+      activeTrackIndex = stepMusicTrack(1);
       playTrack(activeTrackIndex);
     });
   }
@@ -439,6 +481,7 @@ function updateJukeboxUi() {
   // Loop mode buttons
   document.querySelectorAll('[data-loop]').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.loop === musicLoopMode);
+    btn.setAttribute('aria-pressed', String(btn.dataset.loop === musicLoopMode));
   });
   if (typeof updateSoundMenu === 'function') updateSoundMenu();
   updateMapNavigationControls();

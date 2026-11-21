@@ -1,3 +1,30 @@
+# Heung Shing Simulator v6.0.10 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 點唱機隨機播放；手機避風塘框線
+
+- **點唱機隨機播放**：
+  - 新增「🔀 隨機播放」：每首歌都輪過一次先會重複，一首播完自動切歌；⏮ 返去上一首播過嘅歌。
+  - 網頁版、手機同 Android app 預設改為隨機播放（之前係單曲循環）；電腦版照舊預設全部循環。
+  - 揀咗邊個模式，部機會記住；手機版而家會標示而家開緊邊個模式。
+  - 每首歌第一次播先下載（約 5 MB），之後瀏覽器會留住。
+- **手機避風塘框線**：關咗避風塘面板之後，框線唔會再一直留喺地圖上，會返去「查詢」；取消草稿或者轉工具，框線都會即時收起。
+
+**台灣中文：** 點唱機新增「🔀 隨機播放」：每首歌都播過一次才會重複，一首播完自動切歌，⏮ 回到上一首播過的歌。網頁版、手機與 Android app 預設改為隨機播放（之前是單曲循環），電腦版維持全部循環；選擇的模式會記在裝置上，手機版也會標示目前的模式。每首歌第一次播放時才下載（約 5 MB），之後由瀏覽器保存。手機上關閉避風塘面板後，框線不會再一直留在地圖上，會回到「查詢」；取消草稿或切換工具時框線也會立即收起。
+
+**English:** The jukebox shuffles. A new 🔀 Shuffle mode plays every track once in a random order before any repeats and moves on to the next song when one ends; ⏮ goes back to the song before. The browser version, phones and the Android app now start on Shuffle instead of looping one track; the desktop app still starts on Loop All. The mode you pick is remembered on the device, and a phone now shows which mode is on. Each song is downloaded the first time it plays (about 5 MB) and the browser keeps it. On a phone, closing a typhoon shelter's panel no longer leaves its outline on the map: you are back on Inspect, and a cancelled draft or a change of tool puts the outline away at once.
+
+**日本語:** ジュークボックスにシャッフルを追加しました。新しい「🔀 シャッフル」は全曲を一度ずつランダムな順で再生し、曲が終わると次の曲へ進みます。⏮ で一つ前に再生した曲に戻ります。ブラウザー版、スマートフォン、Android アプリは1曲ループではなくシャッフルで始まり、デスクトップ版は従来どおり全曲ループで始まります。選んだモードは端末に記憶され、スマートフォンでも今のモードが分かるようになりました。各曲は初めて再生する時にダウンロードされ（約5 MB）、その後はブラウザーに保存されます。スマートフォンで避難港のパネルを閉じても、枠線が地図に残らなくなりました。「調査」に戻り、下書きの取り消しやツールの切り替えでも枠線はすぐに消えます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.9 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

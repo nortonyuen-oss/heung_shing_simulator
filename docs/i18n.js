@@ -290,6 +290,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.0.10","date":"2026-11-22","dateLabel":"2026年11月22日","title":"玩轉18區","items":["點唱機新增「🔀 隨機播放」：每首歌輪過一次先重複，一首播完自動切歌；網頁版、手機同 Android app 預設隨機播放。","揀咗嘅播放模式會記住；手機版會標示而家開緊邊個模式。","手機關咗避風塘面板之後，框線唔會再一直留喺地圖上。"]},
     {"version":"v6.0.9","date":"2026-11-21","dateLabel":"2026年11月21日","title":"玩轉18區","items":["繼續上次進度：章節地圖揀返玩到一半嘅一關，可以讀返最近存檔繼續，或者由頭再嚟。","第 1 章重新開始時，金毛玲會問要唔要睇序章，睇完即刻接第 1 關。","十一個新角色頭像：新聞主播、教育署代表、工廠老闆、工人代表、記者、青年義工、製片人、煲仔飯老闆娘、So師傅、大澳阿婆同新神童標。","第 16 章新增《城超聯之夜》，有足球評述員。","章節地圖喺中英日三種語言、手機直向橫向同電腦都唔再超出畫面。"]},
     {"version":"v6.0.8","date":"2026-11-21","dateLabel":"2026年11月21日","title":"玩轉18區","items":["新地標沙田馬場（6×12）：馬場圖切開兩個 6×6，地圖轉去邊個方向都自動揀圖同鏡像，永遠接得埋。第 6 章改為要起真馬場。","新地標濕地公園（4×4），淨化附近空氣；第 8 章改為要起濕地公園。","社區中心同啟德郵輪換上新圖；碼頭主任有頭像，第 14 章結尾換上郵輪碼頭開幕插圖。","市長登記新增六款市長樣貌（名字取自考評局名單），航空代表 Captain Cool，市政會議嘅行政長官顯示你嘅市長名同頭像。","官網改版「香城 1999」：大航海時代羊皮紙加港漫，版本紀錄同遊戲畫廊有自己嘅分頁。"]},
     {"version":"v6.0.7","date":"2026-11-21","dateLabel":"2026年11月21日","title":"玩轉18區","items":["統一視覺：遊戲視窗、面板、按鈕同通知改用深綠灰白；《玩轉18區》劇情用大航海時代羊皮紙風格。","章節地圖換上維港日落背景，唔再彈城市通知；手機打橫左邊揀章、右邊地圖。主線目標面板喺手機貼邊。","關於頁重新排版，遊戲圖示放入大航海時代相框；圖示黑框改為透明。","英文名統一叫 Heung Shing Simulator，日文叫香城シミュレーター。","修正第 3 章三星「污染低於 30%」顯示 2920% 而且攞唔到。"]},
@@ -676,6 +677,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.0.10": {"title":"玩轉18區","items":["點唱機新增「🔀 隨機播放」：每首歌都播過一次才重複，一首播完自動切歌；網頁版、手機與 Android app 預設隨機播放。","選擇的播放模式會記住；手機版會標示目前的模式。","手機上關閉避風塘面板後，框線不會再一直留在地圖上。"]},
     "v6.0.9": {"title":"玩轉18區","items":["繼續上次進度：章節地圖點選玩到一半的一關，可讀取最近存檔繼續，或從頭再來。","第 1 章重新開始時，金毛玲會詢問是否觀看序章，看完緊接第 1 關。","十一個新角色頭像：新聞主播、教育署代表、工廠老闆、工人代表、記者、青年義工、製片人、煲仔飯老闆娘、So師傅、大澳阿婆與新的神童標。","第 16 章新增《城超聯之夜》，有足球評述員。","章節地圖在中英日三種語言、手機直向橫向與電腦上都不再超出畫面。"]},
     "v6.0.8": {"title":"玩轉18區","items":["新地標沙田馬場（6×12）：馬場圖切成兩個 6×6，地圖轉向時自動選圖與鏡像，永遠接得上。第 6 章改為要興建真正的馬場。","新地標濕地公園（4×4），淨化周邊空氣；第 8 章改為要興建濕地公園。","社區中心與啟德郵輪換上新圖；碼頭主任有了頭像，第 14 章結尾換上郵輪碼頭開幕插圖。","市長登記新增六款市長樣貌（名字取自考評局名單），航空代表 Captain Cool，市政會議的行政長官顯示你的市長名字與頭像。","官網改版「香城 1999」：大航海時代羊皮紙加港漫風格，版本紀錄與遊戲畫廊各有分頁。"]},
     "v6.0.7": {"title":"玩轉18區","items":["統一視覺：遊戲視窗、面板、按鈕與通知改用深綠灰白；《玩轉18區》劇情採用大航海時代羊皮紙風格。","章節地圖換上維港日落背景，不再顯示城市通知；手機橫向左選章、右地圖。主線目標面板在手機貼齊邊緣。","關於頁重新排版，遊戲圖示放入大航海時代相框；圖示黑框改為透明。","英文名稱統一為 Heung Shing Simulator，日文為香城シミュレーター。","修正第 3 章三星「污染低於 30%」顯示 2920% 且無法達成。"]},
@@ -1055,6 +1057,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.0.10": {"title":"The 18 Districts","items":["The jukebox has 🔀 Shuffle: every track once in a random order, moving on when a song ends; the browser version, phones and the Android app start on it.","The chosen music mode is remembered, and a phone shows which one is on.","On a phone, a typhoon shelter's outline no longer stays on the map after its panel is closed."]},
     "v6.0.9": {"title":"The 18 Districts","items":["Continue where you left off: on the chapter map a chapter you were part-way through loads its latest save, or starts again.","Starting chapter 1 again, Kam Mo-ling asks whether to watch the prologue, which leads straight into the chapter.","Eleven new faces: the news anchor, the education officer, the factory owner, the workers' rep, the reporter, the youth volunteer, the film producer, the claypot-rice boss, Master So, the Tai O granny and a new Wonder Boy Biu.","Chapter 16 has a City Super League night with a football commentator.","The chapter map fits in all three languages, on phones held either way and on computers."]},
     "v6.0.8": {"title":"The 18 Districts","items":["New landmark: Sha Tin Racecourse on a 6x12 lot - the painting cut in two 6x6 halves that join and mirror themselves whichever way the map is turned. Chapter 6 now asks for the real racecourse.","New landmark: the Wetland Park (4x4), which cleans the air round it; chapter 8 now asks for it.","New art for the community centre and the Kai Tak cruise ship; the port master has a face, and chapter 14 ends on the cruise terminal's opening.","Six new mayor looks (named from the HKEAA name list), Captain Cool for aviation, and the council's chief executive is your mayor, by name and face.","The official website redesigned as \"Heung Shing 1999\": parchment and Hong Kong comic lettering, with the release history and the gallery on their own pages."]},
     "v6.0.7": {"title":"The 18 Districts","items":["One look for the game (deep green and grey-white windows, panels, buttons and notices) and one for the story (The 18 Districts' parchment, maroon and gold).","The chapter map over a painting of the harbour at sunset, without the city's notices; on a phone held sideways, chapters left and map right. The objectives panel docks against the edge on a phone.","A shorter About card with the game's icon in a framed portrait; the icon without its black corners.","The game is now Heung Shing Simulator in English and 香城シミュレーター in Japanese.","Fixed chapter 3's \"Pollution under 30%\", which showed 2920% and could not be met."]},
@@ -1434,6 +1437,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.0.10": {"title":"18区をめぐる","items":["ジュークボックスに「🔀 シャッフル」：全曲を一度ずつランダムに再生し、曲が終わると次へ。ブラウザー版・スマートフォン・Android アプリはシャッフルで開始。","選んだ再生モードを記憶し、スマートフォンでも今のモードを表示。","スマートフォンで避難港のパネルを閉じた後、枠線が地図に残らなくなりました。"]},
     "v6.0.9": {"title":"18区をめぐる","items":["前回の続きから：章マップで途中の章を選ぶと最新のセーブから続けるか、最初からやり直せます。","第1章をやり直す時は金毛玲がプロローグを見るか尋ね、見終わるとそのまま第1章へ。","新しい顔が11人：ニュースキャスター、教育局代表、工場主、労働者代表、記者、青年ボランティア、映画プロデューサー、土鍋ご飯の女将、ソー師傅、大澳のおばあちゃん、新しい神童標。","第16章に「シティ・スーパーリーグの夜」とサッカー実況を追加。","章マップは三言語とも、スマートフォンの縦・横とパソコンで画面に収まるように。"]},
     "v6.0.8": {"title":"18区をめぐる","items":["新ランドマーク：沙田競馬場（6×12）。絵を二つの6×6に分け、地図の向きに合わせて絵と鏡像を選ぶので、いつもつながります。第6章は本物の競馬場が必要に。","新ランドマーク：湿地公園（4×4）、周りの空気をきれいに。第8章は湿地公園が必要に。","コミュニティセンターと啓徳のクルーズ船に新しいアート。埠頭主任に顔がつき、第14章の結末はクルーズターミナルの開業の絵に。","市長の顔を6種類追加（名前は香港考試局の名簿から）、航空代表は Captain Cool、議会の行政長官はあなたの市長の名前と顔に。","公式サイトを「香城 1999」に一新：羊皮紙と香港漫画の文字、リリース履歴とギャラリーは別ページに。"]},
     "v6.0.7": {"title":"18区をめぐる","items":["見た目を統一：ゲームのウィンドウ・パネル・ボタン・通知は深緑とグレーホワイト、「18区をめぐる」は大航海時代風の羊皮紙。","章マップは夕暮れの港の絵を背景に、都市の通知は出さず、スマートフォン横向きでは左に章・右に地図。目標パネルはスマートフォンで画面の端に。","「香城シミュレーターについて」を短く整理し、アイコンを額縁に。アイコンの黒い角は透明に。","ゲーム名を英語 Heung Shing Simulator、日本語 香城シミュレーターに統一。","第3章の「汚染30%未満」が 2920% と表示され達成できなかった問題を修正。"]},
@@ -1838,8 +1842,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.9 — 【玩轉18區】",
-      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.8 新增沙田馬場、濕地公園；6.0.9 可以繼續上次進度，新增十一個角色頭像。",
+      versionBadge: "v6.0.10 — 【玩轉18區】",
+      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.9 可以繼續上次進度，新增十一個角色頭像；6.0.10 點唱機隨機播放。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1952,8 +1956,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.9 — 【玩轉18區】",
-      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.8 新增沙田馬場、濕地公園；6.0.9 可以繼續上次進度，新增十一個角色頭像。",
+      versionBadge: "v6.0.10 — 【玩轉18區】",
+      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.9 可以繼續上次進度，新增十一個角色頭像；6.0.10 點唱機隨機播放。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2066,8 +2070,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "Heung Shing Simulator",
       title: "Heung Shing Simulator",
-      versionBadge: "v6.0.9 — 【The 18 Districts】",
-      versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong. 6.0.8 adds Sha Tin Racecourse and the Wetland Park; 6.0.9 lets you continue a chapter where you left off, with eleven new faces.",
+      versionBadge: "v6.0.10 — 【The 18 Districts】",
+      versionDesc: "6.0.0: The 18 Districts - a new story campaign, one chapter for each district of Hong Kong. 6.0.9 lets you continue a chapter where you left off, with eleven new faces; 6.0.10 brings jukebox shuffle.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2181,8 +2185,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城シミュレーター",
       title: "香城シミュレーター",
-      versionBadge: "v6.0.9 — 【18区をめぐる】",
-      versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。6.0.8 で沙田競馬場と湿地公園、6.0.9 で前回の続きから遊べるように、新しい顔が11人。",
+      versionBadge: "v6.0.10 — 【18区をめぐる】",
+      versionDesc: "6.0.0 大型アップデート：新ストーリーモード「18区をめぐる」、香港18区を一章ずつ攻略。6.0.9 で前回の続きから遊べるように、新しい顔が11人。6.0.10 でジュークボックスにシャッフル。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

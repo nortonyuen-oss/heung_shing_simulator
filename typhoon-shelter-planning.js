@@ -362,9 +362,20 @@ function drawTyphoonShelterAnalysis(g, scene, a, { selected = false } = {}) {
   if (bad.size) fillTyphoonShelterTiles(g, scene, bad, TYPHOON_SHELTER_COLORS.problem, 0.45);
 }
 
+// A phone left on the shelter tool with nothing to do - no basin being drawn, not opening entrances, the
+// panel closed - shows nothing on screen to leave it by, so it draws no overlay either (Norton v6.0.9:
+// 確認唔到條框線，永遠都係選取中).
+function isTyphoonShelterToolIdleOnTouch() {
+  if (typeof isTouchUiProfile !== 'function' || !isTouchUiProfile() || !isTyphoonShelterToolActive()) return false;
+  if (typhoonShelterMode === 'entrance') return false;
+  const draft = typeof mobileBuildSession !== 'undefined' ? mobileBuildSession.getState() : null;
+  return draft?.tool !== TYPHOON_SHELTER_TOOL;
+}
+
 function redrawTyphoonShelterPlanning(scene = typeof activeScene !== 'undefined' ? activeScene : null, { force = false } = {}) {
   if (!scene) return;
-  const visible = force || isTyphoonShelterToolActive() || !!typhoonShelterDom?.panel && !typhoonShelterDom.panel.hidden;
+  const panelOpen = !!typhoonShelterDom?.panel && !typhoonShelterDom.panel.hidden;
+  const visible = force || panelOpen || (isTyphoonShelterToolActive() && !isTyphoonShelterToolIdleOnTouch());
   if (!typhoonShelterGraphics || typhoonShelterGraphics.scene !== scene) {
     typhoonShelterGraphics = scene.add.graphics();
     typhoonShelterGraphics.setDepth(typeof getPreviewOverlayDepth === 'function' ? getPreviewOverlayDepth(2) : 1e6);
@@ -484,7 +495,14 @@ function createTyphoonShelterDom() {
     typhoonShelterMode = b.dataset.tsMode;
     syncTyphoonShelterTool();
   }));
-  panel.querySelector('.ts-close').addEventListener('click', () => closeTyphoonShelterPanel());
+  panel.querySelector('.ts-close').addEventListener('click', () => {
+    closeTyphoonShelterPanel();
+    // a phone done with its shelter goes back to looking at the map (查詢), the outline put away
+    if (isTyphoonShelterToolIdleOnTouch() && typeof mobileSelectTool === 'function') {
+      mobileSelectTool('inspect');
+      redrawTyphoonShelterPlanning();
+    }
+  });
   panel.querySelector('.ts-name').addEventListener('change', (e) => updateSelectedTyphoonShelter({ name: e.target.value.trim().slice(0, 40) }));
   panel.querySelector('.ts-reserve').addEventListener('input', (e) => updateSelectedTyphoonShelter({ reservePct: Number(e.target.value) }));
   panel.querySelector('.ts-delete').addEventListener('click', () => {
@@ -563,12 +581,15 @@ function updateSelectedTyphoonShelter(fields) {
 function closeTyphoonShelterPanel() {
   typhoonShelterSelectedId = null;
   typhoonShelterPendingEdit = null;
+  // hidden before the redraw, or the outline is drawn once more for a panel about to close and stays
+  if (typhoonShelterDom?.panel) typhoonShelterDom.panel.hidden = true;
   redrawTyphoonShelterPlanning();
 }
 
 function showTyphoonShelterPanel(show) {
   createTyphoonShelterDom();
   typhoonShelterDom.panel.hidden = !show;
+  redrawTyphoonShelterPlanning();
 }
 
 function renderTyphoonShelterPanel() {

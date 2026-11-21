@@ -82,6 +82,8 @@ function mobileSelectTool(tool) {
   if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) setTransportModeActive(false);
   // The desktop selection has no ownership of the draft; this merely keeps profile switching tidy.
   selectedTool = tool;
+  // the shelter outline goes with its tool (it is drawn while the tool is in use)
+  if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning();
   mobileClosePanel();
   document.getElementById('inspect-panel').style.display = 'none';
   if (tool === 'inspect') return;
@@ -165,8 +167,10 @@ function handleMobileMapTap({ x, y }) {
 
 function mobileRenderDraft(draft) {
   if (!mobileUi) return;
-  // a typhoon shelter's panel hides while its tool drafts, and returns once the draft is done
+  // a typhoon shelter's panel hides while its tool drafts, and returns once the draft is done; its
+  // outline follows (a cancelled draft or a closed panel must not leave it on the map)
   if (typeof renderTyphoonShelterPanel === 'function') renderTyphoonShelterPanel();
+  if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning();
   const building = !!draft;
   mobileUi.classList.toggle('is-building', building);
   mobileUi.classList.toggle('is-district-sign', draft?.tool === 'district-sign');

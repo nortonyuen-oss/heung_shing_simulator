@@ -128,8 +128,13 @@ function check(name, ok, detail) {
       return !!panel && !panel.hidden && getComputedStyle(panel).display !== 'none' && !!panel.querySelector('.ts-approve');
     }));
     await page.click('#ts-panel .ts-close');
+    // v6.0.9: the shelter's outline stayed on the map with nothing on screen to leave the tool by
+    const outline = () => page.evaluate(() => (typhoonShelterGraphics?.commandBuffer?.length || 0) > 0);
+    check('closing the shelter panel on a phone leaves the tool and puts its outline away',
+      await page.evaluate(() => selectedTool === 'inspect') && !(await outline()));
     await nav('build'); await page.click('[data-mobile-category="marine"]'); await page.click('[data-mobile-tool="typhoon-shelter"]');
     await page.click('[data-mobile-shelter-mode="entrance"]');
+    check('entrance mode shows the shelter outline', await outline());
     check('switching to entrance mode drops the build-session draft', !(await draft()));
     await tapTile(101, 71);
     await page.click('#mobile-route-picker-done');
@@ -138,6 +143,11 @@ function check(name, ok, detail) {
     await tapTile(101, 71); await tapTile(101, 75);
     check('the subtract toggle plans a cut instead of an addition', (await draft()).options.subtract === true);
     await page.click('#mobile-cancel');
+    check('after a cancelled draft the outline shows only with the shelter panel', await page.evaluate(() => {
+      const panel = document.getElementById('ts-panel');
+      const open = !!panel && !panel.hidden;
+      return open === ((typhoonShelterGraphics?.commandBuffer?.length || 0) > 0);
+    }));
 
     // ── terrain brush ─────────────────────────────────────────────────────────
     await nav('build'); await page.click('[data-mobile-category="terrain"]'); await page.click('[data-mobile-tool="terrain"]');

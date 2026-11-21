@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.7 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.0.8 — 【玩轉18區】
 
-香城模擬器 (Heung Shing Simulator) v6.0.7 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.0.8 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.8
+
+New art paid off from The 18 Districts' list. Sha Tin Racecourse is a new landmark on a 6x12 lot - Norton's painting cut into two 6x6 halves that the game joins (and mirrors) whichever way the map is turned - and the Wetland Park a new 4x4 one that cleans the air round it; chapters 6 and 8 now ask for the real buildings instead of the stadium and flagship park that stood in. The community centre and the Kai Tak cruise ship have their own art (four headings for the ship), the port master has a face, and chapter 14 ends on the terminal's opening. Mayor registration offers six new mayor looks named from the HKEAA name list, Captain Cool speaks for aviation, and the council's chief executive is your mayor, by name and face. The official website is redesigned as "Heung Shing 1999" - The 18 Districts' parchment with Hong Kong comic lettering, in the style of a late-90s PC game homepage - with the release history and the gallery on their own pages.
 
 ## New in v6.0.7
 

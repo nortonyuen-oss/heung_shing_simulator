@@ -1,3 +1,41 @@
+# Heung Shing Simulator v6.0.8 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 還美術債：沙田馬場、濕地公園、郵輪；官網改版
+
+- **沙田馬場**（新地標，6×12）：
+  - Norton 嘅馬場圖由中間切開兩個 6×6，遊戲入面拼返埋。
+  - 地圖轉去邊個方向，兩邊都會自動揀啱嘅圖同鏡像，永遠接得埋，看台喺後面。
+  - 剷一邊，兩邊一齊剷。人口 30,000 解鎖，$24,000。
+  - 第 6 章二星改為要起真嘅馬場（之前用大球場頂住）。
+- **濕地公園**（新地標，4×4）：木棧道、魚塘、白鷺，附近空氣清新啲。人口 20,000 解鎖，$8,000。第 8 章二星改為要起真嘅濕地公園。
+- **社區中心**換上自己嘅圖，已經起咗嘅會自動換。
+- **啟德郵輪**換上 Norton 嘅郵輪圖，四個方向，船長 7 格（之前用拉長咗嘅貨櫃船）。
+- **碼頭主任**有頭像；第 14 章結尾換上郵輪碼頭開幕插圖。
+- **市長登記**：
+  - 新增六款市長樣貌：陳一心、李幼羚、張思賢、黃念慈、何向華、林英秀。名字取自考評局中文寫作卷名單。
+  - 航空代表係 Captain Cool；旅遊代表用康文署官員頭像。
+  - 市政會議嘅行政長官顯示玩家嘅市長名同頭像。
+- **官網改版「香城 1999」**：
+  - 風格係大航海時代羊皮紙加港漫，好似 90 年代電腦遊戲主頁。
+  - 首頁由 38,000px 減到 4,500px 左右。
+  - 版本紀錄同遊戲畫廊有自己嘅分頁。
+
+**台灣中文：** 補齊美術：新地標「沙田馬場」佔 6×12，Norton 的馬場圖從中間切成兩個 6×6，地圖轉向時兩邊會自動選對圖與鏡像，永遠接得上；拆除其中一邊會一起拆除。人口 30,000 解鎖，$24,000，第 6 章二星改為要興建真正的馬場。新地標「濕地公園」（4×4）淨化周邊空氣，人口 20,000 解鎖，$8,000，第 8 章二星改為要興建濕地公園。社區中心與啟德郵輪換上新圖（郵輪四個方向），碼頭主任有了頭像，第 14 章結尾換上郵輪碼頭開幕插圖。市長登記新增六款市長樣貌（名字取自考評局名單），航空代表 Captain Cool，市政會議的行政長官顯示玩家的市長名字與頭像。官網改版為「香城 1999」：大航海時代羊皮紙加港漫風格，版本紀錄與遊戲畫廊各有分頁。
+
+**English:** Art paid off from The 18 Districts' list. Sha Tin Racecourse is a new landmark on a 6x12 lot: Norton's painting is cut into two 6x6 halves that the game joins, picking each half's art and mirror by how the map is turned so they always meet with the grandstand behind; bulldozing one half removes both. It unlocks at 30,000 people for $24,000, and chapter 6's second star now asks for it instead of the stadium that stood in. The Wetland Park is a new 4x4 landmark that cleans the air round it (20,000 people, $8,000), and chapter 8 now asks for it instead of the flagship park. The community centre and the Kai Tak cruise ship have their own art (the ship in four headings), the port master has a face, and chapter 14 ends on the cruise terminal's opening. Mayor registration offers six new mayor looks named from the HKEAA name list, Captain Cool speaks for aviation, and the council's chief executive is your mayor, by name and face. The official website is redesigned as "Heung Shing 1999" - The 18 Districts' parchment with Hong Kong comic lettering, like a late-90s PC game homepage - with the release history and the gallery on their own pages.
+
+**日本語:** 「18区をめぐる」の未完成アートを補いました。新しいランドマーク「沙田競馬場」は6×12の敷地で、Norton の絵を真ん中で二つの6×6に切り、地図の向きに合わせて各半分の絵と鏡像を選ぶので、いつもスタンドを奥にしてつながります。片方を撤去すると両方が撤去されます。人口30,000人で解放、$24,000。第6章の星2つ目は代用のスタジアムではなく本物の競馬場が必要になりました。新しいランドマーク「湿地公園」（4×4）は周りの空気をきれいにします（人口20,000人、$8,000）。第8章は代用の旗艦公園ではなく湿地公園が必要です。コミュニティセンターと啓徳のクルーズ船に専用のアート（船は4方向）、埠頭主任に顔がつき、第14章の結末はクルーズターミナルの開業の絵に。市長登録に6種類の新しい市長の顔（名前は香港考試局の名簿から）、航空代表は Captain Cool、議会の行政長官はプレイヤーの市長の名前と顔になりました。公式サイトを「香城 1999」に一新：大航海時代風の羊皮紙と香港漫画の文字で、90年代のPCゲームのホームページ風に。リリース履歴とギャラリーは別ページになりました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.7 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

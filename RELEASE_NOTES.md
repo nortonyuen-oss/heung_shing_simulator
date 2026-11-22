@@ -1,3 +1,26 @@
+# Heung Shing Simulator v6.0.12 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 新城供電與需求；官網累積下載數
+
+- **修正空地耗電**：新城劃好高密度公屋、商業同工業區，未起樓嘅空地唔再預先消耗電力，避免燃煤廠假超載同三類需求一齊變負數。道路同分區照常接電，自動起樓後先計實際建築用電；一般地圖同香港全境都適用。實際建築超出發電容量時，供電不足嘅限制仍然生效。
+- **官網下載 counter**：讀齊所有 GitHub release 嘅安裝檔下載數，唔再只加總最近 100 個版本而漏計舊下載。全部分頁成功先顯示總數；讀取失敗會顯示暫未能取得，避免顯示唔完整嘅數字。
+
+**台灣中文：** 修正新城劃設高密度公屋、商業與工業區後，空地就消耗電力，造成燃煤電廠誤判超載、三類需求同時變負。現在空地只建立供電連接，實際建築才耗電；一般地圖與香港全境皆適用，真正超出發電容量時仍有供電不足限制。官網改為加總所有 GitHub release 的安裝檔下載數，不再漏計第 100 個版本以外的舊下載，且全數讀取成功後才顯示合計。
+
+**English:** Fixed a new-city deadlock: zoning high-density public housing, commerce and industry reserved electricity for vacant lots, falsely overloading the coal plant and pushing all three demand bars below zero. Vacant lots now receive connections and only actual buildings draw power, on ordinary maps and the full territory. Genuine capacity shortages still apply. The website sums installer downloads across every GitHub release instead of the latest 100, and only displays a total after all pages succeed.
+
+**日本語:** 新都市で高密度の公営住宅・商業・工業地区を指定すると、空き地の分まで電力を確保して石炭発電所が誤って過負荷となり、全需要がマイナスになる問題を修正しました。空き地は送電接続のみとなり、建物ができてから電力を消費します。通常マップと香港全域の両方に適用し、実際の発電容量不足による制限は維持します。公式サイトは最新100件ではなく全GitHubリリースの配布ファイルを集計し、全ページ取得成功後に合計を表示します。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.11 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

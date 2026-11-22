@@ -54,19 +54,25 @@ async function settled(page) {
       if (!applyToolAt(scene, 1828, 1681).changed) throw Error('Plant fixture failed');
       updatePowerGrid(scene);
       if (!powerMap[1830][1690] || city.totalPowerDemand !== 0) throw Error('Existing grid must be settled before zoning');
-      Object.assign(selectedZoneDensity, { res: DENSITY_LOW, com: DENSITY_LOW, ind: DENSITY_LOW });
+      // Reproduce the new-city failure: reserve-free high-density public housing,
+      // commerce and industry must be able to start on one coal plant.
+      Object.assign(selectedZoneDensity, { res: DENSITY_HIGH, com: DENSITY_HIGH, ind: DENSITY_HIGH });
+      selectedHousingType = 'public';
       for (let row = 1831; row <= 1833; row++) for (let col = 1681; col <= 1700; col++) {
         selectedTool = col < 1689 ? 'zone-res' : col < 1695 ? 'zone-com' : 'zone-ind';
         if (!applyToolAt(scene, row, col).changed) throw Error('Zone fixture failed');
       }
       // This is the real next power pass: no forced dirty flag or new road.
       updatePowerGrid(scene);
+      updatePopulationAndPollution(); updateDemand();
       return { demand: city.totalPowerDemand, supply: city.totalPowerSupply, powered: !!powerMap[1831][1690],
+        demands: [city.demandR, city.demandC, city.demandI], housing: getHousingZoneType(1831, 1681),
         zoned: getZoneGrowthTiles().length, buildings: Object.keys(buildingData).length, tick: city.tick };
     });
     console.log('before growth', before);
     assert.equal(before.zoned, 60); assert.equal(before.buildings, 1);
-    assert.equal(before.demand, 270); assert.equal(before.supply, 600); assert(before.powered);
+    assert.equal(before.demand, 0); assert.equal(before.supply, 600); assert(before.powered);
+    assert.equal(before.housing, 'public'); assert(before.demands.every(value => value > 0));
     await settled(page);
     await page.evaluate(() => { setGameSpeed(GAME_SPEEDS.FAST); });
     await page.waitForFunction(() => {
@@ -102,7 +108,7 @@ async function settled(page) {
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(output, 'automatic-development.png') });
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ before, grown, restored }, null, 2));
-    console.log('PASS existing roads/plant → zoning → real calendar growth for R/C/I → populated save/reload');
+    console.log('PASS roads/coal → high-density public housing/C/I without phantom load → real calendar growth → populated save/reload');
     await context.close();
   } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

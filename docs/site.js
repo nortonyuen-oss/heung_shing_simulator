@@ -1,5 +1,6 @@
 const REPOSITORY = "nortonyuen-oss/heung_shing_simulator";
-const RELEASES_API = `https://api.github.com/repos/${REPOSITORY}/releases?per_page=100`;
+const RELEASES_PAGE_SIZE = 100;
+const RELEASES_API = `https://api.github.com/repos/${REPOSITORY}/releases?per_page=${RELEASES_PAGE_SIZE}`;
 
 const assetMatchers = {
   "mac-arm64": (asset) => /^The\.City\.of\.Heung\.Shing-[\d.]+-arm64\.dmg$/i.test(asset.name),
@@ -108,18 +109,31 @@ function renderReleaseStats() {
 
 async function loadReleaseStats() {
   try {
-    const response = await fetch(RELEASES_API, {
-      cache: "no-store",
-      headers: {
-        Accept: "application/vnd.github+json",
-      },
-    });
+    // The counter is cumulative: the first page drops older downloads whenever
+    // a new release pushes them past GitHub's 100-release page limit.
+    const releasesById = new Map();
+    for (let page = 1; ; page += 1) {
+      const response = await fetch(`${RELEASES_API}&page=${page}`, {
+        cache: "no-store",
+        headers: {
+          Accept: "application/vnd.github+json",
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`GitHub API returned ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`GitHub API returned ${response.status}`);
+      }
+
+      const pageReleases = await response.json();
+      if (!Array.isArray(pageReleases)) throw new Error("Invalid GitHub releases response");
+      // A release published between requests can move an item onto both pages.
+      for (const release of pageReleases) releasesById.set(release.id, release);
+      if (pageReleases.length < RELEASES_PAGE_SIZE) break;
     }
 
-    const releases = await response.json();
+    // Publish a result only after every page succeeds; partial totals look like
+    // lost downloads when a later request fails or hits the API rate limit.
+    const releases = [...releasesById.values()];
     const publicReleases = releases.filter((release) => !release.draft && !release.prerelease);
     const latest = publicReleases[0] || releases[0];
 

@@ -350,7 +350,9 @@ class WorldGameHost {
     const roadUpkeep = UPKEEP_ROAD_PER_TILE * getDepartmentFunding('roads');
     for (const [id, cells] of mapData.sparseChunkCells) { const [,x,y] = id.split(':').map(Number); add(y*32,x*32,{expenses:(cells.counts.get(ROAD)||0)*roadUpkeep}); }
     for (const id of heightMap.sparseChunkCells.keys()) { const [,x,y] = id.split(':').map(Number); add(y*32,x*32); }
-    for(const [id,zone]of zoneMap.sparseCells){if(!zone)continue;const [r,c]=id.split(':').map(Number);add(r,c,{powerDemand:this.buildingAt(id)?0:getZonePowerDemand(zone,zoneDensityMap[r][c])});}
+    // Keep vacant zoned chunks developed without reserving electricity for buildings
+    // that have not grown yet. Actual demand is counted once per building below.
+    for(const [id,zone]of zoneMap.sparseCells){if(!zone)continue;const [r,c]=id.split(':').map(Number);add(r,c);}
     for(const [id,record]of Object.entries(buildingData)){
       const [r,c]=id.split(':').map(Number), type=record.type;
       const population=type==='residential'?Math.round((record.population??POP_PER_LEVEL[record.level]??0)*density):0;

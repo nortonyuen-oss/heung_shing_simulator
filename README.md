@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.11 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.0.12 — 【玩轉18區】
 
-香城模擬器 (Heung Shing Simulator) v6.0.11 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.0.12 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.12
+
+New cities can grow after zoning high-density public housing, commerce and industry around a coal plant: vacant zones receive a power connection but only actual buildings draw electricity. This fixes the false overload that pushed all three demand bars below zero, on ordinary maps and the full territory. The website now totals downloads across every GitHub release, so older downloads no longer fall out after 100 versions.
 
 ## New in v6.0.11
 

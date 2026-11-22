@@ -1435,16 +1435,6 @@ function getBuildingJobCapacity(record) {
   return Math.round(baseJobs * ANCHOR_RATIO * footprintArea * districtJobs);
 }
 
-function getZonePowerDemand(zone, density = DENSITY_LOW) {
-  const level = Math.max(1, Math.min(3, density ?? DENSITY_LOW));
-  const tables = {
-    [ZONE_RES]: [0, 3, 6, 10],
-    [ZONE_COM]: [0, 4, 8, 14],
-    [ZONE_IND]: [0, 7, 12, 20],
-  };
-  return tables[zone]?.[level] ?? 0;
-}
-
 function getPowerPlantAgeMonths(record) {
   return Math.max(0, Number(record?.age ?? 0));
 }

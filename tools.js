@@ -300,7 +300,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType
   if (zoneType === ZONE_RES && typeof setHousingZoneType === 'function') setHousingZoneType(row, col, housingType);
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   // Roads/plants may already have a clean cached grid before this lot exists.
-  // Refresh its connection and reserved demand on the next simulation pulse.
+  // Refresh its connection on the next simulation pulse so the lot can grow.
   if (typeof markPowerGridDirty === 'function') markPowerGridDirty();
   if (zoneType === ZONE_RES && density === DENSITY_LOW) {
     lowDensityLockSet.add(getTileId(row, col));

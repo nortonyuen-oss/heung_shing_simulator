@@ -1,3 +1,31 @@
+# Heung Shing Simulator v6.0.15 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 手機版輕鐵
+
+- **手機版加入輕鐵**：交通頁新增「輕鐵」：
+  - 輕鐵路軌，可揀地面或者高架。
+  - 輕鐵站。
+  - 輕鐵路線：一個站一個站撳，同電車一樣。
+  - 以前手機版只有電車、冇輕鐵，輕鐵面板啲掣喺手機撳落都冇反應，而家修正咗。
+- **未開放時會講原因**：輕鐵要人口到 15,000，再喺立法會通過【輕便鐵路撥款】先開放；未通過之前交通頁同預覽都會講明。
+- **第 7 章屯門**任務卡加咗輕鐵點樣開放嘅說明。
+
+**台灣中文：** 手機版加入輕鐵：交通頁新增「輕鐵」，包括輕鐵路軌（可選地面或高架）、輕鐵站，以及輕鐵路線（逐站點選，與電車相同）。以前手機版只有電車、沒有輕鐵，輕鐵面板的按鈕在手機上點了也沒有反應，現已修正。輕鐵需要人口達 15,000，並在立法會通過【輕便鐵路撥款】才開放；通過之前，交通頁和預覽都會說明。第 7 章屯門的任務卡也加入了輕鐵開放方式的說明。
+
+**English:** The light rail on a phone. The transport page now has Light Rail: track, with its ground or elevated choice, stations, and lines tapped station by station, as with trams. Until now a phone had trams but no light rail, and the light rail panel's buttons did nothing there. The light rail opens at 15,000 people once the Legislative Council passes Light Rail Funding; until then the transport page and the preview say so. Chapter 7's Tuen Mun mission card now explains how the light rail opens.
+
+**日本語:** スマートフォンにライトレールを追加。交通ページに「ライトレール」が加わりました：線路（地上・高架を選択）、駅、路線（路面電車と同じく駅を順にタップ）。これまでスマートフォンには路面電車しかなく、ライトレールのパネルのボタンも反応しませんでしたが、修正しました。ライトレールは人口15,000に達し、立法会で【ライトレール建設出資】が可決されると開放されます。それまでは交通ページとプレビューで理由を表示します。第7章屯門のミッションカードにも開放方法の説明を追加しました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.14 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

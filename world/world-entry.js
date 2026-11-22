@@ -4,13 +4,14 @@
   else root.HeungShingWorldEntry = api;
 })(globalThis, function (cryptoApi) {
   'use strict';
-  function createWorldUrl({ name, startYear, roadTileSetId, transportExpansion, id = `world-${cryptoApi.worldUuid()}` }, base = location.href) {
+  function createWorldUrl({ name, startYear, roadTileSetId, transportExpansion, sandbox, id = `world-${cryptoApi.worldUuid()}` }, base = location.href) {
     if (!/^world-[a-zA-Z0-9_-]{1,90}$/.test(id)) throw new Error('Invalid new world ID');
     const url = new URL('/?world=1', base);
     url.searchParams.set('new', id); url.searchParams.set('name', String(name || '香港全境').trim().slice(0, 30));
     url.searchParams.set('year', String(startYear));
     if (roadTileSetId) url.searchParams.set('roads', roadTileSetId);
     if (transportExpansion) url.searchParams.set('transport', '1');
+    if (sandbox) url.searchParams.set('sandbox', '1'); // 造景模式 (landing-screen.js applySandboxMode)
     return url.href;
   }
   function parseWorldLaunch(search, nowYear = new Date().getFullYear()) {
@@ -29,7 +30,8 @@
     const params = new URL(url, location.href).search;
     const launch = parseWorldLaunch(params);
     if (!launch.slot) throw new Error('請選擇城市存檔。');
-    return startWorldGame({ ...launch, roadTileSetId: new URLSearchParams(params).get('roads'), transportExpansion: new URLSearchParams(params).get('transport') === '1' });
+    const query = new URLSearchParams(params);
+    return startWorldGame({ ...launch, roadTileSetId: query.get('roads'), transportExpansion: query.get('transport') === '1', sandbox: query.get('sandbox') === '1' });
   }
   async function resumeLaunch() {
     const params = new URLSearchParams(location.search);

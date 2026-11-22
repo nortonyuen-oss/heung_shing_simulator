@@ -487,7 +487,7 @@ function setupLandingScreen() {
       return;
     }
     if (source.kind === 'territory') {
-      try { await globalThis.HeungShingWorldEntry.enterWorld(globalThis.HeungShingWorldEntry.createWorldUrl({ name: nameInput.value.trim() || getDefaultCityName(), startYear: resolveCityStartYear(selectedStartYear), roadTileSetId: roadTileSetSelect?.value, transportExpansion: transportExpansionCheckbox?.checked })); }
+      try { await globalThis.HeungShingWorldEntry.enterWorld(globalThis.HeungShingWorldEntry.createWorldUrl({ name: nameInput.value.trim() || getDefaultCityName(), startYear: resolveCityStartYear(selectedStartYear), roadTileSetId: roadTileSetSelect?.value, transportExpansion: transportExpansionCheckbox?.checked, sandbox: document.getElementById('newgame-sandbox')?.checked === true })); }
       catch (error) { showToast(error.message, 'danger'); }
       return;
     }
@@ -915,6 +915,7 @@ async function startNewGame(cityName, options = {}) {
   }
   startSimTimer();
   hideLandingScreen();
+  centerNewCityOnLand(activeScene);
   const performanceDuration = (globalThis.performance?.now?.() ?? Date.now()) - performanceStartedAt;
   if (typeof recordVisualRoutePerformanceDuration === 'function') {
     recordVisualRoutePerformanceDuration(activeScene, 'load.newCity', performanceDuration);
@@ -925,6 +926,36 @@ async function startNewGame(cityName, options = {}) {
       population: Number(city.population) || 0,
     });
   }
+}
+
+// A new city opens with land in view. The camera starts on the map's middle, which on 維港兩岸 (the first
+// map offered) is the harbour - a screen of sea, as if the city had no ground (Norton, 2026-11-22:
+// 新遊戲開局沒有地面). So: the ground nearest the middle that is more than a stray tile, the coast and
+// the water beside it in view.
+function findNewCityLandTile() {
+  const midRow = Math.floor(MAP_HEIGHT / 2);
+  const midCol = Math.floor(MAP_WIDTH / 2);
+  const ground = (row, col) => mapData[row]?.[col] === GROUND;
+  const solid = (row, col) => ground(row, col) && ground(row - 1, col) && ground(row + 1, col) && ground(row, col - 1) && ground(row, col + 1);
+  if (solid(midRow, midCol)) return null;
+  let best = null;
+  let bestDistance = Infinity;
+  for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+    for (let col = 1; col < MAP_WIDTH - 1; col++) {
+      const distance = (row - midRow) ** 2 + (col - midCol) ** 2;
+      if (distance < bestDistance && solid(row, col)) { best = { row, col }; bestDistance = distance; }
+    }
+  }
+  return best;
+}
+
+function centerNewCityOnLand(scene) {
+  // (香港全境 streams its land in around where the player looks; it has its own start)
+  if (!scene || (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) || typeof centerCameraOnTile !== 'function') return;
+  const tile = findNewCityLandTile();
+  if (!tile) return;
+  centerCameraOnTile(scene, tile.row, tile.col);
+  if (typeof onMapViewChanged === 'function') onMapViewChanged(scene);
 }
 
 // 造景模式 (Norton 2026-11-22: 城市金錢10億，運輸公司資金都係10億，俾玩家自己鍾意起乜都可以): a city to build

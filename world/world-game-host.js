@@ -94,8 +94,10 @@ class WorldGameHost {
     scene.buildingSprites = new WorldGameBuildingSprites(this);
     if (saved) this.restoreGame(saved); else this.migratePrototype();
     city.name = saved?.city.name || this.delta.header.city.name;
-    if (!saved) { city.nameEn = ''; city.plateColor = 0; city.budget = this.delta.header.city.budget; city.year = this.delta.header.city.startYear || 1900; setRoadTileSet(this.launch.roadTileSetId || ROAD_TILE_SET_DEFAULT_ID, { refresh: false }); setExpansionEnabled('transport', this.launch.transportExpansion === true, { notify: false, autosave: false }); }
+    if (!saved) { city.nameEn = ''; city.plateColor = 0; city.budget = this.delta.header.city.budget; city.year = this.delta.header.city.startYear || 1900; setRoadTileSet(this.launch.roadTileSetId || ROAD_TILE_SET_DEFAULT_ID, { refresh: false }); setExpansionEnabled('transport', this.launch.transportExpansion === true || this.launch.sandbox === true, { notify: false, autosave: false }); }
     normalizeCityFinanceState();
+    // 造景模式 on 香港全境 too (Norton, 2026-11-22: 造景mode入全境地圖依然係1萬budget); a saved world keeps its own
+    if (!saved && this.launch.sandbox === true && typeof applySandboxMode === 'function') applySandboxMode();
     updateMapMetrics(scene); drawWorldMask(scene);
     this.adapter = new api.WorldModeAdapter(this.world, api.createLegacyWorldProjection(this.world));
     this.visuals = api.createLegacyTerrainVisuals(this.world);

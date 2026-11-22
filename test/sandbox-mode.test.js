@@ -61,3 +61,44 @@ test('education: empty quarters of the map show a dash, the average shows where 
   while (basic < 0.6 && months < 40) { basic += 0.30 * (0.9 - basic); months += 1; }
   assert.ok(months <= 8, `basic education reaches 60% in ${months} months`);
 });
+
+test('造景模式 on 香港全境: the switch rides the world link into a fresh world (a saved one keeps its own)', () => {
+  const entry = require('../world/world-entry.js');
+  const url = new URL(entry.createWorldUrl({ name: 'T', startYear: 1900, sandbox: true, id: 'world-test' }, 'http://127.0.0.1/'));
+  assert.equal(url.searchParams.get('sandbox'), '1');
+  assert.equal(new URL(entry.createWorldUrl({ name: 'T', startYear: 1900, id: 'world-test' }, 'http://127.0.0.1/')).searchParams.has('sandbox'), false);
+  assert.match(source('world/world-entry.js'), /sandbox: query\.get\('sandbox'\) === '1'/);
+  assert.match(source('landing-screen.js'), /transportExpansion: transportExpansionCheckbox\?\.checked, sandbox: document\.getElementById\('newgame-sandbox'\)\?\.checked === true/);
+  const host = source('world/world-game-host.js');
+  assert.match(host, /this\.launch\.transportExpansion === true \|\| this\.launch\.sandbox === true/);
+  assert.match(host, /if \(!saved && this\.launch\.sandbox === true && typeof applySandboxMode === 'function'\) applySandboxMode\(\);/);
+});
+
+test('a new city opens with land in view: the ground nearest the middle, not a stray tile', () => {
+  const vm = require('node:vm');
+  const src = source('landing-screen.js');
+  const i = src.indexOf('function findNewCityLandTile(');
+  const fn = src.slice(i, src.indexOf('\n}\n', i) + 3);
+  const GROUND = 1; const WATER = 5;
+  const run = (rows) => {
+    const context = vm.createContext({ MAP_WIDTH: rows[0].length, MAP_HEIGHT: rows.length, GROUND, mapData: rows.map((r) => [...r].map((ch) => (ch === '#' ? GROUND : WATER))) });
+    vm.runInContext(fn, context);
+    return JSON.parse(JSON.stringify(vm.runInContext('findNewCityLandTile()', context)));
+  };
+  // a harbour down the middle, a stray rock on the middle tile itself: the nearer shore, not the rock
+  assert.deepEqual(run([
+    '###......###',
+    '###......###',
+    '###......###',
+    '###......###',
+    '###......###',
+    '###...#..###',
+    '###......###',
+    '###......###',
+    '###......###',
+    '###......###',
+  ]), { row: 5, col: 10 });
+  // land at the middle already: the camera stays where it is
+  assert.equal(run(['#####', '#####', '#####', '#####', '#####']), null);
+  assert.match(src, /hideLandingScreen\(\);\n  centerNewCityOnLand\(activeScene\);/);
+});

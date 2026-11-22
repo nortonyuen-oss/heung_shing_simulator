@@ -39,7 +39,10 @@ let browser, server;
     releaseRequests += 1;
     const pageNumber = new URL(route.request().url()).searchParams.get('page') || '1';
     if (unavailable && pageNumber === '2') return route.fulfill({ status: 503, body: 'Unavailable' });
-    return route.fulfill({ json: pageNumber === '1' ? firstPage : [release(10, 82)] });
+    const legacy = { id: 1, tag_name: 'v1.0.0', assets: [
+      { name: 'The.City.of.Heung.Shing-1.0.0.dmg', download_count: 11 },
+    ] };
+    return route.fulfill({ json: pageNumber === '1' ? firstPage : [release(10, 71), legacy] });
   });
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.waitForFunction('document.querySelector("[data-web-play-total]").textContent.includes("12,345")');

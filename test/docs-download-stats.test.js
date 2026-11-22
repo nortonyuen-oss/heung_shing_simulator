@@ -61,6 +61,18 @@ test('exactly 100 releases fetch the following empty page before finalizing the 
   assert.equal(fixture.count(), '100 downloads');
 });
 
+test('the lifetime total includes Mac installers from before architecture-specific filenames', async () => {
+  const legacy = release(1, 0, { assets: [
+    { name: 'The.City.of.Heung.Shing-1.0.2.dmg', download_count: 2 },
+    { name: 'The.City.of.Heung.Shing-1.0.1.dmg', download_count: 3 },
+    { name: 'The.City.of.Heung.Shing-1.0.0.dmg', download_count: 6 },
+  ] });
+  const fixture = setup(async () => ok([release(3, 20), legacy]));
+  await fixture.context.loadReleaseStats();
+  assert.equal(fixture.count(), '31 downloads');
+  assert.equal(fixture.elements.get('[data-download-link]')[0].href, 'https://example.com/3.dmg');
+});
+
 test('drafts, prereleases and updater metadata do not inflate public downloads', async () => {
   const stable = release(3, 2);
   stable.assets.push({ name: 'latest.yml', download_count: 900 },

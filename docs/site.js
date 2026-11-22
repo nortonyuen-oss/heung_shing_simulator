@@ -40,7 +40,10 @@ function getAssetDownloadCount(asset) {
 }
 
 function isPublicDownloadAsset(asset) {
-  return Object.values(assetMatchers).some((matcher) => matcher(asset));
+  // The first three releases shipped one Mac DMG without an architecture suffix.
+  // Keep those downloads in the lifetime total while current links use arm64/x64.
+  return Object.values(assetMatchers).some((matcher) => matcher(asset))
+    || /^The\.City\.of\.Heung\.Shing-[\d.]+\.dmg$/i.test(asset.name);
 }
 
 function sumReleaseDownloads(release) {

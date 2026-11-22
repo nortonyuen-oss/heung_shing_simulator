@@ -596,10 +596,11 @@ const CRUISE_SHIP_VIEWS = Object.freeze(Object.fromEntries([
   key: `cruise_ship_${heading}`, path: `Models/specialSites/cruiseShip/cruiseShip-${heading.toUpperCase()}.png`, length, centreX, centreY,
 })])));
 
-function fitCruiseShipSprite(sprite, view) {
+// (the light layer is packaged on its own - trimmed to its own lights - so it maps by its own path)
+function fitCruiseShipSprite(sprite, view, path = view.path) {
   const frame = sprite.frame;
   const mapping = typeof getModelTexturePixelMapping === 'function'
-    ? getModelTexturePixelMapping(view.path, frame) : { resize: 1, offsetX: 0, offsetY: 0 };
+    ? getModelTexturePixelMapping(path, frame) : { resize: 1, offsetX: 0, offsetY: 0 };
   sprite.setOrigin((view.centreX * mapping.resize + mapping.offsetX) / frame.width,
     (view.centreY * mapping.resize + mapping.offsetY) / frame.height);
   const tileWidth = typeof TILE_WIDTH === 'number' ? TILE_WIDTH : 100;
@@ -653,6 +654,8 @@ function updateCruiseShips(scene) {
         fitCruiseShipSprite(rec.sprite, view);
         rec.viewKey = view.key;
       }
+      // after dark it darkens as the shelter boats do, its own lights on over it
+      if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, rec.sprite);
       const at = typeof getVesselWaterSurfacePoint === 'function'
         ? getVesselWaterSurfacePoint(scene, point.r, point.c)
         : { ...isoToScreen(point.c, point.r), depthY: 0 };
@@ -666,15 +669,57 @@ function updateCruiseShips(scene) {
       const alpha = cruiseClamp(distance / 3);
       rec.sprite.setAlpha(alpha);
       rec.sprite.setVisible(alpha > 0.02);
+      updateCruiseShipLights(scene, rec, view, alpha);
+      // 船尾浪花 (water-effects.js): its wake while it sails, none alongside
+      if (typeof trackVesselWake === 'function') {
+        trackVesselWake(scene, rec, point.c, point.r, CRUISE_TUNING.shipLengthTiles, rec.sprite.visible);
+      }
     });
   }
   scene.cruiseShips.forEach((rec, id) => {
-    if (!live.has(id)) { rec.sprite?.destroy(); scene.cruiseShips.delete(id); }
+    if (!live.has(id)) { rec.sprite?.destroy(); rec.lights?.destroy(); scene.cruiseShips.delete(id); }
   });
 }
 
+// The ship's lights after dark (scripts/source-art/night/make-ship-lights.py): its cabins, the white
+// masthead and stern lights and the sidelight on the side in view - green from starboard, red from port -
+// one layer drawn additively over the ship at the building lights' strength.
+function updateCruiseShipLights(scene, rec, view, alpha) {
+  const allowed = (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled())
+    && !(typeof isAttractLightsSuppressed === 'function' && isAttractLightsSuppressed());
+  const strength = allowed && typeof getRuntimeBuildingLightStrength === 'function' ? getRuntimeBuildingLightStrength(scene) : 0;
+  const lit = { key: `${view.key}_lit`, path: view.path.replace(/\.png$/, '_lit.png') };
+  const on = strength > 0.01 && rec.sprite.visible;
+  if (!on) {
+    if (rec.lights?.visible) rec.lights.setVisible(false);
+    return;
+  }
+  if (!scene.textures.exists(lit.key)) {
+    if (typeof requestZoneModelTexture === 'function' && typeof resolveModelAssetPath === 'function') {
+      requestZoneModelTexture(scene, { key: lit.key, path: resolveModelAssetPath(lit.path) });
+    }
+    return;
+  }
+  if (!rec.lights) {
+    rec.lights = scene.add.image(rec.sprite.x, rec.sprite.y, lit.key);
+    if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, rec.lights, 'objectLayer');
+    rec.lights.setBlendMode(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+    if (scene.worldMask) rec.lights.setMask(scene.worldMask);
+    rec.lightsKey = '';
+  }
+  if (rec.lightsKey !== lit.key) {
+    if (rec.lights.texture.key !== lit.key) rec.lights.setTexture(lit.key);
+    fitCruiseShipSprite(rec.lights, view, lit.path);
+    rec.lightsKey = lit.key;
+  }
+  rec.lights.setPosition(rec.sprite.x, rec.sprite.y);
+  rec.lights.setDepth(rec.sprite.depth + 0.001);
+  rec.lights.setAlpha(strength * alpha);
+  rec.lights.setVisible(true);
+}
+
 function clearCruiseShips(scene) {
-  scene?.cruiseShips?.forEach((rec) => rec.sprite?.destroy());
+  scene?.cruiseShips?.forEach((rec) => { rec.sprite?.destroy(); rec.lights?.destroy(); });
   scene?.cruiseShips?.clear();
   cruiseLegCache.clear();
   cruiseFacingStamp = '';

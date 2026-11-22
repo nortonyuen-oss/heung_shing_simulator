@@ -225,7 +225,93 @@ function litWindowMaskSvg(profile, W, H, bucket) {
   return { svg, halo, lit };
 }
 
-async function bakeOne(sourcePath, profile, variant) {
+// ── Profiles in the art's own pixels (2026-11-22) ───────────────────────────────────────────────────
+// A profile with sourcePixels gives its lamps in the source PNG's pixels and its windows as a traced mask
+// (scripts/source-art/night/make-window-masks.py: one id per window, in the RGB). Both are mapped onto
+// the packaged texture the way the game maps any source pixel (model-assets.js getModelTexturePixelMapping):
+// scaled by the size cap, moved by the padding less the trim.
+function stagedPixelMapping(entry) {
+  const longest = Math.max(Number(entry.sourceWidth) || 0, Number(entry.sourceHeight) || 0);
+  const max = Number(entry.maxDimension) || longest;
+  return {
+    resize: longest > max ? max / longest : 1,
+    offsetX: (entry.padding?.left || 0) - (entry.trim?.left || 0),
+    offsetY: (entry.padding?.top || 0) - (entry.trim?.top || 0),
+  };
+}
+
+function stagedSourcePixelProfile(profile, entry) {
+  const map = stagedPixelMapping(entry);
+  const W = Number(entry.outputWidth);
+  const H = Number(entry.outputHeight);
+  return {
+    ...profile,
+    lamps: (profile.lamps || []).map((l) => ({
+      x: (l.x * map.resize + map.offsetX) / W,
+      y: (l.y * map.resize + map.offsetY) / H,
+      r: (l.r * map.resize) / W,
+    })),
+  };
+}
+
+// The traced windows on the packaged texture: an id per pixel (0 = no window), nearest-sampled.
+async function stagedWindowIds(profile, entry) {
+  const raw = await sharp(path.join(ROOT, profile.windowMask)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: sw, height: sh } = raw.info;
+  if (sw !== Number(entry.sourceWidth) || sh !== Number(entry.sourceHeight)) {
+    throw new Error(`${profile.windowMask} is ${sw}x${sh}, its art ${entry.sourceWidth}x${entry.sourceHeight}`);
+  }
+  const map = stagedPixelMapping(entry);
+  const W = Number(entry.outputWidth);
+  const H = Number(entry.outputHeight);
+  const ids = new Int32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const sy = Math.floor((y + 0.5 - map.offsetY) / map.resize);
+    if (sy < 0 || sy >= sh) continue;
+    for (let x = 0; x < W; x++) {
+      const sx = Math.floor((x + 0.5 - map.offsetX) / map.resize);
+      if (sx < 0 || sx >= sw) continue;
+      const i = (sy * sw + sx) * 4;
+      if (raw.data[i + 3] < 128) continue;
+      ids[y * W + x] = (raw.data[i] << 16) | (raw.data[i + 1] << 8) | raw.data[i + 2];
+    }
+  }
+  return ids;
+}
+
+// The share of a model's traced windows lit for a variant: its own litShare, else the schedule's.
+function windowShare(profile, bucket) {
+  if (profile.litShare && Number.isFinite(Number(profile.litShare[bucket]))) return Number(profile.litShare[bucket]);
+  const cls = profile.service ? 'svc' : (profile.class || 'off');
+  return bl.getBuildingLightTargetRatio(bucket, cls, bl.getBuildingLightPersonality(0));
+}
+
+// Mask and halo (alpha 0..255 per pixel) for the traced windows lit in this variant: each window on or off
+// as a whole, at its own brightness - the same hash for a window in every variant, so a window lit at
+// half is also lit at peak.
+async function windowMaskLayers(ids, W, H, profile, variant) {
+  const share = variant.windows === false ? 0 : windowShare(profile, variant.bucket);
+  const level = new Map();
+  let lit = 0;
+  const mask = Buffer.alloc(W * H);
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    if (!id) continue;
+    let a = level.get(id);
+    if (a === undefined) {
+      a = bl.hashBuildingLight(0, id * 7 + 1, 0) < share ? 0.6 + bl.hashBuildingLight(0, id * 7 + 3, 0) * 0.32 : 0;
+      level.set(id, a);
+      if (a > 0) lit += 1;
+    }
+    if (a > 0) mask[i] = Math.round(a * 255);
+  }
+  const blur = async (sigma) => (sigma > 0.3
+    ? sharp(mask, { raw: { width: W, height: H, channels: 1 } }).blur(sigma).raw().toBuffer()
+    : mask);
+  return { mask: await blur(0.6), bloom: await blur(HALO_RADIUS), lit };
+}
+
+async function bakeOne(sourcePath, profile, variant, windowIds = null) {
   // No resize: the staged texture is already the exact image the game shows,
   // which is what the calibration coordinates were authored against.
   const day = await sharp(sourcePath)
@@ -237,13 +323,29 @@ async function bakeOne(sourcePath, profile, variant) {
   // The lamps-only variant bakes no windows at all: an empty mask and halo
   // rather than a schedule row that happens to light nothing.
   const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"></svg>`;
-  const { svg, halo, lit } = variant.windows === false
-    ? { svg: emptySvg, halo: emptySvg, lit: 0 }
-    : litWindowMaskSvg(profile, W, H, variant.bucket);
-  const mask = (await sharp(Buffer.from(svg)).resize(W, H).ensureAlpha()
-    .raw().toBuffer({ resolveWithObject: true })).data;
-  const bloom = (await sharp(Buffer.from(halo)).resize(W, H).ensureAlpha()
-    .raw().toBuffer({ resolveWithObject: true })).data;
+  let mask;
+  let bloom;
+  let lit;
+  // (the alpha of each layer is read at i + 3: a traced mask's single channel is laid out the same way)
+  if (windowIds) {
+    const layers = await windowMaskLayers(windowIds, W, H, profile, variant);
+    mask = Buffer.alloc(W * H * 4);
+    bloom = Buffer.alloc(W * H * 4);
+    for (let p = 0; p < W * H; p++) {
+      mask[p * 4 + 3] = layers.mask[p];
+      bloom[p * 4 + 3] = layers.bloom[p];
+    }
+    lit = layers.lit;
+  } else {
+    const svgs = variant.windows === false
+      ? { svg: emptySvg, halo: emptySvg, lit: 0 }
+      : litWindowMaskSvg(profile, W, H, variant.bucket);
+    mask = (await sharp(Buffer.from(svgs.svg)).resize(W, H).ensureAlpha()
+      .raw().toBuffer({ resolveWithObject: true })).data;
+    bloom = (await sharp(Buffer.from(svgs.halo)).resize(W, H).ensureAlpha()
+      .raw().toBuffer({ resolveWithObject: true })).data;
+    lit = svgs.lit;
+  }
   const D0 = day.data;
   const alphaAt = (x, y) => D0[(y * W + x) * 4 + 3];
   const { pool, head, kept, dropped } = lampLightField(profile, W, H, alphaAt);
@@ -388,8 +490,11 @@ async function main() {
       if(!sampleOnly.length) { fs.rmSync(path.join(STAGE_ROOT, old.packagedPath), { force: true }); delete manifest.entries[christmasLogical]; }
     }
     let deepFull = null;   // the full-size deep-night bake, for the Christmas walls below
+    // a profile in the art's own pixels: its lamps and its traced windows onto this texture
+    const profile = profiles[slug].sourcePixels ? stagedSourcePixelProfile(profiles[slug], entry) : profiles[slug];
+    const windowIds = profiles[slug].windowMask ? await stagedWindowIds(profiles[slug], entry) : null;
     for (const variant of christmasOnly ? [] : VARIANTS) {
-      const { raw, width, height, lit, kept, dropped } = await bakeOne(src, profiles[slug], variant);
+      const { raw, width, height, lit, kept, dropped } = await bakeOne(src, profile, variant, windowIds);
       if (variant.suffix === '__nightdeep') deepFull = { raw, width, height };
       // Straight alpha: without the flag sharp unpremultiplies on encode and the glow halos
       // (semi-transparent) come out brighter and paler than baked.
@@ -416,7 +521,7 @@ async function main() {
       // composited at full size, on the deep-night bake (baked again when only the walls changed)
       if (!deepFull) {
         const deepVariant = VARIANTS.find((v) => v.suffix === '__nightdeep');
-        const baked = await bakeOne(src, profiles[slug], deepVariant);
+        const baked = await bakeOne(src, profile, deepVariant, windowIds);
         deepFull = { raw: baked.raw, width: baked.width, height: baked.height };
       }
       const base = { data: Buffer.from(deepFull.raw), info: { width: deepFull.width, height: deepFull.height } };

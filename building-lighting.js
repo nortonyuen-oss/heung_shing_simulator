@@ -351,6 +351,11 @@ function makeBuildingLightProfile(o = {}) {
       .filter(w => w && typeof w.asset === 'string' && Array.isArray(w.c) && w.c.length === 4)
       .map(w => Object.freeze({ asset: w.asset, c: Object.freeze(w.c.map(p => Object.freeze([...p]))) }))),
     service: !!o.service,
+    // (2026-11-22) a profile in the art's own pixels, its windows a traced mask: the bake maps both onto
+    // the packaged texture (scripts/bake-night-textures.js); litShare overrides the schedule's share
+    sourcePixels: !!o.sourcePixels,
+    windowMask: typeof o.windowMask === 'string' ? o.windowMask : null,
+    litShare: o.litShare && typeof o.litShare === 'object' ? Object.freeze({ ...o.litShare }) : null,
     hasSignage: !!o.hasSignage,       // v1.1 render
     hasFloodlight: !!o.hasFloodlight,  // v1.1 render
   });
@@ -495,8 +500,6 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.392, y: 0.788, r: 0.038 }, { x: 0.334, y: 0.735, r: 0.038 }, { x: 0.629, y: 0.522, r: 0.038 }, { x: 0.7, y: 0.366, r: 0.038 }, { x: 0.272, y: 0.396, r: 0.029 }, { x: 0.492, y: 0.153, r: 0.029 }],
   }),
-  // the 社區中心 stands on the library's art (welfare.js) and lights up as it does
-  get community_centre_2x2() { return BUILDING_LIGHT_HERO_PROFILES.library_2x2; },
   library_2x2: makeBuildingLightProfile({
     class: 'off', service: true,
     panels: [
@@ -1757,6 +1760,64 @@ const BUILDING_LIGHT_HERO_PROFILES = {
   ].map((key) => [key, makeBuildingLightProfile({ class: 'off', panels: [], lamps: [] })])),
 };
 
+// ── The v6.0 renders at night (2026-11-22) ──────────────────────────────────────────────────────────
+// Norton's renders added with The 18 Districts, traced in their own pixels: the windows are masks made by
+// scripts/source-art/night/make-window-masks.py (one id per window), the lamps sit on the lamp posts and
+// lanterns the art already draws (x, y the lamp head, r its reach). Keyed by the art's file name, as the
+// bake and the game both find night art by it; a mirrored view is the drawn one flipped.
+const NIGHT_ART_MASKS = 'scripts/source-art/night/';
+function sourcePixelProfile(slug, o) {
+  return makeBuildingLightProfile({ ...o, sourcePixels: true, panels: [], windowMask: `${NIGHT_ART_MASKS}${slug}-windows.png` });
+}
+function mirroredSourceLamps(lamps, width) {
+  return lamps.map((l) => ({ ...l, x: width - 1 - l.x }));
+}
+const NIGHT_ART_LAMPS = Object.freeze({
+  // the three lamp posts and the entrance canopy's downlights
+  community: [{ x: 115, y: 530, r: 30 }, { x: 787, y: 558, r: 48 }, { x: 531, y: 763, r: 48 },
+    { x: 476, y: 578, r: 30 }, { x: 558, y: 553, r: 30 }, { x: 626, y: 537, r: 30 }],
+  // the street: the shops under their awnings, the café, the gate's lanterns, the film set's lamp, the stalls
+  walledCity: [{ x: 163, y: 722, r: 34 }, { x: 305, y: 800, r: 30 }, { x: 607, y: 868, r: 24 }, { x: 640, y: 868, r: 24 },
+    { x: 806, y: 868, r: 46 }, { x: 985, y: 778, r: 30 }, { x: 1100, y: 742, r: 28 }, { x: 1180, y: 716, r: 24 }, { x: 60, y: 705, r: 22 }],
+  // the plaza's bollards, the visitor centre's lamp post, the entrance canopy, the bird hide, the pavilion
+  wetland: [{ x: 219, y: 244, r: 13 }, { x: 266, y: 251, r: 13 }, { x: 259, y: 261, r: 13 }, { x: 285, y: 75, r: 15 },
+    { x: 230, y: 210, r: 15 }, { x: 400, y: 105, r: 13 }, { x: 120, y: 112, r: 13 }],
+  // the quay's and the forecourt's lamp posts (the tall posts on the lot's back edge are left out: their
+  // light would fall behind the terminal, off the art)
+  terminalSea: [{ x: 213, y: 333, r: 34 }, { x: 757, y: 622, r: 40 }, { x: 1237, y: 388, r: 34 }],
+  terminalLand: [{ x: 720, y: 612, r: 40 }, { x: 300, y: 458, r: 34 }],
+  // the garden's lamp posts inside the track
+  racecourseA: [{ x: 467, y: 425, r: 30 }, { x: 564, y: 415, r: 30 }, { x: 553, y: 344, r: 30 }, { x: 756, y: 333, r: 30 }, { x: 523, y: 244, r: 36 }],
+  racecourseB: [{ x: 344, y: 335, r: 30 }, { x: 277, y: 445, r: 30 }, { x: 345, y: 471, r: 30 }, { x: 477, y: 471, r: 30 }, { x: 553, y: 398, r: 30 }],
+});
+Object.assign(BUILDING_LIGHT_HERO_PROFILES, {
+  // 社區中心 (keyed by its sprite key: its record has no file name), open into the evening
+  community_centre_2x2: sourcePixelProfile('communityCentre2-01', { class: 'off', service: false, lamps: NIGHT_ART_LAMPS.community }),
+  // 九龍城寨文化園區: lit tenement panes, the street's stalls and the film set
+  'walledCityPark4-01': sourcePixelProfile('walledCityPark4-01', { class: 'res', lamps: NIGHT_ART_LAMPS.walledCity }),
+  // 濕地公園: the park closes at dusk - the visitor centre's glass for a while, then path lamps
+  'wetlandPark4-01': sourcePixelProfile('wetlandPark4-01', { class: 'off', lamps: NIGHT_ART_LAMPS.wetland,
+    litShare: { eveningPeak: 0.45, halfPeak: 0.25, deepNight: 0 } }),
+  // 啟德郵輪碼頭: a terminal stays lit for the night's sailings
+  'cruiseTerminal6-01_m': sourcePixelProfile('cruiseTerminal6-01_m', { class: 'off', lamps: NIGHT_ART_LAMPS.terminalSea,
+    litShare: { eveningPeak: 0.82, halfPeak: 0.55, deepNight: 0.3 } }),
+  'cruiseTerminal6-01': sourcePixelProfile('cruiseTerminal6-01', { class: 'off', lamps: mirroredSourceLamps(NIGHT_ART_LAMPS.terminalSea, 1536),
+    litShare: { eveningPeak: 0.82, halfPeak: 0.55, deepNight: 0.3 } }),
+  'cruiseTerminal6-01_back_m': sourcePixelProfile('cruiseTerminal6-01_back_m', { class: 'off', lamps: NIGHT_ART_LAMPS.terminalLand,
+    litShare: { eveningPeak: 0.82, halfPeak: 0.55, deepNight: 0.3 } }),
+  'cruiseTerminal6-01_back': sourcePixelProfile('cruiseTerminal6-01_back', { class: 'off', lamps: mirroredSourceLamps(NIGHT_ART_LAMPS.terminalLand, 1536),
+    litShare: { eveningPeak: 0.82, halfPeak: 0.55, deepNight: 0.3 } }),
+  // 沙田馬場: a race night fills the stands; the gardens keep their lamps
+  'racecourse6-01a': sourcePixelProfile('racecourse6-01a', { class: 'off', lamps: NIGHT_ART_LAMPS.racecourseA,
+    litShare: { eveningPeak: 0.85, halfPeak: 0.5, deepNight: 0.1 } }),
+  'racecourse6-01a_m': sourcePixelProfile('racecourse6-01a_m', { class: 'off', lamps: mirroredSourceLamps(NIGHT_ART_LAMPS.racecourseA, 953),
+    litShare: { eveningPeak: 0.85, halfPeak: 0.5, deepNight: 0.1 } }),
+  'racecourse6-01b': sourcePixelProfile('racecourse6-01b', { class: 'off', lamps: NIGHT_ART_LAMPS.racecourseB,
+    litShare: { eveningPeak: 0.85, halfPeak: 0.5, deepNight: 0.1 } }),
+  'racecourse6-01b_m': sourcePixelProfile('racecourse6-01b_m', { class: 'off', lamps: mirroredSourceLamps(NIGHT_ART_LAMPS.racecourseB, 953),
+    litShare: { eveningPeak: 0.85, halfPeak: 0.5, deepNight: 0.1 } }),
+});
+
 function getBuildingLightClass(record) {
   const t = record?.type;
   if (BUILDING_LIGHT_RESIDENTIAL_TYPES.has(t)) return 'res';
@@ -1808,6 +1869,9 @@ function resolveBuildingLightProfile(record, spriteKey, slug) {
     ? getBuildingLightCalibrationOverride(slug || spriteKey, family)
     : null;
   if (override) return override;
+  const pixels = (profile) => (profile?.sourcePixels ? BUILDING_LIGHT_MINIMAL_PROFILE : profile);
+  if (slug && BUILDING_LIGHT_HERO_PROFILES[slug]?.sourcePixels) return pixels(BUILDING_LIGHT_HERO_PROFILES[slug]);
+  if (spriteKey && BUILDING_LIGHT_HERO_PROFILES[spriteKey]?.sourcePixels) return pixels(BUILDING_LIGHT_HERO_PROFILES[spriteKey]);
   // Stable slug wins; the logical key stays as a fallback so calibrations saved
   // under the old index keys keep resolving until they are re-saved.
   return (slug && BUILDING_LIGHT_DB_PROFILES[slug])

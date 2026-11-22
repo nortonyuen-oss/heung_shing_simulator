@@ -523,6 +523,7 @@ function setupLandingScreen() {
           startYear: selectedStartYear,
           roadTileSetId: roadTileSetSelect?.value,
           transportExpansion: transportExpansionCheckbox?.checked === true,
+          sandbox: document.getElementById('newgame-sandbox')?.checked === true,
         });
       }
     } catch (error) {
@@ -897,11 +898,12 @@ async function startNewGame(cityName, options = {}) {
     updateHUD();
   }
   if (typeof setExpansionEnabled === 'function') {
-    setExpansionEnabled('transport', options.transportExpansion === true, {
+    setExpansionEnabled('transport', options.transportExpansion === true || options.sandbox === true, {
       notify: false,
       autosave: false,
     });
   }
+  if (options.sandbox === true) applySandboxMode();
   // New games always start at the default speed (speed is not persisted/carried
   // over) - GAME_SPEEDS.SLOW (0.15) is the tier the topbar now labels "1x".
   if (typeof clearFestivalSprites === 'function' && typeof activeScene !== 'undefined') clearFestivalSprites(activeScene);
@@ -923,6 +925,27 @@ async function startNewGame(cityName, options = {}) {
       population: Number(city.population) || 0,
     });
   }
+}
+
+// 造景模式 (Norton 2026-11-22: 城市金錢10億，運輸公司資金都係10億，俾玩家自己鍾意起乜都可以): a city to build
+// what you like in. Every building, the council, the metro and the light rail open at once; the medals
+// are not earned in it (medals.js).
+const SANDBOX_FUNDS = 1000000000;
+function applySandboxMode() {
+  city.sandbox = true;
+  city.budget = SANDBOX_FUNDS;
+  city.scienceParkUnlocked = true;
+  const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  if (transport) {
+    transport.unlocked = true;
+    if (!transport.company.foundedYear) transport.company.foundedYear = city.year;
+    transport.company.cash = SANDBOX_FUNDS;
+    if (typeof getMetroState === 'function') getMetroState().unlocked = true;
+    if (typeof getLightRailState === 'function') getLightRailState().approved = true;
+  }
+  if (typeof updateHUD === 'function') updateHUD();
+  if (typeof refreshTransportUi === 'function') refreshTransportUi();
+  if (typeof showToast === 'function') showToast(t('toast.sandboxStarted'), 'info');
 }
 
 function showCityIdentityDialog(defaults = {}) {

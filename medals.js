@@ -39,6 +39,8 @@
     if (typeof city === 'undefined' || !city) return true;
     if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return true;
     if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) return true;
+    // 造景模式: $10 億 from the start would hand the medals out for nothing
+    if (city.sandbox) return true;
     return false;
   }
 

@@ -5753,6 +5753,7 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .setup-switch-note { display: block; margin-top: 1px; font-size: 11.5px; font-weight: 400; opacity: 0.75; line-height: 1.35; }
 
     .setup-switch input {
       position: absolute;
@@ -6861,6 +6862,7 @@
           <button class="menu-drop-item" data-menu-action="toggle-dynamic-lighting" id="menu-dynamic-lighting" data-i18n="menu.dynamicLighting">Dynamic lighting (sun angle/cloud drift)</button>
           <button class="menu-drop-item" data-menu-action="toggle-building-lights" id="menu-building-lights" data-i18n="menu.buildingLights">Night building lights</button>
           <button class="menu-drop-item" data-menu-action="toggle-night-remote-darkness" id="menu-night-remote-darkness" data-i18n="menu.nightRemoteDarkness">Darker nights away from the city</button>
+          <button class="menu-drop-item" data-menu-action="toggle-night-brightness" id="menu-night-brightness">🌙 Night brightness: Bright</button>
           <button class="menu-drop-item" data-menu-action="toggle-sea-flow" id="menu-sea-flow" data-i18n="menu.seaFlow">Sea surface flow effect</button>
           <button class="menu-drop-item" data-menu-action="toggle-vessel-wakes" id="menu-vessel-wakes" data-i18n="menu.vesselWakes">Boat wakes</button>
           <button class="menu-drop-item" data-menu-action="toggle-shore-reflections" id="menu-shore-reflections" data-i18n="menu.shoreReflections">Waterfront light reflections at night</button>
@@ -7260,6 +7262,12 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
                 <input id="newgame-transport-expansion" type="checkbox" role="switch" />
                 <span class="setup-switch-track" aria-hidden="true"></span>
                 <span data-i18n="transport.newCity.enable">Enable Public Transport Expansion</span>
+              </label>
+
+              <label class="setup-switch">
+                <input id="newgame-sandbox" type="checkbox" role="switch" />
+                <span class="setup-switch-track" aria-hidden="true"></span>
+                <span><span data-i18n="landing.sandbox">Sandbox mode</span><small class="setup-switch-note" data-i18n="landing.sandboxNote">$1 billion for the city and the transport company; build anything. No medals.</small></span>
               </label>
             </div>
 

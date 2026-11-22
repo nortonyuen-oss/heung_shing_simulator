@@ -117,7 +117,7 @@ function updateBudgetControls() {
 }
 
 function isCouncilMeetingUnlocked() {
-  return city.population >= 10000 || hasBuildingType('legislative_council');
+  return city.population >= 10000 || hasBuildingType('legislative_council') || !!city.sandbox;
 }
 
 function updateInfrastructureToolVisibility() {

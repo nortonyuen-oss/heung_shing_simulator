@@ -186,6 +186,10 @@ function handleMenuAction(action) {
       }
       updateViewMenu();
       break;
+    case 'toggle-night-brightness':
+      if (typeof cycleNightBrightness === 'function') cycleNightBrightness();
+      updateViewMenu();
+      break;
     case 'toggle-yulan-night-tint':
       if (typeof setYulanNightTintEnabled === 'function') setYulanNightTintEnabled(!isYulanNightTintEnabled());
       updateViewMenu();
@@ -327,6 +331,13 @@ function updateViewMenu() {
     ?.classList.toggle('menu-checked', typeof isDynamicLightingEnabled !== 'function' || isDynamicLightingEnabled());
   document.getElementById('menu-building-lights')
     ?.classList.toggle('menu-checked', typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled());
+  // 夜晚亮度: one item that steps through 標準 / 明亮 / 最亮, showing the one in use
+  const brightness = document.getElementById('menu-night-brightness');
+  if (brightness && typeof getNightBrightness === 'function') {
+    const level = getNightBrightness();
+    brightness.textContent = t('menu.nightBrightness', { level: t(`menu.nightBrightness.${level}`) });
+    brightness.classList.toggle('menu-checked', level !== 'standard');
+  }
   document.getElementById('menu-night-remote-darkness')
     ?.classList.toggle('menu-checked', typeof isNightRemoteDarknessEnabled !== 'function' || isNightRemoteDarknessEnabled());
   document.getElementById('menu-yulan-night-tint')

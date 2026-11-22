@@ -530,13 +530,27 @@ function getWeatherOverlayAlpha() {
   return 0;
 }
 
+// The wash eases between weathers on its own value; what shows is that, less at night - the night's
+// own darkness is already over the city, and a rain wash on top of it left a rainy night all but black
+// (Norton 2026-11-22). applyNightDarkness re-applies it every lighting tick.
+const WEATHER_WASH_NIGHT_CUT = 0.7;
+function applyWeatherWash(scene) {
+  const overlay = scene?.weatherOverlay;
+  if (!overlay) return;
+  const wash = Number(scene.__weatherWash?.value) || 0;
+  const k = typeof cloudNightK === 'number' ? cloudNightK : 0;
+  overlay.setAlpha(wash * (1 - WEATHER_WASH_NIGHT_CUT * k));
+}
+
 function updateWeatherVisualOverlay(scene) {
   const overlay = scene?.weatherOverlay;
   if (!overlay) return;
   const target = getWeatherOverlayAlpha();
   if (overlay.getData('targetAlpha') === target) return;
   overlay.setData('targetAlpha', target);
-  scene.tweens.add({ targets: overlay, alpha: target, duration: 2000, ease: 'Sine.easeInOut' });
+  if (!scene.__weatherWash) scene.__weatherWash = { value: overlay.alpha || 0 };
+  scene.tweens.add({ targets: scene.__weatherWash, value: target, duration: 2000, ease: 'Sine.easeInOut',
+    onUpdate: () => applyWeatherWash(scene) });
 }
 
 // ── Dynamic lighting: one authoritative 24-hour visual timeline ─────────────

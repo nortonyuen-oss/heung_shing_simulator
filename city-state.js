@@ -288,6 +288,9 @@ const city = {
   medalLog: { absurd: [] },
   // 《玩轉18區》 (campaign.js): the chapter this city is a run of, or null
   campaign: null,
+  // 造景模式 (landing-screen.js applySandboxMode): $10 億 for the city and the transport company,
+  // everything unlocked, no medals
+  sandbox: false,
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
   typhoonShelters: { version: 1, nextId: 1, shelters: [] },
   // 海濱步道 built from the parks menu (promenade.js): its tiles and their public piers
@@ -493,6 +496,7 @@ function resetGameState() {
   city.loversStories = { seen: {} };
   city.medalLog = { absurd: [] };
   city.campaign = null;
+  city.sandbox = false;
   city.districtProfileId = '';
   city.regionNeighbours = null;
   city.regionFlows = null;
@@ -1308,6 +1312,11 @@ function getMissingCouncilPolicyRequirement(definition) {
 function getSpecialBuildingUnlockState(type) {
   const rule = SPECIAL_BUILDING_UNLOCKS[type];
   if (!rule) return { unlocked: true, reason: '', type };
+  // 造景模式: everything may be built from the start (a city-wide limit still holds)
+  if (city.sandbox) {
+    return rule.maxCount && getBuildingCount(type) >= rule.maxCount
+      ? { unlocked: false, reason: 'maxCount', type } : { unlocked: true, reason: '', type };
+  }
   if (rule.unlockPopulation && city.population < rule.unlockPopulation) {
     return { unlocked: false, reason: 'population', threshold: rule.unlockPopulation, type };
   }

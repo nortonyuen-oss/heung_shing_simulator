@@ -435,6 +435,10 @@ function selectInfraPlacementModel(buildingType) {
 }
 
 function getInfraPlacementLock(buildingType) {
+  // 造景模式: the 立法會 and the 交易所 too, one of each
+  if (city.sandbox && (buildingType === 'legislative_council' || buildingType === 'stock_exchange')) {
+    return hasBuildingType(buildingType) ? { unlocked: false, reason: 'maxCount', type: buildingType } : { unlocked: true };
+  }
   if (buildingType === 'legislative_council') {
     if (hasBuildingType(buildingType)) return { unlocked: false, reason: 'maxCount', type: buildingType };
     if (city.population < 10000) return { unlocked: false, reason: 'population', threshold: 10000, type: buildingType };

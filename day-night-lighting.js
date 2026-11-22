@@ -99,7 +99,7 @@ function cloudAlphaOp(min, max) {
       particle.cloudAlpha = min + Math.random() * (max - min);
       return 0;
     },
-    onUpdate: (particle, key, lifeT) => particle.cloudAlpha * cloudFadeEnvelope(lifeT),
+    onUpdate: (particle, key, lifeT) => particle.cloudAlpha * cloudFadeEnvelope(lifeT) * (1 - CLOUD_NIGHT_THIN * cloudNightK),
   };
 }
 // Clouds sit above the ground night pass (only the light atmosphere pass covers them), so at
@@ -109,6 +109,12 @@ function cloudAlphaOp(min, max) {
 // resets the emitter's timer, see updateDynamicLighting).
 const CLOUD_NIGHT_TINT = 0x8c9bb8;
 let cloudNightDim = 0; // the ground pass alpha, set by applyNightDarkness
+let cloudNightK = 0;   // how far into the night, 0..1 (applyNightDarkness)
+// (2026-11-22, Norton: 夜晚落雨有霧根本睇唔到畫面) The cover used to be darkened all the way with the ground
+// (k x 100%), so a rainy night laid near-black blobs over an already dark map; it now keeps 45% of its
+// light (lit from below by the city) and thins by up to 45%.
+const CLOUD_NIGHT_KEEP = 0.45;
+const CLOUD_NIGHT_THIN = 0.45;
 function getCloudNightTint(baseTint) {
   const k = Math.max(0, Math.min(1, cloudNightDim));
   if (k <= 0) return baseTint;
@@ -116,7 +122,7 @@ function getCloudNightTint(baseTint) {
     const base = (baseTint >> shift) & 0xff;
     const night = (CLOUD_NIGHT_TINT >> shift) & 0xff;
     const hue = base + ((base * night) / 255 - base) * k;
-    return Math.round(hue * (1 - k)) & 0xff;
+    return Math.round(hue * (1 - k * (1 - CLOUD_NIGHT_KEEP))) & 0xff;
   };
   return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
@@ -641,10 +647,40 @@ const NIGHT_BUILDING_DARKNESS_SHARE = 0.5;
 // share of the object tint on top, so the towers settle with the ground.
 const NIGHT_BAKED_DEEP_SHARE = 0.35;
 
-function computeNightDarknessPasses(rawNightAlpha, deepNightDepth = 0) {
+// 夜晚亮度 (View menu, Norton 2026-11-22: 夜晚的地圖太暗，尤其落雨有霧根本睇唔到): the night's darkness
+// scaled by the player's choice - 標準 is the level of 2026-11-17, 明亮 (the default) and 最亮 lighter.
+// Only the darkness the screen shows: the lamps still come on by the unchanged keyframe curve.
+const NIGHT_BRIGHTNESS_LEVELS = Object.freeze({ standard: 1, bright: 0.8, brightest: 0.6 });
+const NIGHT_BRIGHTNESS_ORDER = Object.freeze(['standard', 'bright', 'brightest']);
+const NIGHT_BRIGHTNESS_SETTING_KEY = 'citybuilder.nightBrightness';
+let nightBrightnessCache = null;
+function getNightBrightness() {
+  if (nightBrightnessCache) return nightBrightnessCache;
+  let stored = null;
+  try { stored = globalThis.localStorage?.getItem(NIGHT_BRIGHTNESS_SETTING_KEY); } catch { /* private mode */ }
+  nightBrightnessCache = NIGHT_BRIGHTNESS_LEVELS[stored] ? stored : 'bright';
+  return nightBrightnessCache;
+}
+function setNightBrightness(level) {
+  if (!NIGHT_BRIGHTNESS_LEVELS[level]) return;
+  nightBrightnessCache = level;
+  try { globalThis.localStorage?.setItem(NIGHT_BRIGHTNESS_SETTING_KEY, level); } catch { /* private mode */ }
+  const scene = typeof activeScene !== 'undefined' ? activeScene : null;
+  if (scene) {
+    scene.__nightTintStep = null;
+    applyNightDarkness(scene, scene.nightRawAlpha || 0, scene.nightDeepDepth || 0);
+  }
+}
+function cycleNightBrightness() {
+  const order = NIGHT_BRIGHTNESS_ORDER;
+  setNightBrightness(order[(order.indexOf(getNightBrightness()) + 1) % order.length]);
+}
+
+function computeNightDarknessPasses(rawNightAlpha, deepNightDepth = 0, brightness = getNightBrightness()) {
   const raw = Math.max(0, Math.min(NIGHT_KEYFRAME_PEAK, Number(rawNightAlpha) || 0));
   const depth = Math.max(0, Math.min(1, Number(deepNightDepth) || 0));
-  const peak = NIGHT_DARKNESS_PEAK + (NIGHT_DARKNESS_DEEP_PEAK - NIGHT_DARKNESS_PEAK) * depth;
+  const peak = (NIGHT_DARKNESS_PEAK + (NIGHT_DARKNESS_DEEP_PEAK - NIGHT_DARKNESS_PEAK) * depth)
+    * (NIGHT_BRIGHTNESS_LEVELS[brightness] ?? 1);
   const total = (raw / NIGHT_KEYFRAME_PEAK) * peak;
   const atmosphere = total * NIGHT_ATMOSPHERE_SHARE;
   // Solve (1 - ground)(1 - atmosphere) = 1 - total so the two passes composite
@@ -663,6 +699,10 @@ function applyNightDarkness(scene, rawNightAlpha, deepNightDepth = 0) {
   scene.nightOverlay?.setAlpha(atmosphere);
   scene.groundNightOverlay?.setAlpha(ground);
   cloudNightDim = ground;
+  // how far into the night (0 day .. 1 midnight), whatever the brightness: the rain's wash and the
+  // clouds lighten by it (the sky over a city at night glows with its lights; it does not go black)
+  cloudNightK = Math.max(0, Math.min(1, (Number(rawNightAlpha) || 0) / NIGHT_KEYFRAME_PEAK));
+  if (typeof applyWeatherWash === 'function') applyWeatherWash(scene);
   // Swap baked night art in slightly before the tint ramps, so a building never
   // shows a fully lit facade next to an already-dark street.
   syncBuildingNightTextures(scene, scene.nightRawAlpha);

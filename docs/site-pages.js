@@ -7,7 +7,7 @@
     queen: { zhHant: '香城女皇', en: 'The Queen', ja: '香城女王' },
     aviation: { zhHant: 'Captain Cool', en: 'Captain Cool', ja: 'キャプテン・クール' },
     uncleBus: { zhHant: '巴士阿叔', en: 'Bus Uncle', ja: 'バスおじさん' },
-    villager: { zhHant: '元朗阿伯', en: 'Yuen Long Uncle', ja: '元朗のおじさん' },
+    villager: { zhHant: '廈村祥叔', en: 'Uncle Cheung of Ha Tsuen', ja: '廈村の祥おじさん' },
     foodie: { zhHant: '為食 Viviane', en: 'Hungry Viviane', ja: '食いしん坊ビビアン' },
     tycoon: { zhHant: '李超人', en: 'Superman Li', ja: '李超人' },
   };

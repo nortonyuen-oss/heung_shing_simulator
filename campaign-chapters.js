@@ -42,13 +42,13 @@
     secretary: { name: T('金毛玲', 'Kam Mo-ling', '金毛玲'), portrait: 'UI/campaign/portraits/secretary.png', glyph: '📋' },
     treasurer: { name: T('財政官', 'Treasurer', '財政官'), portrait: 'UI/officials/headOfTreasury.PNG' },
     transport: { name: T('署長', 'Commissioner', '署長'), portrait: 'UI/campaign/portraits/transport.png', glyph: '🚌' },
-    resident: { name: T('街坊', 'Resident', '住民'), portrait: 'UI/campaign/portraits/resident.png', glyph: '🧓' },
+    resident: { name: T('如花', 'Yu Fa', '如花'), portrait: 'UI/campaign/portraits/resident.png', glyph: '🧓' },
     engineer: { name: T('工程師', 'Engineer', '技師'), portrait: 'UI/campaign/portraits/engineer.png', glyph: '🛠' },
     // 旅遊署代表 speaks with the 康文署官員's face (Norton 2026-11-21: 旅遊署用「康文署官員」就好啦)
     tourism: { name: T('旅遊署代表', 'Tourism Board', '観光局代表'), portrait: 'UI/officials/headOfLeisureAndCulturalService.PNG', glyph: '🧳' },
     // for now (Norton 2026-11-19): the tram driver of the 黃又藍 news art, the host of the 中秋 live broadcast
-    tram: { name: T('電車公司代表', 'Tramways', '電車会社代表'), portrait: 'UI/campaign/portraits/tram.png', glyph: '🚋' },
-    anchor: { name: T('新聞主播', 'News Anchor', 'ニュースキャスター'), portrait: 'UI/campaign/portraits/anchor.webp', glyph: '📺' },
+    tram: { name: T('叉燒炳', 'Char Siu Bing', '叉焼炳'), portrait: 'UI/campaign/portraits/tram.png', glyph: '🚋' },
+    anchor: { name: T('東方升', 'Tung Fong Sing', '東方升'), portrait: 'UI/campaign/portraits/anchor.webp', glyph: '📺' },
     queen: { name: T('女皇陛下', 'Her Majesty', '女王陛下'), portrait: 'UI/campaign/portraits/queen.png', glyph: '👑' },
     // P3 (chapters 06-18): the council's faces for now, else a glyph, until the campaign's own art
     commerce: { name: T('工商署代表', 'Commerce Bureau', '商工局代表'), portrait: 'UI/officials/councilMember-business.PNG', glyph: '🏢' },
@@ -57,20 +57,20 @@
     environment: { name: T('環境署代表', 'Environment Bureau', '環境局代表'), portrait: 'UI/officials/headOfObservatory.PNG', glyph: '🌿' },
     councillorA: { name: T('議員甲', 'Councillor A', '議員甲'), portrait: 'UI/officials/councilMember-democracyParty.PNG', glyph: '🗳' },
     councillorB: { name: T('議員乙', 'Councillor B', '議員乙'), portrait: 'UI/officials/councilMamber-freedom.PNG', glyph: '🗳' },
-    education: { name: T('教育署代表', 'Education Bureau', '教育局代表'), portrait: 'UI/campaign/portraits/education.webp', glyph: '🎓' },
-    villager: { name: T('元朗阿伯', 'Yuen Long Uncle', '元朗のおじさん'), portrait: 'UI/campaign/portraits/villager.webp', glyph: '🏮' },
-    factory: { name: T('工廠老闆', 'Factory Owner', '工場主'), portrait: 'UI/campaign/portraits/factory.webp', glyph: '🏭' },
-    worker: { name: T('工人代表', 'Workers\' Rep', '労働者代表'), portrait: 'UI/campaign/portraits/worker.webp', glyph: '👷' },
-    reporter: { name: T('記者', 'Reporter', '記者'), portrait: 'UI/campaign/portraits/reporter.webp', glyph: '🎤' },
+    education: { name: T('姐姐', 'Je Je', 'お姉さん'), portrait: 'UI/campaign/portraits/education.webp', glyph: '🎓' },
+    villager: { name: T('廈村祥叔', 'Uncle Cheung of Ha Tsuen', '廈村の祥おじさん'), portrait: 'UI/campaign/portraits/villager.webp', glyph: '🏮' },
+    factory: { name: T('李彩華', 'Lee Choi-wah', '李彩華'), portrait: 'UI/campaign/portraits/factory.webp', glyph: '🏭' },
+    worker: { name: T('雞泡', 'Kai Pau', '鶏泡'), portrait: 'UI/campaign/portraits/worker.webp', glyph: '👷' },
+    reporter: { name: T('李雅君', 'Lee Nga-kwan', '李雅君'), portrait: 'UI/campaign/portraits/reporter.webp', glyph: '🎤' },
     // 廟街: the claypot-rice boss and the fortune teller (Norton 2026-11-21: 「廟街老闆改左做So師傅」, then the
     // claypot rice stall got its own face - both stand in 第 17 章's night)
-    stallOwner: { name: T('煲仔飯老闆娘', 'Claypot Rice Boss', '土鍋ご飯の女将'), portrait: 'UI/campaign/portraits/stallOwner.webp', glyph: '🍲' },
+    stallOwner: { name: T('火雞姐', 'Sister Turkey', '火鶏姐さん'), portrait: 'UI/campaign/portraits/stallOwner.webp', glyph: '🍲' },
     soSifu: { name: T('So師傅', 'Master So', 'ソー師傅'), portrait: 'UI/campaign/portraits/soSifu.webp', glyph: '🔮' },
     commentator: { name: T('神童標', 'Wonder Boy Biu', '神童標'), portrait: 'UI/campaign/portraits/commentator.webp', glyph: '🐎' },
     // Norton's NPC boards (UI/storyBoardGraphics/NPC, 2026-11-20; scripts/prepare-campaign-story-images.js)
-    minibus: { name: T('紅Van司機', 'Red Minibus Driver', '赤バン運転手'), portrait: 'UI/campaign/portraits/minibus.webp', glyph: '🚐' },
-    // 荃灣's face: 曾Sir, the science park's absent-minded tutor (第 9 章《曾Sir又唔記得咗》)
-    scientist: { name: T('曾Sir', 'Mr Tsang', '曽先生'), portrait: 'UI/campaign/portraits/scientist.webp', glyph: '🔬' },
+    minibus: { name: T('雪雪B', 'Suet Suet B', '雪雪B'), portrait: 'UI/campaign/portraits/minibus.webp', glyph: '🚐' },
+    // 荃灣's face: 達聞西 (曾Sir until 2026-11-22), the science park's absent-minded tutor (第 9 章《達聞西又唔記得咗》)
+    scientist: { name: T('達聞西', 'Tat Man-sai', '達聞西'), portrait: 'UI/campaign/portraits/scientist.webp', glyph: '🔬' },
     foodie: { name: T('為食 Viviane', 'Hungry Viviane', '食いしん坊ビビアン'), portrait: 'UI/campaign/portraits/foodie.webp', glyph: '🦞' },
     railFan: { name: T('鐵路迷', 'Rail Fan', '鉄道ファン'), portrait: 'UI/campaign/portraits/railFan.webp', glyph: '📷' },
     busFan: { name: T('巴士迷', 'Bus Fan', 'バスファン'), portrait: 'UI/campaign/portraits/busFan.webp', glyph: '🚌' },
@@ -79,10 +79,11 @@
     police: { name: T('Robinson 督察', 'Inspector Robinson', 'ロビンソン警部'), portrait: 'UI/campaign/portraits/police.webp', glyph: '👮' },
     uncleBus: { name: T('巴士阿叔', 'Bus Uncle', 'バスおじさん'), portrait: 'UI/campaign/portraits/uncleBus.webp', glyph: '😤' },
     chanHoNam: { name: T('浩南哥', 'Brother Ho-nam', 'ホーナム兄貴'), portrait: 'UI/campaign/portraits/chanHoNam.webp', glyph: '🕶' },
-    playboy: { name: T('情場浪子', 'The Charmer', '恋愛マスター'), portrait: 'UI/campaign/portraits/playboy.webp', glyph: '🍺' },
+    playboy: { name: T('渣男Jason', 'Jason the Cad', 'クズ男ジェイソン'), portrait: 'UI/campaign/portraits/playboy.webp', glyph: '🍺' },
     mkGirl: { name: T('MK妹', 'MK Girl', 'MKギャル'), portrait: 'UI/campaign/portraits/mkGirl.webp', glyph: '✌' },
+    // Singh 哥, the grocer on the tram line: redrawn in his turban (Norton 2026-11-22), his name unchanged
     singh: { name: T('Singh 哥', 'Mr Singh', 'シンさん'), portrait: 'UI/campaign/portraits/singh.webp', glyph: '🏪' },
-    goddess: { name: T('女神', 'The Goddess', '女神'), portrait: 'UI/campaign/portraits/goddess.webp', glyph: '🌅' },
+    goddess: { name: T('女神Claire', 'Goddess Claire', '女神クレア'), portrait: 'UI/campaign/portraits/goddess.webp', glyph: '🌅' },
     bankGirl: { name: T('iBank 港女', 'iBank Girl', 'iBankガール'), portrait: 'UI/campaign/portraits/bankGirl.webp', glyph: '💼' },
     tycoon: { name: T('李超人', 'Superman Li', '李超人'), portrait: 'UI/campaign/portraits/tycoon.webp', glyph: '🏙' },
     barber: { name: T('醬爆', 'Jeung Bao', '醤爆'), portrait: 'UI/campaign/portraits/barber.webp', glyph: '✂' },
@@ -91,11 +92,11 @@
     aviation: { name: T('Captain Cool', 'Captain Cool', 'キャプテン・クール'), portrait: 'UI/campaign/portraits/aviation.webp', glyph: '✈️' },
     portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
     // 城超聯's voice (Norton 2026-11-21: 第 16 章, at the 城超聯足球場)
-    footballCommentator: { name: T('足球評述員', 'Football Commentator', 'サッカー実況'), portrait: 'UI/campaign/portraits/footballCommentator.webp', glyph: '⚽' },
+    footballCommentator: { name: T('荷蘭叻', 'Ho Lan Lek', '荷蘭叻'), portrait: 'UI/campaign/portraits/footballCommentator.webp', glyph: '⚽' },
     // 第 10 章離島's own face, the one district that had none (art-prompts.md B18; Norton chose her 2026-11-21)
-    taiOGranny: { name: T('大澳阿婆', 'Tai O Granny', '大澳のおばあちゃん'), portrait: 'UI/campaign/portraits/taiOGranny.webp', glyph: '🦐' },
-    volunteer: { name: T('青年義工', 'Youth Volunteer', '青年ボランティア'), portrait: 'UI/campaign/portraits/volunteer.webp', glyph: '🙋' },
-    producer: { name: T('製片人', 'Film Producer', '映画プロデューサー'), portrait: 'UI/campaign/portraits/producer.webp', glyph: '🎬' },
+    taiOGranny: { name: T('大澳貞姨', 'Auntie Ching of Tai O', '大澳の貞おばさん'), portrait: 'UI/campaign/portraits/taiOGranny.webp', glyph: '🦐' },
+    volunteer: { name: T('Chill 姐', 'Sister Chill', 'チル姐さん'), portrait: 'UI/campaign/portraits/volunteer.webp', glyph: '🙋' },
+    producer: { name: T('生抽王', 'Soy Sauce King', '醤油王'), portrait: 'UI/campaign/portraits/producer.webp', glyph: '🎬' },
     // 第 14 章《古大樂、共金寶、林豐開機》 (P4 phase 6)
     filmStar: { name: T('古大樂', 'Koo Dai-lok', '古大楽'), portrait: 'UI/campaign/portraits/filmStar.webp', glyph: '🎬' },
   });
@@ -1338,7 +1339,7 @@
         ]),
       },
     ]),
-    // 中段事件《曾Sir又唔記得咗》 (逃學威龍 as the memory; staff safety taken seriously, no lab details)
+    // 中段事件《達聞西又唔記得咗》 (逃學威龍 as the memory; staff safety taken seriously, no lab details)
     events: Object.freeze([
       {
         id: 'mrTsangForgot',
@@ -1348,11 +1349,11 @@
           { speaker: 'scientist', text: T('我……我唔記得咗。', 'I... I forgot.', 'わ、忘れてしまった……') },
           { speaker: 'engineer', text: T('實驗室安全唔係講笑：要停工整改、加強安全教育。', 'Lab safety is no joke: stop work, put it right, train everyone properly.', '実験室の安全は冗談じゃない。作業を止めて是正し、安全教育を強化すべきだ。') },
           { speaker: 'treasurer', text: T('停工整改短期少啲產值；只做最低限度復修就慳錢，但風險仲喺度。', 'A stop to fix it costs output now; patching the minimum saves money, but the risk stays.', '是正のための操業停止は目先の生産を減らす。最低限の修理なら安上がりだが、リスクは残る。') },
-          { card: T('曾Sir又唔記得咗', 'Mr Tsang Forgot Again', '曾先生、また忘れた'),
+          { card: T('達聞西又唔記得咗', 'Tat Man-sai Forgot Again', '達聞西、また忘れた'),
             hint: T('實驗室要有記性：科學園附近要有消防局；之後再有意外，代價會更大。', 'A lab needs a memory: keep a fire station near the Science Park - the next accident will cost more.', '実験室には記憶力が要る。サイエンスパークの近くに消防署を。次の事故はもっと高くつく。') },
         ]),
         forum: {
-          headline: T('曾Sir，又話做實驗最緊要有記性？', 'Mr Tsang - didn\'t you say the key to experiments is a good memory?', '曾先生、実験で一番大事なのは記憶力じゃなかった？'),
+          headline: T('達聞西，又話做實驗最緊要有記性？', 'Tat Man-sai - didn\'t you say the key to experiments is a good memory?', '達聞西、実験で一番大事なのは記憶力じゃなかった？'),
           body: T('科學園實驗室意外，當局表示會檢討安全程序。', 'After the Science Park lab accident, the authorities say they will review safety procedures.', 'サイエンスパークの実験室事故を受け、当局は安全手順を見直すとしている。'),
           comment: T('攞你命3000係咪真係攞咗間實驗室？', 'Did the Lo Nei Meng 3000 finally take out a whole lab?', 'ローネイメン3000が本当に実験室ごと持っていった？'),
         },

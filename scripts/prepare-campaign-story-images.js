@@ -26,7 +26,7 @@ const PORTRAITS = [
   // (神童標 left the boards 2026-11-21: his new portrait is drawn square, scripts/source-art/campaign/portraits)
   ['foodie', 'hungryViviane', 0.44, 0.29, 0.64],
   ['bankGirl', 'iBankKongGirl', 0.5, 0.32, 0.64],
-  ['singh', 'indianSingh', 0.44, 0.33, 0.64],
+  // (Singh 哥 left the boards 2026-11-22: his portrait in his turban is drawn square, scripts/source-art/campaign/portraits)
   ['jaydenMum', 'jadenMami', 0.46, 0.33, 0.64],
   ['goddess', 'ladyGod', 0.4, 0.3, 0.64],
   ['tycoon', 'liKaShing', 0.4, 0.32, 0.64],

@@ -89,3 +89,27 @@ test('the cruise ship has its lights for every heading, darkens at night and lea
   assert.match(terminal, /trackVesselWake\(scene, rec, point\.c, point\.r, CRUISE_TUNING\.shipLengthTiles, rec\.sprite\.visible\);/);
   assert.match(terminal, /fitCruiseShipSprite\(rec\.lights, view, lit\.path\);/);
 });
+
+test('夜晚亮度: three levels, 明亮 by default, and a rainy night no longer stacks its wash and dark clouds on the night', () => {
+  const vm = require('node:vm');
+  const store = new Map();
+  const context = vm.createContext({ console, Math, Number, Object, localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) } });
+  context.globalThis = context;
+  const src = source('day-night-lighting.js');
+  const pick = (name) => { const i = src.indexOf(`function ${name}(`); return src.slice(i, src.indexOf('\n}\n', i) + 3); };
+  const consts = src.match(/const NIGHT_DARKNESS_PEAK[\s\S]*?const NIGHT_KEYFRAME_PEAK = [\d.]+;/)[0];
+  const levels = src.match(/const NIGHT_BRIGHTNESS_LEVELS[\s\S]*?let nightBrightnessCache = null;/)[0];
+  vm.runInContext(`${consts}\nconst NIGHT_ATMOSPHERE_SHARE = 0;\n${levels}\n${pick('getNightBrightness')}\n${pick('computeNightDarknessPasses')}`, context);
+  assert.equal(vm.runInContext('getNightBrightness()', context), 'bright');
+  const total = (level) => vm.runInContext(`computeNightDarknessPasses(0.54, 0, '${level}').total`, context);
+  assert.ok(Math.abs(total('standard') - 0.544) < 1e-9, '標準 is the level of 2026-11-17');
+  assert.ok(total('bright') < total('standard') && total('brightest') < total('bright'));
+  // the rain wash and the clouds lighten with the night
+  assert.match(source('sim-weather.js'), /overlay\.setAlpha\(wash \* \(1 - WEATHER_WASH_NIGHT_CUT \* k\)\);/);
+  assert.match(src, /particle\.cloudAlpha \* cloudFadeEnvelope\(lifeT\) \* \(1 - CLOUD_NIGHT_THIN \* cloudNightK\)/);
+  assert.match(src, /return Math\.round\(hue \* \(1 - k \* \(1 - CLOUD_NIGHT_KEEP\)\)\) & 0xff;/);
+  // a View menu item steps through the levels, and the phone lists it with the display settings
+  assert.match(source('index.html'), /data-menu-action="toggle-night-brightness" id="menu-night-brightness"/);
+  assert.match(source('topbar.js'), /case 'toggle-night-brightness':\s*if \(typeof cycleNightBrightness === 'function'\) cycleNightBrightness\(\);/);
+  assert.match(source('mobile-ui.js'), /'building-lights', 'night-brightness', 'night-remote-darkness',/);
+});

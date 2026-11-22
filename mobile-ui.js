@@ -507,9 +507,11 @@ function mobileRenderPage() {
     const rows = [['save', 'save', '💾'], ['save-as', 'saveAs', '💾'], ['load-game', 'load', '📂'], ['export-save', 'export', '↗'], ['import-save', 'import', '↙'], ['main-menu', 'mainMenu', '🏠']];
     const dialogs = [['open-medal-cabinet', 'menu.medalCabinet', '🏵'], ['open-forum-history', 'menu.openForum', '💬'], ['open-festival-calendar', 'menu.festivalCalendar', '🗓️'], ['open-ai-news-settings', 'menu.aiNews', '📰'], ['show-help', 'menu.help', '❔'], ['show-about', 'menu.about', 'ℹ️']];
     updateSettingsMenu();
+    // (the display rows read their labels from the desktop menu: 夜晚亮度 shows its level in this language)
+    if (typeof updateViewMenu === 'function') updateViewMenu();
     body.innerHTML = `<h3>${mobileText('file')}</h3><div class="m-list">${rows.map(([action, key, icon]) => mobileRow(`data-mobile-menu="${action}"`, mobileText(key), '', icon)).join('')}${mobileRow('data-mobile-action="rename"', mobileText('rename'), '', '✏️')}</div>
       <h3>${mobileText('settings')}</h3><div class="m-list">${mobileRow('data-mobile-native="jukebox"', t('jukebox.title'), '', '🎵')}${mobileRow('data-mobile-native="roads"', t('roadTileSet.windowTitle'), '', '🛣️')}${dialogs.map(([action, key, icon]) => mobileRow(`data-mobile-dialog="${action}"`, document.querySelector(`[data-menu-action="${action}"]`)?.textContent || t(key), '', icon)).join('')}</div>
-      <h3>${mobileText('display')}</h3><div class="m-list">${['district-signs', 'weather-effects', 'dynamic-lighting', 'building-lights', 'night-remote-darkness', 'sea-flow', 'vessel-wakes', 'shore-reflections', 'yulan-night-tint', 'auto-replace-plants', 'festivals', 'transport-expansion', 'attract-mode'].map((key) => {
+      <h3>${mobileText('display')}</h3><div class="m-list">${['district-signs', 'weather-effects', 'dynamic-lighting', 'building-lights', 'night-brightness', 'night-remote-darkness', 'sea-flow', 'vessel-wakes', 'shore-reflections', 'yulan-night-tint', 'auto-replace-plants', 'festivals', 'transport-expansion', 'attract-mode'].map((key) => {
         const source = document.getElementById(`menu-${key}`);
         return source ? mobileRow(`data-mobile-setting="toggle-${key}" aria-pressed="${source.classList.contains('menu-checked')}"`, source.textContent.trim(), '', source.classList.contains('menu-checked') ? '✓' : '○') : '';
       }).join('')}${mobileRow(`data-mobile-setting="toggle-mobile-ticker" aria-pressed="${isMobileTickerEnabled()}"`, mobileText('showTicker'), '', isMobileTickerEnabled() ? '✓' : '○')}</div>

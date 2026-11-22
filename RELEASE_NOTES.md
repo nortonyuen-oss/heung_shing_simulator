@@ -1,3 +1,33 @@
+# Heung Shing Simulator v6.0.13 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 夜晚更光；造景模式；角色改名
+
+- **夜晚更光**：
+  - 落雨夜晚唔再黑到睇唔到：夜晚時雨天暗化減弱，雲層唔再變成黑霧，黑雨夜晚而家同以前晴天夜晚一樣光。
+  - 「檢視」選單新增「🌙 夜晚亮度」：標準（以前嘅亮度）、明亮（新預設）、最亮。手機喺顯示設定入面。
+  - 街燈同窗口亮燈時間不變。
+- **造景模式**：開新城市時多咗一個開關。
+  - 城市同運輸公司各有 $10 億，所有建築、立法會、地鐵同輕鐵一開始就解鎖。
+  - 造景城市唔計勳章。
+- **Singh 哥**換上包頭新頭像。
+- **角色改名**：如花（街坊）、叉燒炳、東方升、姐姐、廈村祥叔、李彩華、雞泡、李雅君、火雞姐、雪雪B、達聞西（曾Sir，第 9 章事件改為《達聞西又唔記得咗》）、渣男Jason、女神Claire、荷蘭叻、大澳貞姨、Chill 姐、生抽王。
+
+**台灣中文：** 夜晚更亮：下雨的夜晚不再暗到看不見——夜間雨天的暗化減弱，雲層不再變成黑霧，黑雨夜晚現在和以前晴天夜晚一樣亮；「檢視」選單新增「🌙 夜晚亮度」（標準、明亮〔新預設〕、最亮），手機在顯示設定中。新增造景模式：開新城市時的開關，城市與運輸公司各有 $10 億，所有建築、立法會、地鐵與輕鐵一開始即解鎖，造景城市不計勳章。Singh 哥換上包頭新頭像；十七個角色改名：如花、叉燒炳、東方升、姐姐、廈村祥叔、李彩華、雞泡、李雅君、火雞姐、雪雪B、達聞西、渣男Jason、女神Claire、荷蘭叻、大澳貞姨、Chill 姐、生抽王。
+
+**English:** Brighter nights. A rainy night is no longer near-black: the rain's wash is lighter at night and the clouds no longer turn into black murk, so a black-rain night is now as bright as a clear night used to be. A new 🌙 Night brightness setting in the View menu steps through Standard (the old level), Bright (the new default) and Brightest; on a phone it is with the display settings. Street lamps and windows keep their times. Sandbox mode is a new switch when founding a city: $1 billion for the city and for the transport company, every building, the council, the metro and the light rail unlocked from the start, and no medals. Singh has a new portrait in his turban, and seventeen characters have new names: Yu Fa, Char Siu Bing, Tung Fong Sing, Je Je, Uncle Cheung of Ha Tsuen, Lee Choi-wah, Kai Pau, Lee Nga-kwan, Sister Turkey, Suet Suet B, Tat Man-sai (chapter 9's event is now "Tat Man-sai Forgot Again"), Jason the Cad, Goddess Claire, Ho Lan Lek, Auntie Ching of Tai O, Sister Chill and Soy Sauce King.
+
+**日本語:** 夜が明るくなりました。雨の夜も真っ暗ではなくなりました。夜は雨による暗さを弱め、雲が黒いもやにならないので、黒色豪雨の夜も以前の晴れた夜と同じ明るさです。「表示」メニューに「🌙 夜の明るさ」を追加：標準（以前の明るさ）、明るめ（新しい既定）、最も明るい。スマートフォンでは表示設定にあります。街灯と窓の点灯時刻は変わりません。新しい都市を作る時の「箱庭モード」を追加：都市と交通会社にそれぞれ $10億、すべての建物・議会・地下鉄・ライトレールを最初から解放し、勲章は対象外です。シンさんはターバン姿の新しい顔に。17人の登場人物の名前が変わりました：如花、叉焼炳、東方升、お姉さん、廈村の祥おじさん、李彩華、鶏泡、李雅君、火鶏姐さん、雪雪B、達聞西（第9章のイベントは「達聞西、また忘れた」）、クズ男ジェイソン、女神クレア、荷蘭叻、大澳の貞おばさん、チル姐さん、醤油王。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.12 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

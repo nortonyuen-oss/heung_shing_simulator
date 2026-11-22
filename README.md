@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.12 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.0.13 — 【玩轉18區】
 
-香城模擬器 (Heung Shing Simulator) v6.0.12 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.0.13 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.13
+
+Brighter nights: a rainy night is no longer near-black - the rain's wash and the cloud cover no longer stack on the night's darkness, so a black-rain night is now as bright as a clear night used to be - and a new 🌙 Night brightness setting (Standard / Bright, the new default / Brightest) in the View menu. Sandbox mode, a switch when founding a city: $1 billion for the city and the transport company, every building unlocked, no medals. Singh has his turban, and seventeen characters of The 18 Districts have new names (如花, 叉燒炳, 東方升, 達聞西, 雪雪B, 火雞姐, 生抽王 and more).
 
 ## New in v6.0.12
 

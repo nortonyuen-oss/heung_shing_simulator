@@ -175,6 +175,7 @@ function mobileRenderDraft(draft) {
   mobileUi.classList.toggle('is-building', building);
   mobileUi.classList.toggle('is-district-sign', draft?.tool === 'district-sign');
   document.getElementById('mobile-build-controls').hidden = !building;
+  if (typeof setMetroTouchUndergroundView === 'function') setMetroTouchUndergroundView(draft?.tool === 'bulldoze' && draft.options?.underground === true);
   if (!draft) { clearTouchPlacementPreview(typeof activeScene === 'undefined' ? null : activeScene); return; }
   const plan = draft.plan;
   document.getElementById('mobile-build-name').textContent = draft.tool === 'zone-res' && ['public', 'hos'].includes(draft.options.housingType)
@@ -250,6 +251,11 @@ function mobileRenderDraft(draft) {
   const isZone = draft.tool.startsWith('zone-');
   document.getElementById('mobile-density').hidden = !isZone;
   document.getElementById('mobile-bulldoze-options').hidden = draft.tool !== 'bulldoze';
+  // 地底: the bulldozer digs for 地鐵 tunnels, the ground dimmed and the tunnels drawn while it does
+  // (the desktop's 地底 button sits in the top bar the phone hides)
+  const underground = document.getElementById('mobile-bulldoze-underground');
+  underground.hidden = !(draft.tool === 'bulldoze' && (draft.options.underground || (typeof hasMetroTunnelTrack === 'function' && hasMetroTunnelTrack())));
+  underground.setAttribute('aria-pressed', String(draft.options.underground === true));
   document.getElementById('mobile-demolition-warning').hidden = draft.tool !== 'bulldoze';
   // 私人／公屋／居屋 for residential zoning (housing-types.js): one compact list beside the densities
   const housingType = draft.tool === 'zone-res' ? (draft.options.housingType || 'private') : 'private';
@@ -591,7 +597,7 @@ function setupMobileUi() {
         <span id="mobile-restaurant-options" hidden><button type="button" id="mobile-restaurant-rotate" data-mobile-text="rotateRestaurant"></button></span>
         <select id="mobile-housing-select" hidden data-mobile-aria="housingType"></select>
         <span id="mobile-density" hidden>${[[DENSITY_LOW,'low'],[DENSITY_MED,'medium'],[DENSITY_HIGH,'high']].map(([value,key]) => `<button type="button" data-mobile-density="${value}" aria-pressed="false" data-mobile-text="${key}"></button>`).join('')}</span>
-        <span id="mobile-bulldoze-options" hidden><button type="button" data-mobile-range="false" data-mobile-text="single"></button><button type="button" data-mobile-range="true" data-mobile-text="range"></button></span>
+        <span id="mobile-bulldoze-options" hidden><button type="button" data-mobile-range="false" data-mobile-text="single"></button><button type="button" data-mobile-range="true" data-mobile-text="range"></button><button type="button" id="mobile-bulldoze-underground" hidden aria-pressed="false" data-i18n="transport.nav.underground"></button></span>
         <span id="mobile-demolition-warning" hidden data-mobile-text="irreversible" style="font-size:12px;color:#8d1f1e"></span>
         <span id="mobile-build-step"></span>
       </div>
@@ -663,7 +669,9 @@ function setupMobileUi() {
     } else if (button.id === 'mobile-restaurant-rotate') {
       mobileBuildSession.setOptions({ turn: turnTyphoonShelterFloatingRestaurant() });
     } else if (button.dataset.mobileDensity) mobileBuildSession.setOptions({ density: Number(button.dataset.mobileDensity) });
-    else if (button.dataset.mobileRange) {
+    else if (button.id === 'mobile-bulldoze-underground') {
+      mobileBuildSession.setOptions({ underground: mobileBuildSession.getState()?.options.underground !== true });
+    } else if (button.dataset.mobileRange) {
       const draft = mobileBuildSession.getState();
       mobileBuildSession.begin(draft.tool, { ...draft.options, range: button.dataset.mobileRange === 'true' }, mobileOwner);
     } else if (button.dataset.nudge) {

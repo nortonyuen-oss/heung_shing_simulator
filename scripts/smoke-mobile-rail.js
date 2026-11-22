@@ -105,6 +105,42 @@ function check(name, ok, detail) {
     await choose('tram-line'); await tapTile(90, 77); await tapTile(90, 83);
     check('tapping two tram stops opens a tram line directly', await page.evaluate(() => getTramState().lines.length === 1));
 
+    // ── the bulldozer on rail (Norton, 2026-11-22: 手機版路軌不能拆除) ──────────
+    const bulldoze = async (range) => {
+      await nav('build'); await page.click('[data-mobile-tool="bulldoze"]');
+      if (range) await page.click('[data-mobile-range="true"]');
+    };
+    await bulldoze(true); await tapTile(95, 76); await tapTile(95, 78);
+    const metroDemolition = (await draft()).plan;
+    check('a box over metro track previews its tiles, free', metroDemolition.ok && metroDemolition.summary.rail === 3 && metroDemolition.cost === 0, metroDemolition.summary);
+    await confirmBuild();
+    check('the metro track comes up, the track beside it and the ground stay', await page.evaluate(() =>
+      !getMetroTrackBits()['95:77'] && !!getMetroTrackBits()['95:75'] && !!getMetroTrackBits()['95:79'] && mapData[95][77] === GROUND));
+    await bulldoze(false); await tapTile(90, 80);
+    check('a tram track tile previews as track', (await draft()).plan.ok && (await draft()).plan.summary.rail === 1);
+    await confirmBuild();
+    check('the tram track comes up and the road under it stays', await page.evaluate(() => !getTramState().tracks['90:80'] && mapData[90][80] === ROAD));
+    await bulldoze(false); await tapTile(90, 77);
+    const stopDemolition = (await draft()).plan;
+    check('a tram stop goes before its track, its two-stop line counted as closing', stopDemolition.ok && stopDemolition.summary.facilities === 1 && stopDemolition.summary.routes === 1, stopDemolition.summary);
+    await confirmBuild();
+    check('the stop and its line go, the track under it stays', await page.evaluate(() =>
+      getTramState().stops.length === 1 && getTramState().lines.length === 0 && !!getTramState().tracks['90:77']));
+    // a tunnel: under the ground, dug for only with 地底 (the phone has no top-bar 地底 button)
+    await bulldoze(false);
+    check('no 地底 on the bulldozer while the city has no tunnel', await page.locator('#mobile-bulldoze-underground').isHidden());
+    await page.click('#mobile-cancel');
+    await choose('metro-track'); await page.click('[data-mobile-metro-height="under"]');
+    await tapTile(110, 75); await tapTile(110, 80);
+    await confirmBuild();
+    check('a tunnel is dug for the test', await page.evaluate(() => getMetroTrackElev()['110:77'] === 'u'));
+    await bulldoze(false); await tapTile(110, 77);
+    check('from the ground the bulldozer does not reach the tunnel', (await draft()).plan.summary.rail === 0);
+    await page.click('#mobile-bulldoze-underground');
+    check('地底 digs for it, the underground view on while it does', (await draft()).plan.summary.rail === 1 && await page.evaluate(() => isMetroUndergroundView()));
+    await confirmBuild();
+    check('the tunnel tile comes up and the underground view goes off with the draft', await page.evaluate(() => !getMetroTrackBits()['110:77'] && !isMetroUndergroundView()));
+
     // ── ferry: pier, route ───────────────────────────────────────────────────
     await choose('ferry-pier'); await tapTile(99, 75);
     check('ferry pier preview straddles the planned shore', (await draft()).plan.ok && (await draft()).plan.cost === 2500);

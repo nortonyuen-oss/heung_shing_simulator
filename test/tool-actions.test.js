@@ -100,11 +100,70 @@ test('demolition of a multi-tile pier is one operation with its linked route cou
   assert.notEqual(preview(c, 'bulldoze', { row: 2, col: 2 }, { row: 2, col: 3 }, { range: true }).signature, plan.signature);
 });
 
-test('railway demolition and invalid map coordinates cannot be confirmed by the Phase B adapter', () => {
+test('invalid map coordinates cannot be confirmed by the touch adapter', () => {
   const c = setup();
-  c.getMetroTrackBits = () => ({ '2:2': 1 });
-  assert.equal(preview(c, 'bulldoze', { row: 2, col: 2 }, undefined, {}).ok, false);
   assert.equal(preview(c, 'bulldoze', { row: -1, col: 2 }, undefined, {}).ok, false);
+});
+
+// Norton, 2026-11-22: 手機版路軌不能拆除 - the touch bulldozer refused every track and stop outright
+test('rail comes up on touch as the desktop bulldozer takes it: free, one layer a pass, by its own call', () => {
+  const c = setup();
+  const portal = { run: ['2:4', '2:3'], code: null }; // (a portal run, taken whole from either tile)
+  const metro = { '2:2': { run: ['2:2'], code: null }, '2:3': portal, '2:4': portal };
+  const asked = [];
+  c.getMetroTrackDemolition = (r, col, underground) => { asked.push(underground); return metro[`${r}:${col}`] || null; };
+  c.mapData[2][2] = c.ROAD; c.mapData[2][3] = c.ROAD; // (road under the track: it stays)
+  const plan = preview(c, 'bulldoze', { row: 2, col: 2 }, { row: 2, col: 4 }, { range: true });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.cost, 0);
+  assert.equal(JSON.stringify(plan.operations.map((op) => [op.kind, op.key ?? null])), JSON.stringify([['metroTrack', '2:2'], ['metroTrack', '2:3']]));
+  assert.equal(plan.summary.rail, 3, 'a run taken whole counts its tiles once');
+  assert.equal(plan.summary.roads, 0);
+  assert.ok(asked.every((u) => u === false), 'tunnels only with 地底');
+  preview(c, 'bulldoze', { row: 2, col: 2 }, undefined, { underground: true });
+  assert.equal(asked.at(-1), true);
+  // under a station or a surface line: refused with the desktop's word
+  metro['2:2'] = { run: ['2:2'], code: 'inUse' };
+  const refused = preview(c, 'bulldoze', { row: 2, col: 2 }, undefined, {});
+  assert.equal(refused.ok, false);
+  assert.equal(refused.reason, 'metro.track.inUse');
+});
+
+test('a tram stop goes before its track, and a line left with one stop is counted as closing', () => {
+  const c = setup();
+  const stops = { '2:2': { id: 'ts-1', row: 2, col: 2 }, '2:5': { id: 'ts-2', row: 2, col: 5 } };
+  c.getTramStopAt = (r, col) => stops[`${r}:${col}`] || null;
+  c.getTramState = () => ({ tracks: { '2:2': 3, '2:3': 3 }, lines: [{ id: 'tl-1', stopIds: ['ts-1', 'ts-2'] }, { id: 'tl-2', stopIds: ['ts-1', 'ts-2', 'ts-3'] }] });
+  const plan = preview(c, 'bulldoze', { row: 2, col: 2 }, { row: 2, col: 3 }, { range: true });
+  assert.equal(plan.operations.map((op) => op.kind).join(), 'tramStop,tramTrack');
+  assert.equal(plan.summary.facilities, 1);
+  assert.equal(plan.summary.rail, 1);
+  assert.equal(plan.summary.routes, 1, 'tl-1 closes; tl-2 keeps two stops');
+  const both = preview(c, 'bulldoze', { row: 2, col: 2 }, { row: 2, col: 5 }, { range: true });
+  assert.equal(both.summary.routes, 2, 'each line once, however many of its stops go');
+});
+
+test('light rail: a station first, then its track', () => {
+  const c = setup();
+  c.getLightRailStationAt = (r, col) => (r === 2 && col === 2 ? { id: 'lrs-1', row: 2, col: 2 } : null);
+  c.getLightRailState = () => ({ tracks: { '2:2': 3, '2:3': 3 }, lines: [] });
+  const plan = preview(c, 'bulldoze', { row: 2, col: 2 }, { row: 2, col: 3 }, { range: true });
+  assert.equal(plan.operations.map((op) => op.kind).join(), 'lightRailStation,lightRailTrack');
+});
+
+test('the touch commit takes each rail layer by its own call, never the road under a track already gone', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'tool-actions.js'), 'utf8');
+  for (const call of ["op.kind === 'metroTrack') demolishMetroTrackAt(scene, op.row, op.col, { underground: draft.options.underground === true })",
+    "op.kind === 'tramStop') demolishTramStopAt(", "op.kind === 'tramTrack') demolishTramTrackAt(",
+    "op.kind === 'lightRailStation') demolishLightRailStationAt(", "op.kind === 'lightRailTrack') demolishLightRailTrackAt("]) {
+    assert.ok(src.includes(call), call);
+  }
+  assert.doesNotMatch(fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8'), /demolitionTransport/);
+  // the phone's 地底: shown while there are tunnels, it turns the underground view on with it
+  const mobile = fs.readFileSync(path.join(ROOT, 'mobile-ui.js'), 'utf8');
+  assert.match(mobile, /setMetroTouchUndergroundView\(draft\?\.tool === 'bulldoze' && draft\.options\?\.underground === true\);/);
+  assert.match(mobile, /hasMetroTunnelTrack\(\)/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'metro-surface.js'), 'utf8'), /return metroUndergroundViewOn \|\| metroTouchUndergroundView/);
 });
 
 test('replacing a demolition target with an identical model still invalidates the approved signature', () => {

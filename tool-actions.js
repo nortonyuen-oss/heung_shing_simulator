@@ -49,7 +49,9 @@ function getTouchToolOptions(tool) {
     const density = typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(DENSITY_LOW, housingType) : DENSITY_LOW;
     return { density, housingType, range: true, model: null };
   }
-  return { density: DENSITY_LOW, range: tool !== 'bulldoze', model: model ? { ...model } : null };
+  // (the bulldozer's 地底: whether it digs for 地鐵 tunnels, under what stands on the ground)
+  if (tool === 'bulldoze') return { density: DENSITY_LOW, range: false, underground: false, model: null };
+  return { density: DENSITY_LOW, range: true, model: model ? { ...model } : null };
 }
 
 function getTouchRecreationOptions(tool) {
@@ -77,22 +79,23 @@ function touchTileIdentity(scene, row, col) {
     typeof treeMap !== 'undefined' ? touchObjectIdentity(treeMap.get(getTileId(row, col))) : 0];
 }
 
-function getTouchDemolitionPlan(scene, tiles) {
+function getTouchDemolitionPlan(scene, tiles, options = {}) {
   const operations = [];
   const seen = new Set();
   const buildings = new Set();
   const affected = [];
-  const summary = { buildings: 0, roads: 0, empty: 0, facilities: 0, routes: 0 };
+  const summary = { buildings: 0, roads: 0, rail: 0, empty: 0, facilities: 0, routes: 0 };
   let reason = '';
   for (const { row, col } of tiles) {
     const id = getTileId(row, col);
     affected.push(touchTileIdentity(scene, row, col));
-    const add = (kind, key, object, extra = {}) => {
+    // (a stop or a station is a facility; track counts by its tiles)
+    const add = (kind, key, object, extra = {}, tally = 'facilities', count = 1) => {
       if (seen.has(`${kind}:${key}`)) return;
       seen.add(`${kind}:${key}`);
       operations.push({ kind, row, col, key, ...extra });
       affected.push([kind, key, object]);
-      summary.facilities++;
+      summary[tally] += count;
     };
     const floating = findTyphoonShelterFloatingRestaurantAt(getTyphoonShelterState().shelters, row, col);
     if (floating) {
@@ -116,11 +119,24 @@ function getTouchDemolitionPlan(scene, tiles) {
       add('metroStation', station.id, [station.id, station.name, getMetroStationLines(station).map((line) => line.id)]);
       continue;
     }
-    // Track removal can span a tunnel or prune live lines. Its complete summary belongs to C.
-    if (getMetroTrackBits()[`${row}:${col}`] || getTramState().tracks[`${row}:${col}`] || getTramStopAt(row, col)) {
-      reason = t('mobile.demolitionTransport');
+    // Rail comes up as the desktop bulldozer takes it (main.js): one layer a pass - a stop or a station
+    // before its track, the track before the road under it - and free. 地鐵路軌 goes a viaduct tile alone
+    // or a portal or hill run whole, never from under a station or a surface line, and a tunnel only in
+    // the 地底 view (metro-surface.js). Norton, 2026-11-22: 手機版路軌不能拆除.
+    const metroTrack = typeof getMetroTrackDemolition === 'function' ? getMetroTrackDemolition(row, col, options.underground === true) : null;
+    if (metroTrack) {
+      if (metroTrack.code) reason = t(`metro.track.${metroTrack.code}`);
+      const run = metroTrack.run.slice().sort();
+      add('metroTrack', run[0], run, {}, 'rail', run.length);
       continue;
     }
+    const tramStop = getTramStopAt(row, col);
+    if (tramStop) { add('tramStop', tramStop.id, [tramStop.id, tramStop.row, tramStop.col]); continue; }
+    if (getTramState().tracks[`${row}:${col}`]) { add('tramTrack', id, getTramState().tracks[`${row}:${col}`], {}, 'rail'); continue; }
+    const lightRailStation = typeof getLightRailStationAt === 'function' ? getLightRailStationAt(row, col) : null;
+    if (lightRailStation) { add('lightRailStation', lightRailStation.id, [lightRailStation.id, lightRailStation.row, lightRailStation.col]); continue; }
+    const lightRailTrack = typeof getLightRailState === 'function' ? getLightRailState().tracks?.[`${row}:${col}`] : null;
+    if (lightRailTrack) { add('lightRailTrack', id, lightRailTrack, {}, 'rail'); continue; }
     const sprite = scene.buildingSprites?.get(id);
     const record = buildingData[getTileId(sprite?.mapRow ?? row, sprite?.mapCol ?? col)];
     if (record) {
@@ -134,6 +150,15 @@ function getTouchDemolitionPlan(scene, tiles) {
     else summary.empty++;
     operations.push({ kind: 'tile', row, col, cost: COST_BULLDOZE });
   }
+  // a tram or light rail line left with fewer than two stops closes with them (tram-lines.js
+  // removeTramStop, light-rail-lines.js removeLightRailStation)
+  const closing = (lines, stopsOf, kind) => {
+    const gone = new Set(operations.filter((op) => op.kind === kind).map((op) => op.key));
+    return gone.size ? (lines || []).filter((line) => stopsOf(line).some((stop) => gone.has(stop))
+      && stopsOf(line).filter((stop) => !gone.has(stop)).length < 2).length : 0;
+  };
+  summary.routes += closing(getTramState().lines, (line) => line.stopIds || [], 'tramStop');
+  if (typeof getLightRailState === 'function') summary.routes += closing(getLightRailState().lines, (line) => line.stationIds || [], 'lightRailStation');
   return { operations, summary, affected, reason, cost: operations.reduce((total, op) => total + (op.cost || 0), 0) };
 }
 
@@ -340,7 +365,7 @@ function previewTouchToolAction(scene, draft) {
     identity = tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
   } else if (draft.tool === 'bulldoze') {
     plan.tiles = draft.options.range ? touchRectTiles(draft.start, draft.end) : [{ row, col }];
-    const demolition = getTouchDemolitionPlan(scene, plan.tiles);
+    const demolition = getTouchDemolitionPlan(scene, plan.tiles, draft.options);
     Object.assign(plan, demolition);
     plan.ok = !demolition.reason && demolition.operations.length > 0;
     identity = demolition.affected;
@@ -439,6 +464,13 @@ function commitTouchToolAction(scene, draft, plan) {
         else if (op.kind === 'promenade') demolishPromenadeAt(scene, op.row, op.col);
         else if (op.kind === 'tunnel') demolishUnderseaTunnelAt(scene, op.row, op.col);
         else if (op.kind === 'metroStation') demolishMetroStationAt(scene, op.row, op.col);
+        // (each by its own call: a track already gone - a tram's partner across the reservation, a run
+        // taken whole from another of its tiles - is no excuse to knock down the road under it)
+        else if (op.kind === 'metroTrack') demolishMetroTrackAt(scene, op.row, op.col, { underground: draft.options.underground === true });
+        else if (op.kind === 'tramStop') demolishTramStopAt(scene, op.row, op.col);
+        else if (op.kind === 'tramTrack') demolishTramTrackAt(scene, op.row, op.col);
+        else if (op.kind === 'lightRailStation') demolishLightRailStationAt(scene, op.row, op.col);
+        else if (op.kind === 'lightRailTrack') demolishLightRailTrackAt(scene, op.row, op.col);
         else applyToolAt(scene, op.row, op.col);
       }
     } finally { selectedTool = previous; }

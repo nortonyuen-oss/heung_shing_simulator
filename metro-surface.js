@@ -777,19 +777,17 @@ function commitMetroTrackDrag(scene, start, end, height = metroRailHeight) {
   return true;
 }
 
-// The bulldozer on track: that tile's track taken up (a viaduct or ramp tile alone; a tunnel portal
-// or a hill tunnel whole). True when there was track there.
-function demolishMetroTrackAt(scene, row, col) {
+// What the bulldozer would take on a tile of track, asked before it does (the phone's demolition plan
+// asks too: tool-actions.js). Null where it reaches none - no track, or a tunnel seen from the ground;
+// else the tiles it takes ({ run }) and, when it may not, why ({ code: 'underStation' | 'inUse' }).
+function getMetroTrackDemolition(row, col, underground = isMetroUndergroundView()) {
   const bits = getMetroTrackBits();
   const key = railKey(row, col);
-  if (!bits[key]) return false;
+  if (!bits[key]) return null;
   // a tunnel lies under what is on the ground: taken up only in the 地底 view
-  if ((getMetroTrackElev()[key] === 'u' || (getMetroTrackElev()[key] || '')[0] === 't') && !isMetroUndergroundView()) return false;
+  if ((getMetroTrackElev()[key] === 'u' || (getMetroTrackElev()[key] || '')[0] === 't') && !underground) return null;
   // not under a platform, nor where a surface line runs (metro-surface-lines.js)
-  const say = (k, fallback) => { if (typeof showToast === 'function') showToast(metroT(k, fallback), 'warning'); return true; };
-  if (typeof isMetroSurfaceStationTile === 'function' && isMetroSurfaceStationTile(row, col)) {
-    return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
-  }
+  if (typeof isMetroSurfaceStationTile === 'function' && isMetroSurfaceStationTile(row, col)) return { run: [key], code: 'underStation' };
   const elev = getMetroTrackElev();
   // a viaduct or a ramp tile by tile (Norton, 2026-11-07: 高架拆橋要一格一格拆); a tunnel portal or a hill
   // tunnel whole, as it is built
@@ -806,15 +804,29 @@ function demolishMetroTrackAt(scene, row, col) {
       ? c === st.col && Math.abs(r - st.row) <= half
       : r === st.row && Math.abs(c - st.col) <= half));
   };
-  if (run.some(underStation)) {
-    return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
-  }
+  if (run.some(underStation)) return { run, code: 'underStation' };
   const used = typeof getMetroSurfaceLineTiles === 'function' ? getMetroSurfaceLineTiles() : new Set();
-  if (run.some((k) => used.has(k))) {
-    return say('metro.track.inUse', '有地面綫行緊呢段路軌：先喺運輸公司路線表移走條綫。');
+  if (run.some((k) => used.has(k))) return { run, code: 'inUse' };
+  return { run, code: null };
+}
+
+const METRO_TRACK_DEMOLITION_REFUSALS = Object.freeze({
+  underStation: '路軌上面有地面站：先拆咗個站。',
+  inUse: '有地面綫行緊呢段路軌：先喺運輸公司路線表移走條綫。',
+});
+
+// The bulldozer on track: that tile's track taken up (a viaduct or ramp tile alone; a tunnel portal
+// or a hill tunnel whole). True when there was track there - a refusal too, its word said, the click spent.
+function demolishMetroTrackAt(scene, row, col, options = {}) {
+  const plan = getMetroTrackDemolition(row, col, options.underground ?? isMetroUndergroundView());
+  if (!plan) return false;
+  if (plan.code) {
+    if (typeof showToast === 'function') showToast(metroT(`metro.track.${plan.code}`, METRO_TRACK_DEMOLITION_REFUSALS[plan.code]), 'warning');
+    return true;
   }
-  const next = { ...bits };
-  const nextElev = { ...elev };
+  const { run } = plan;
+  const next = { ...getMetroTrackBits() };
+  const nextElev = { ...getMetroTrackElev() };
   run.forEach((k) => { delete next[k]; delete nextElev[k]; });
   getMetroState().tracks = next;
   getMetroState().trackElev = nextElev;
@@ -1159,11 +1171,22 @@ function metroFlatTileCentre(scene, row, col) {
 // ── 地底 view (phase 4): the ground dimmed, the tunnels and what runs in them drawn over it ─────
 
 let metroUndergroundViewOn = false;   // the 「地底」 button (transport-ui.js)
+let metroTouchUndergroundView = false; // the phone bulldozer's 「地底」 (mobile-ui.js)
 const METRO_UNDER_DEPTH = 100000;     // over everything in the world (getWorldDepth('effect', ...))
 
-// On with the button, and while the track tool is in hand at 地底.
+// On with the button, while the track tool is in hand at 地底, and while the phone's bulldozer digs.
 function isMetroUndergroundView() {
-  return metroUndergroundViewOn || (typeof selectedTool !== 'undefined' && selectedTool === 'metro-track' && metroRailHeight === 'under');
+  return metroUndergroundViewOn || metroTouchUndergroundView
+    || (typeof selectedTool !== 'undefined' && selectedTool === 'metro-track' && metroRailHeight === 'under');
+}
+
+function setMetroTouchUndergroundView(on) {
+  metroTouchUndergroundView = Boolean(on);
+}
+
+// Is any track down there (a tunnel, its portal's dip or a hill tunnel) for the phone's bulldozer to dig for?
+function hasMetroTunnelTrack() {
+  return Object.values(getMetroTrackElev()).some((code) => code === 'u' || String(code || '')[0] === 't');
 }
 
 function toggleMetroUndergroundView(on = !metroUndergroundViewOn) {

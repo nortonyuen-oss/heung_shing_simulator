@@ -1,3 +1,33 @@
+# Heung Shing Simulator v6.0.11 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 新建築嘅夜景；郵輪燈號同尾浪
+
+- **新建築夜景**：社區中心、九龍城寨文化園區、濕地公園、啟德郵輪碼頭同沙田馬場而家入夜有自己嘅夜間圖，唔再淨係變暗：
+  - 窗戶逐格亮燈，一個窗一個窗咁著，夜深慢慢熄。
+  - 燈柱、燈籠同街邊檔口嘅燈都會著。
+  - 郵輪碼頭為咗夜航長期亮住；馬場賽馬夜看台全滿；濕地公園入黑之後只留步道燈。
+  - 城寨有三百幾格窗會亮燈。
+- **郵輪夜間**：
+  - 船艙亮燈，有白色桅燈同尾燈。
+  - 舷燈睇船頭方向：右舷綠、左舷紅。
+  - 入夜同其他船一齊變暗；航行時船尾有浪花，泊岸時冇。
+
+**台灣中文：** 新建築的夜景：社區中心、九龍城寨文化園區、濕地公園、啟德郵輪碼頭與沙田馬場入夜後有自己的夜間圖，不再只是變暗——窗戶逐格亮燈、夜深後漸漸熄滅，燈柱、燈籠與街邊攤位的燈也會亮起；郵輪碼頭為夜航長時間亮著，馬場賽馬夜看台客滿，濕地公園天黑後只留步道燈。郵輪入夜後船艙亮燈，有白色桅燈與尾燈，舷燈依船頭方向右舷綠、左舷紅；入夜與其他船一同變暗，航行時船尾有浪花，泊岸時沒有。
+
+**English:** The 18 Districts' new buildings light up at night. The community centre, the Kowloon Walled City Park, the Wetland Park, the Kai Tak cruise terminal and Sha Tin Racecourse now have their own night art instead of only darkening: their windows light one by one and go out as the night deepens, and their lamp posts, lanterns and street stalls come on. The terminal stays lit for its night sailings, the racecourse's stands fill on race nights, and the Wetland Park keeps only its path lamps after dark; the Walled City has over three hundred windows to light. At night the cruise ship's cabins are lit, with a white masthead light and stern light and the sidelight on the side in view - green to starboard, red to port. It darkens with the other boats after dusk, and leaves a wake while it sails (none alongside).
+
+**日本語:** 「18区をめぐる」の新しい建物が夜に灯るようになりました。コミュニティセンター、九龍城砦文化パーク、湿地公園、啓徳クルーズターミナル、沙田競馬場に専用の夜景が付き、暗くなるだけではなくなりました。窓が一つずつ灯り、夜が更けると消えていき、街灯や提灯、屋台の明かりもともります。ターミナルは夜の出航のために灯り続け、競馬場はレースの夜にスタンドが満員に、湿地公園は日没後は遊歩道の灯りだけになります。城砦では三百を超える窓が灯ります。クルーズ船は夜に客室が灯り、白いマスト灯と船尾灯、見えている側の舷灯（右舷は緑、左舷は赤）が点きます。日没後はほかの船と同じように暗くなり、航行中は船尾に航跡が立ちます（停泊中はありません）。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.10 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

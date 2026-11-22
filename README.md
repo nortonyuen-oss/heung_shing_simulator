@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.10 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.0.11 — 【玩轉18區】
 
-香城模擬器 (Heung Shing Simulator) v6.0.10 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.0.11 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.11
+
+The 18 Districts' new buildings light up at night: the community centre, the Kowloon Walled City Park (hundreds of tenement windows and its street stalls), the Wetland Park, the Kai Tak cruise terminal and Sha Tin Racecourse now have baked night art - lit windows and their lamp posts - instead of only darkening. The cruise ship has its cabins lit at night with proper navigation lights (white masthead and stern lights, a green or red sidelight), darkens with the other boats, and leaves a wake while it sails.
 
 ## New in v6.0.10
 

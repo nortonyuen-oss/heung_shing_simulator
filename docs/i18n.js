@@ -290,6 +290,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.0.14","date":"2026-11-22","dateLabel":"2026年11月22日","title":"玩轉18區","items":["手機推土機拆得地鐵、電車同輕鐵路軌同車站（先拆站、再拆路軌，路面保留）；新增「地底」開關拆地鐵隧道。","造景模式開「香港全境」都有 $10 億；新城市開局鏡頭對住陸地，唔會成個畫面係海。","教育值只計住宅，冇住宅嘅區顯示「—」，全市平均顯示趨勢；第 5 章黃大仙廟新角色夏慧BB。"]},
     {"version":"v6.0.13","date":"2026-11-22","dateLabel":"2026年11月22日","title":"玩轉18區","items":["落雨夜晚唔再黑到睇唔到；「檢視」選單新增「🌙 夜晚亮度」（標準／明亮／最亮）。","新增造景模式：城市同運輸公司各有 $10 億，所有建築一開始就解鎖，唔計勳章。","Singh 哥換上包頭頭像；十七個角色改名，例如如花、達聞西、雪雪B、火雞姐、生抽王。"]},
     {"version":"v6.0.12","date":"2026-11-22","dateLabel":"2026年11月22日","title":"玩轉18區","items":["修正新城劃高密度公屋、商業同工業區後，空地已經耗電、令燃煤廠假超載同三類需求一齊變負數：而家未起樓只接電，實際建築先耗電。一般地圖同香港全境一致。","修正官網累積下載數漏計第 100 個版本以外嘅舊下載；而家讀齊所有 GitHub release，全部讀取成功先顯示總數。"]},
     {"version":"v6.0.11","date":"2026-11-22","dateLabel":"2026年11月22日","title":"玩轉18區","items":["社區中心、九龍城寨文化園區、濕地公園、啟德郵輪碼頭同沙田馬場有自己嘅夜景：窗戶逐格亮燈，燈柱、燈籠同檔口都會著。","郵輪入夜船艙亮燈，有桅燈、尾燈同舷燈（右舷綠、左舷紅），航行時船尾有浪花。"]},
@@ -680,6 +681,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.0.14": {"title":"玩轉18區","items":["手機推土機可拆除地鐵、電車與輕鐵路軌及車站（先拆站、再拆路軌，路面保留）；新增「地底」開關可拆地鐵隧道。","造景模式開「香港全境」也有 $10 億；新城市開局鏡頭對準陸地，不會整個畫面都是海。","教育值只計算住宅，沒有住宅的區顯示「—」，全市平均顯示趨勢；第 5 章黃大仙廟新角色夏慧BB。"]},
     "v6.0.13": {"title":"玩轉18區","items":["下雨的夜晚不再暗到看不見；「檢視」選單新增「🌙 夜晚亮度」（標準／明亮／最亮）。","新增造景模式：城市與運輸公司各有 $10 億，所有建築一開始即解鎖，不計勳章。","Singh 哥換上包頭頭像；十七個角色改名，例如如花、達聞西、雪雪B、火雞姐、生抽王。"]},
     "v6.0.12": {"title":"玩轉18區","items":["修正新城劃設高密度公屋、商業與工業區後，空地就消耗電力，導致燃煤電廠誤判超載、三類需求同時變負：現在空地只建立供電連接，實際建築才耗電。一般地圖與香港全境皆已修正。","修正官網累積下載數漏計第 100 個版本以外的舊下載；現在讀取所有 GitHub release，全部成功後才顯示總數。"]},
     "v6.0.11": {"title":"玩轉18區","items":["社區中心、九龍城寨文化園區、濕地公園、啟德郵輪碼頭與沙田馬場有自己的夜景：窗戶逐格亮燈，燈柱、燈籠與攤位的燈也會亮起。","郵輪入夜後船艙亮燈，有桅燈、尾燈與舷燈（右舷綠、左舷紅），航行時船尾有浪花。"]},
@@ -1063,6 +1065,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.0.14": {"title":"The 18 Districts","items":["On a phone the bulldozer takes up metro, tram and light rail track and stations (a station first, then its track, the road left), and a new Underground switch reaches metro tunnels.","Sandbox mode gives $1 billion on the full territory map too, and a new city opens with land in view instead of the harbour.","Education counts homes only: quarters with no homes show a dash and the city average shows its trend. New in chapter 5: Ha Wai BB at the Wong Tai Sin Temple."]},
     "v6.0.13": {"title":"The 18 Districts","items":["Rainy nights are no longer near-black, and the View menu has 🌙 Night brightness (Standard / Bright / Brightest).","New sandbox mode: $1 billion for the city and the transport company, everything unlocked from the start, no medals.","Singh has a new portrait in his turban, and seventeen characters have new names."]},
     "v6.0.12": {"title":"The 18 Districts","items":["Fixed false coal-plant overload and negative R/C/I demand after zoning high-density public housing, commerce and industry in a new city. Vacant lots receive power connections; only actual buildings consume electricity, on ordinary maps and the full territory.","The website counts downloads across every GitHub release instead of only the latest 100. Totals appear only after every page has loaded successfully."]},
     "v6.0.11": {"title":"The 18 Districts","items":["Night art for the community centre, the Walled City Park, the Wetland Park, the Kai Tak cruise terminal and Sha Tin Racecourse: windows that light one by one, and their lamp posts, lanterns and stalls.","At night the cruise ship's cabins are lit, with masthead, stern and sidelights (green to starboard, red to port), and it leaves a wake while it sails."]},
@@ -1446,6 +1449,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.0.14": {"title":"18区をめぐる","items":["スマートフォンのブルドーザーで地下鉄・路面電車・ライトレールの線路と駅を撤去可能に（駅、線路の順で道路は残る）。「地下」スイッチで地下鉄トンネルも撤去。","箱庭モードが香港全域マップでも $10億に。新しい都市は海ではなく陸地が見える位置から開始。","教育値は住宅のみを対象に：住宅のない区は「—」、都市平均は推移を表示。第5章の黄大仙廟に新キャラクター夏慧BB。"]},
     "v6.0.13": {"title":"18区をめぐる","items":["雨の夜が真っ暗にならなくなり、「表示」メニューに「🌙 夜の明るさ」（標準／明るめ／最も明るい）を追加。","新しい箱庭モード：都市と交通会社にそれぞれ $10億、最初からすべて解放、勲章は対象外。","シンさんがターバン姿の新しい顔に。17人の登場人物の名前を変更。"]},
     "v6.0.12": {"title":"18区をめぐる","items":["新しい都市で高密度の公営住宅・商業・工業地区を指定すると、空き地まで電力を消費し、石炭発電所が誤って過負荷となり全需要がマイナスになる問題を修正。空き地は送電接続のみで、建物ができてから電力を消費します。通常マップと香港全域の両方に適用。","公式サイトの累計ダウンロード数を最新100リリースだけでなく、すべてのGitHubリリースから集計。全ページの取得に成功してから合計を表示します。"]},
     "v6.0.11": {"title":"18区をめぐる","items":["コミュニティセンター、九龍城砦文化パーク、湿地公園、啓徳クルーズターミナル、沙田競馬場に夜景：窓が一つずつ灯り、街灯・提灯・屋台の明かりも。","クルーズ船は夜に客室が灯り、マスト灯・船尾灯・舷灯（右舷は緑、左舷は赤）が点き、航行中は航跡が立ちます。"]},
@@ -1854,8 +1858,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.13 — 【玩轉18區】",
-      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.13 落雨夜晚更光、夜晚亮度設定，同新增造景模式。",
+      versionBadge: "v6.0.14 — 【玩轉18區】",
+      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.0.14 手機拆得路軌、造景模式開香港全境，同教育值更合理。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1968,8 +1972,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.0.13 — 【玩轉18區】",
-      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.13 雨夜更亮、夜晚亮度設定，並新增造景模式。",
+      versionBadge: "v6.0.14 — 【玩轉18區】",
+      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.0.14 手機可拆路軌、造景模式支援香港全境，教育值更合理。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2082,8 +2086,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "Heung Shing Simulator",
       title: "Heung Shing Simulator",
-      versionBadge: "v6.0.13 — 【The 18 Districts】",
-      versionDesc: "6.0.0: The 18 Districts, a story campaign across Hong Kong. 6.0.13 brightens rainy nights, adds a night brightness setting and a sandbox mode.",
+      versionBadge: "v6.0.14 — 【The 18 Districts】",
+      versionDesc: "6.0.0: The 18 Districts, a story campaign across Hong Kong. 6.0.14 lets a phone bulldoze rail, brings sandbox mode to the full territory and fixes the education panel.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2197,8 +2201,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城シミュレーター",
       title: "香城シミュレーター",
-      versionBadge: "v6.0.13 — 【18区をめぐる】",
-      versionDesc: "6.0.0：新ストーリーモード「18区をめぐる」。6.0.13で雨の夜を明るく、夜の明るさ設定と箱庭モードを追加。",
+      versionBadge: "v6.0.14 — 【18区をめぐる】",
+      versionDesc: "6.0.0：新ストーリーモード「18区をめぐる」。6.0.14でスマートフォンの線路撤去、香港全域の箱庭モード、教育値の表示を改善。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

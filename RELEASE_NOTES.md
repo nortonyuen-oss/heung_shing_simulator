@@ -1,3 +1,33 @@
+# Heung Shing Simulator v6.0.14 — 【玩轉18區】
+
+- 廣東話／台灣中文：【玩轉18區】
+- English: 【The 18 Districts】
+- 日本語：【18区をめぐる】
+
+## 手機拆路軌；造景模式開香港全境；教育值更合理
+
+- **手機推土機拆得路軌**：
+  - 地鐵、電車同輕鐵路軌，電車站同輕鐵站，而家手機都拆得，同電腦版一樣：先拆站，再拆路軌，路面保留；拆路軌免費。
+  - 地面站下面、或者有地面綫行緊嘅地鐵路軌照舊唔拆得，會講原因。
+  - 拆之前嘅摘要會列出「路軌 N 格」同會停駛嘅路線。
+  - 手機推土機新增「地底」開關（城市有隧道先會出現），開咗就拆得地鐵隧道。
+- **造景模式**而家開「香港全境」都有 $10 億。
+- **新城市開局**鏡頭會對住陸地，唔會再一開就成個畫面係海（例如維港兩岸）。
+- **教育值**：只計住宅；冇住宅嘅區顯示「—」，全市平均會顯示趨勢（例如「8% → 69%」），教育值追得快啲。
+- **新角色**：第 5 章黃大仙廟嘅夏慧BB。
+
+**台灣中文：** 手機推土機可以拆除路軌：地鐵、電車與輕鐵路軌，以及電車站與輕鐵站，跟電腦版一樣先拆站、再拆路軌，路面保留，拆路軌免費；地面站下方或有地面路線行駛的地鐵路軌仍不能拆，會說明原因；拆除前的摘要列出「路軌 N 格」與會停駛的路線；手機推土機新增「地底」開關（城市有隧道才會出現），開啟後可拆地鐵隧道。造景模式現在開「香港全境」也有 $10 億。新城市開局鏡頭對準陸地，不會一開始整個畫面都是海。教育值只計算住宅：沒有住宅的區顯示「—」，全市平均顯示趨勢（例如「8% → 69%」），教育值追上得更快。新角色：第 5 章黃大仙廟的夏慧BB。
+
+**English:** On a phone the bulldozer now takes up metro, tram and light rail track, tram stops and light rail stations, as on a computer: a stop or station first, then its track, the road under it left; taking up track is free. Metro track under a surface station or used by a surface line still cannot be removed, and the reason is shown. The summary before you confirm lists the track tiles and the lines that would close. A new Underground switch on the phone bulldozer (shown while the city has tunnels) reaches metro tunnels. Sandbox mode now gives $1 billion on the full Hong Kong territory map too. A new city opens with land in view, not a screen of harbour. The education panel counts homes only: map quarters with no homes show a dash, and the city average shows where it is heading (e.g. "8% → 69%"); education also catches up faster. A new character in chapter 5: Ha Wai BB at the Wong Tai Sin Temple.
+
+**日本語:** スマートフォンのブルドーザーで線路を撤去できるようになりました。地下鉄・路面電車・ライトレールの線路、路面電車の停留所、ライトレールの駅を、パソコン版と同じく駅・停留所、線路の順に撤去し、道路は残ります（線路の撤去は無料）。地上駅の下や地上路線が使っている地下鉄の線路は引き続き撤去できず、理由を表示します。確定前の概要に線路のマス数と運休する路線を表示。スマートフォンのブルドーザーに「地下」スイッチを追加（トンネルがあるときに表示）し、地下鉄トンネルも撤去できます。箱庭モードは香港全域マップでも $10億になりました。新しい都市は陸地が見える位置から始まり、画面全体が海になることはありません。教育値は住宅のみを対象に：住宅のない区は「—」、都市平均は向かう先（例「8% → 69%」）を表示し、教育値の追いつきも速くなりました。新キャラクター：第5章の黄大仙廟に夏慧BB。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.13 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

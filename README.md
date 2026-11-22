@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.13 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.0.14 — 【玩轉18區】
 
-香城模擬器 (Heung Shing Simulator) v6.0.13 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.0.14 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.0.14
+
+On a phone the bulldozer now takes up metro, tram and light rail track, tram stops and light rail stations, as on a computer: a stop or station first, then its track, the road under it left. A new 地底 (Underground) switch on the phone bulldozer reaches metro tunnels. Sandbox mode now works on the full Hong Kong territory map ($1 billion), and a new city opens with land in view instead of the middle of the harbour. The education panel counts homes only: map quarters with no homes show a dash, and the city average shows where education is heading; education also catches up faster. A new character in chapter 5: 夏慧BB at the Wong Tai Sin Temple.
 
 ## New in v6.0.13
 

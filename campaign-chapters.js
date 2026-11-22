@@ -93,6 +93,8 @@
     portMaster: { name: T('碼頭主任', 'Port Master', '埠頭主任'), portrait: 'UI/campaign/portraits/portMaster.webp', glyph: '⚓' },
     // 城超聯's voice (Norton 2026-11-21: 第 16 章, at the 城超聯足球場)
     footballCommentator: { name: T('荷蘭叻', 'Ho Lan Lek', '荷蘭叻'), portrait: 'UI/campaign/portraits/footballCommentator.webp', glyph: '⚽' },
+    // 夏慧BB (Norton 2026-11-22): the movie-star grandma at the Wong Tai Sin Temple, 第 5 章's 求籤
+    haWaiBB: { name: T('夏慧BB', 'Ha Wai BB', '夏慧BB'), portrait: 'UI/campaign/portraits/haWaiBB.webp', glyph: '🪭' },
     // 第 10 章離島's own face, the one district that had none (art-prompts.md B18; Norton chose her 2026-11-21)
     taiOGranny: { name: T('大澳貞姨', 'Auntie Ching of Tai O', '大澳の貞おばさん'), portrait: 'UI/campaign/portraits/taiOGranny.webp', glyph: '🦐' },
     volunteer: { name: T('Chill 姐', 'Sister Chill', 'チル姐さん'), portrait: 'UI/campaign/portraits/volunteer.webp', glyph: '🙋' },
@@ -1061,6 +1063,7 @@
         lines: Object.freeze([
           { speaker: 'anchor', text: T('黃大仙祠落成後首次求籤，解籤師傅話市長抽到嘅係「財政籤」。', 'At the new Wong Tai Sin Temple\'s first fortune-telling, the interpreter says the mayor drew the "budget stick".', '黄大仙祠の完成後初のおみくじ。解説師によると、市長が引いたのは「財政みくじ」。') },
           { speaker: 'resident', text: T('我抽到上上籤，點解仲塞車？', 'I drew the best stick of all - so why am I still stuck in traffic?', '大吉を引いたのに、なんでまだ渋滞してるの？') },
+          { speaker: 'haWaiBB', text: T('BB 求咗支上上籤，黃大仙話我今年仲紅過舊年！快啲起多間戲院俾 BB 登台啦！', 'BB drew the very best stick - Wong Tai Sin says this year I\'ll be even bigger than last! Quick, build BB a theatre to play!', 'BBは大吉！黄大仙さまが今年は去年より売れるって！早くBBが出られる劇場を建てて！') },
           { speaker: 'playboy', text: T('我都抽到上上籤：「姻緣在近」。近幾近？我連巴士都等唔到。', 'Mine\'s the best stick too: "love is near". How near? I can\'t even get a bus.', '僕も大吉、「良縁は近くに」。どれくらい近く？バスすら来ないのに。') },
           { speaker: 'treasurer', text: T('籤文唔會計入預算。要盈餘，就要靠政策。', 'Fortune sticks do not go into the budget. A surplus comes from policy.', 'おみくじは予算に計上しません。黒字は政策で出すものです。') },
         ]),

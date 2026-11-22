@@ -48,3 +48,16 @@ test('the characters Norton renamed (2026-11-22), in three languages', () => {
   }
   assert.doesNotMatch(source('campaign-chapters.js'), /T\('曾Sir/);
 });
+
+test('education: empty quarters of the map show a dash, the average shows where it is heading, and it catches up faster', () => {
+  const overlay = source('overlay-controls.js');
+  assert.match(overlay, /nw: districts\.nw\.pop > 0 \? districts\.nw\.sum \/ districts\.nw\.pop : null,/);
+  assert.match(overlay, /const districtValue = \(key\) => \(districtAverages\[key\] === null \? '—' : pct\(districtAverages\[key\]\)\);/);
+  assert.match(overlay, /`\$\{pct\(average\)\} → \$\{pct\(target\)\}`/);
+  assert.match(source('simulation.js'), /city\.educationTargetLevel = clamp\(targetBasic \* 0\.55 \+ targetHigher \* 0\.45, 0, 1\);/);
+  assert.match(source('constants.js'), /const EDUCATION_BASIC_SMOOTHING = 0\.30;\s*const EDUCATION_HIGHER_SMOOTHING = 0\.21;/);
+  // from chapter 6's start (8%) toward full coverage (~69%), 60% now takes months, not most of the 24
+  let basic = 0.082; let months = 0;
+  while (basic < 0.6 && months < 40) { basic += 0.30 * (0.9 - basic); months += 1; }
+  assert.ok(months <= 8, `basic education reaches 60% in ${months} months`);
+});

@@ -437,14 +437,20 @@ function updateOverlayDetailPanel(type) {
     )).length;
     const districtLabel = (key) => t(`overlay.district.${key}`);
     const pct = (value) => `${Math.round(clamp(value, 0, 1) * 100)}%`;
+    // a quarter of the map with no homes has no education to show: a dash, not 0%
+    const districtValue = (key) => (districtAverages[key] === null ? '—' : pct(districtAverages[key]));
+    // the city's education (what the game counts) and, while it is still moving, the homes' coverage it moves to
+    const average = Number(city.educationAverageLevel ?? 0);
+    const target = Number.isFinite(Number(city.educationTargetLevel)) ? Number(city.educationTargetLevel) : average;
+    const averageText = Math.abs(target - average) >= 0.01 ? `${pct(average)} → ${pct(target)}` : pct(average);
 
     stats.innerHTML = [
-      chip(t('overlay.detail.average'), pct(city.educationAverageLevel ?? 0)),
+      chip(t('overlay.detail.average'), averageText),
       chip(t('overlay.detail.schools'), schoolCount),
-      chip(districtLabel('nw'), pct(districtAverages.nw)),
-      chip(districtLabel('ne'), pct(districtAverages.ne)),
-      chip(districtLabel('sw'), pct(districtAverages.sw)),
-      chip(districtLabel('se'), pct(districtAverages.se)),
+      chip(districtLabel('nw'), districtValue('nw')),
+      chip(districtLabel('ne'), districtValue('ne')),
+      chip(districtLabel('sw'), districtValue('sw')),
+      chip(districtLabel('se'), districtValue('se')),
     ].join('');
     note.textContent = t('overlay.detail.educationCoverage');
     footer.classList.remove('is-visible');
@@ -780,11 +786,12 @@ function computeEducationDistrictAverages() {
     districts[key].pop += pop;
   });
 
+  // (null: no one lives in that quarter of the map)
   return {
-    nw: districts.nw.pop > 0 ? districts.nw.sum / districts.nw.pop : 0,
-    ne: districts.ne.pop > 0 ? districts.ne.sum / districts.ne.pop : 0,
-    sw: districts.sw.pop > 0 ? districts.sw.sum / districts.sw.pop : 0,
-    se: districts.se.pop > 0 ? districts.se.sum / districts.se.pop : 0,
+    nw: districts.nw.pop > 0 ? districts.nw.sum / districts.nw.pop : null,
+    ne: districts.ne.pop > 0 ? districts.ne.sum / districts.ne.pop : null,
+    sw: districts.sw.pop > 0 ? districts.sw.sum / districts.sw.pop : null,
+    se: districts.se.pop > 0 ? districts.se.sum / districts.se.pop : null,
   };
 }
 

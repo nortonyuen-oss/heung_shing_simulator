@@ -233,6 +233,8 @@ function updateEducationLevels() {
 
   const targetBasic = weightedPop > 0 ? clamp(weightedBasicSum / weightedPop, 0, 1) : 0;
   const targetHigher = weightedPop > 0 ? clamp(weightedHigherSum / weightedPop, 0, 1) : 0;
+  // what the homes' coverage gives now, which the city's education is moving toward (the overlay shows both)
+  city.educationTargetLevel = clamp(targetBasic * 0.55 + targetHigher * 0.45, 0, 1);
 
   if (city.tick % TICKS_PER_MONTH === 0 || city.tick <= 1) {
     city.educationBasicIndex = clamp(

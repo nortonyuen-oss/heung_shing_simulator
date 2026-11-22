@@ -435,9 +435,12 @@ const SMALL_PARK_RADIUS      = 6;
 const LARGE_PARK_RADIUS      = 12;
 const SPORTS_GROUND_RADIUS   = 10;
 
-// Education simulation tuning
-const EDUCATION_BASIC_SMOOTHING = 0.10;
-const EDUCATION_HIGHER_SMOOTHING = 0.07;
+// Education simulation tuning: each month the city's education moves this share of the way to what the
+// homes' school coverage gives (simulation.js updateEducationLevels). Tripled 2026-11-22 (Norton: 冇起嘢嘅
+// 區域計教育值唔合理，應該係 cover 咗住宅嘅教育值) - at 0.10 / 0.07 a town whose homes were all covered
+// showed 21% against their 69% after three months, and took most of chapter 6's 24 months to reach 60%.
+const EDUCATION_BASIC_SMOOTHING = 0.30;
+const EDUCATION_HIGHER_SMOOTHING = 0.21;
 const EDUCATION_POLICY_REFORM_MUL = 1.25;
 const SCIENCE_DEVELOPMENT_HIGHER_BONUS = 0.06;
 const STRONG_COUNTRY_HIGHER_EDU_BONUS = 0.03;

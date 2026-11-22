@@ -410,6 +410,7 @@ function resetGameState() {
   city.educationBasicIndex = 0;
   city.educationHigherIndex = 0;
   city.educationAverageLevel = 0;
+  delete city.educationTargetLevel; // (set by the first education update)
   city.healthIndex = 0.5;
   city.lifeExpectancy = 70;
   city.hospitalCoverageRate = 0;

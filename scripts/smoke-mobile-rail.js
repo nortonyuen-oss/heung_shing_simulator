@@ -105,6 +105,37 @@ function check(name, ok, detail) {
     await choose('tram-line'); await tapTile(90, 77); await tapTile(90, 83);
     check('tapping two tram stops opens a tram line directly', await page.evaluate(() => getTramState().lines.length === 1));
 
+    // ── light rail (Norton, 2026-11-22: 屯門沒有輕鐵，只有電車 - it was never on the phone) ──
+    await nav('transport');
+    check('the transport page lists the light rail, and why it is not open yet', await page.evaluate(() =>
+      ['light-rail-track', 'light-rail-station', 'light-rail-line'].every((tool) => !!document.querySelector(`#mobile-panel [data-mobile-tool="${tool}"]`))
+      && document.getElementById('mobile-panel').textContent.includes(lightRailTrackRefusal('locked'))));
+    await page.click('[data-mobile-tool="light-rail-track"]');
+    await tapTile(125, 70); await tapTile(125, 85);
+    check('before the council funds it, the track preview says so', await page.evaluate(() => {
+      const plan = mobileBuildSession.getState().plan;
+      return !plan.ok && plan.reason === lightRailTrackRefusal('locked');
+    }));
+    await page.click('#mobile-cancel');
+    await page.evaluate(() => grantLightRailFunding(50000));
+    await choose('light-rail-track');
+    check('the light rail track offers its heights', await page.locator('#mobile-lrt-height-options').isVisible() && await page.locator('[data-mobile-lrt-height="deck"]').isVisible());
+    await tapTile(125, 70); await tapTile(125, 85);
+    const lrtTrack = (await draft()).plan;
+    check('light rail track over open ground previews, paid from the grant first', lrtTrack.ok && lrtTrack.kinds.ground === 16 && lrtTrack.funding.balance >= 50000, { kinds: lrtTrack.kinds, reason: lrtTrack.reason });
+    await confirmBuild();
+    check('the light rail track is laid', await page.evaluate(() => Object.keys(getLightRailState().tracks).length === 16));
+    await choose('light-rail-station'); await tapTile(125, 73);
+    check('a light rail station previews on straight track', (await draft()).plan.ok && (await draft()).plan.tiles.length === 3);
+    await confirmBuild();
+    await choose('light-rail-station'); await tapTile(125, 82);
+    await confirmBuild();
+    check('two light rail stations exist after both confirms', await page.evaluate(() => getLightRailState().stations.length === 2));
+    await choose('light-rail-line'); await tapTile(125, 73); await tapTile(125, 82);
+    if (await page.evaluate(() => getLightRailState().lines.length === 0)) await tapTile(125, 82);
+    check('tapping two light rail stations opens a light rail line', await page.evaluate(() => getLightRailState().lines.length === 1));
+    await page.click('#mobile-route-picker-done').catch(() => {});
+
     // ── the bulldozer on rail (Norton, 2026-11-22: 手機版路軌不能拆除) ──────────
     const bulldoze = async (range) => {
       await nav('build'); await page.click('[data-mobile-tool="bulldoze"]');
@@ -140,6 +171,10 @@ function check(name, ok, detail) {
     check('地底 digs for it, the underground view on while it does', (await draft()).plan.summary.rail === 1 && await page.evaluate(() => isMetroUndergroundView()));
     await confirmBuild();
     check('the tunnel tile comes up and the underground view goes off with the draft', await page.evaluate(() => !getMetroTrackBits()['110:77'] && !isMetroUndergroundView()));
+    await bulldoze(false); await tapTile(125, 85);
+    check('a light rail track tile previews as track', (await draft()).plan.ok && (await draft()).plan.summary.rail === 1);
+    await confirmBuild();
+    check('the light rail track tile comes up', await page.evaluate(() => !getLightRailState().tracks['125:85'] && !!getLightRailState().tracks['125:84']));
 
     // ── ferry: pier, route ───────────────────────────────────────────────────
     await choose('ferry-pier'); await tapTile(99, 75);
@@ -213,9 +248,9 @@ function check(name, ok, detail) {
     await page.click('#mobile-cancel');
 
     check('all C3 tools are present in the touch catalog', await page.evaluate(() =>
-      ['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop', 'ferry-pier',
+      ['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop', 'light-rail-track', 'light-rail-station', 'ferry-pier',
         'undersea-tunnel', 'typhoon-shelter', 'terrain', 'promenade', 'floating-restaurant'].every(tool => TOUCH_SUPPORTED_TOOLS.includes(tool))
-      && ['metro-line', 'tram-line', 'ferry-route'].every(tool => MOBILE_DIRECT_TAP_TOOLS.includes(tool))));
+      && ['metro-line', 'tram-line', 'light-rail-line', 'ferry-route'].every(tool => MOBILE_DIRECT_TAP_TOOLS.includes(tool))));
     check('no uncaught browser errors', errors.length === 0, errors);
   } finally {
     fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({ results, errors }, null, 2));

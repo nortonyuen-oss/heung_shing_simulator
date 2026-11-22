@@ -13,14 +13,16 @@ const TOUCH_DAILY_TOOLS = Object.freeze(['power-line', 'tree', 'dezone', 'park',
 // C3: rail/ferry/tunnel point-and-drag builders, reusing the same build-session draft the P/D/T
 // tools above already use; the bus-style funding display (tool-actions.js funding block below)
 // widens to cover the company-funded ones.
-const TOUCH_RAIL_TOOLS = Object.freeze(['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop', 'ferry-pier']);
+// (輕鐵 too - Norton, 2026-11-22: 屯門沒有輕鐵，只有電車; it came after the phone's tools and was left off)
+const TOUCH_RAIL_TOOLS = Object.freeze(['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop',
+  'light-rail-track', 'light-rail-station', 'ferry-pier']);
 // 海底隧道 (city budget, like road), 避風塘/地形/海濱步道 (rectangle paint) and 海鮮舫 (point placement
 // with a pre-placement rotate option, same shape as the bus depot's rotate-entrance button).
 const TOUCH_TERRAIN_MARINE_TOOLS = Object.freeze(['undersea-tunnel', 'typhoon-shelter', 'terrain', 'promenade', 'floating-restaurant']);
 const TOUCH_SUPPORTED_TOOLS = Object.freeze([...TOUCH_PHASE_B_TOOLS, ...TOUCH_BUS_TOOLS, ...TOUCH_DAILY_TOOLS, ...TOUCH_RAIL_TOOLS, ...TOUCH_TERRAIN_MARINE_TOOLS]);
 // 地鐵綫／電車綫／渡輪航線 (S: tap station after station) commit per tap on the existing desktop
 // writer, like a toast-driven click - they never go through build-session (mobile-ui.js).
-const MOBILE_DIRECT_TAP_TOOLS = Object.freeze(['metro-line', 'tram-line', 'ferry-route']);
+const MOBILE_DIRECT_TAP_TOOLS = Object.freeze(['metro-line', 'tram-line', 'light-rail-line', 'ferry-route']);
 const touchObjectIds = new WeakMap();
 let nextTouchObjectId = 1;
 function touchObjectIdentity(record) {
@@ -35,6 +37,7 @@ function getTouchToolOptions(tool) {
   if (tool === 'park' || tool === 'sports-ground') return { variant: getTouchRecreationOptions(tool)[0].id };
   if (tool === 'district-sign') return { name: '', englishName: '' };
   if (tool === 'metro-track') return { height: typeof metroRailHeight !== 'undefined' ? metroRailHeight : 'ground' };
+  if (tool === 'light-rail-track') return { height: typeof lightRailHeight !== 'undefined' ? lightRailHeight : 'ground' };
   if (tool === 'typhoon-shelter') return { subtract: false };
   if (tool === 'terrain') return { terrainType: typeof selectedTerrainType !== 'undefined' ? selectedTerrainType : 'grass' };
   if (tool === 'floating-restaurant') {
@@ -264,6 +267,30 @@ function previewTouchToolAction(scene, draft) {
       plan.tiles = [...trackPlan.adds, ...trackPlan.removes].map(({ row: r, col: c }) => ({ row: r, col: c }));
     }
     identity = trackPlan.path.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+  } else if (draft.tool === 'light-rail-station') {
+    // (as placeLightRailStation: light-rail-lines.js)
+    const res = whyNotLightRailStationAt(row, col, getLightRailState(), lightRailMapEnv());
+    if (!res.code && res.site.street && !tramStopLinkIsPlain(getLightRailGeometry(), lrtStationStop(res.site))) res.code = 'notStraight';
+    if (!isTransportExpansionActive()) plan.reason = lightRailTrackRefusal('company');
+    else if (!isLightRailUnlocked()) plan.reason = lightRailTrackRefusal('locked');
+    else if (res.code) plan.reason = lightRailT(...LIGHT_RAIL_STATION_REFUSALS[res.code]);
+    else {
+      plan.ok = true;
+      plan.cost = LIGHT_RAIL_SERVICE.stationCost;
+      plan.tiles = lightRailStationTiles(res.site).map(([r, c]) => ({ row: r, col: c }));
+    }
+    identity = [touchTileIdentity(scene, row, col), res.site, getLightRailState().tracks[`${row}:${col}`]];
+  } else if (draft.tool === 'light-rail-track') {
+    const trackPlan = planLightRailTrack(draft.start, draft.end, draft.options.height);
+    if (!trackPlan.ok) {
+      plan.reason = lightRailTrackRefusal(trackPlan.reason);
+    } else {
+      plan.ok = true;
+      plan.cost = trackPlan.cost;
+      plan.tiles = (trackPlan.path || []).map(({ row: r, col: c }) => ({ row: r, col: c }));
+      plan.kinds = trackPlan.kinds;
+    }
+    identity = (trackPlan.path || []).map((tile) => touchTileIdentity(scene, tile.row, tile.col));
   } else if (draft.tool === 'ferry-pier') {
     const res = whyNotFerryPierAt(row, col, getFerryPierContext());
     if (res.code) {
@@ -376,6 +403,11 @@ function previewTouchToolAction(scene, draft) {
     const base = getTransportConstructionFunds();
     plan.funding = { payer: base.payer, balance: getMetroState().grantBalance + base.balance };
   }
+  // (the council's light rail grant first, then the company: light-rail.js spendLightRailFunds)
+  if (['light-rail-track', 'light-rail-station'].includes(draft.tool)) {
+    const base = getTransportConstructionFunds();
+    plan.funding = { payer: base.payer, balance: getLightRailState().grantBalance + base.balance };
+  }
   if (['tram-track', 'tram-stop'].includes(draft.tool)) {
     plan.funding = { payer: 'company', balance: getTransportExpansionState().company.cash };
     if (plan.ok && !isTransportExpansionActive()) {
@@ -419,6 +451,10 @@ function commitTouchToolAction(scene, draft, plan) {
     ok = !!placeTramStop(scene, draft.start.row, draft.start.col);
   } else if (draft.tool === 'tram-track') {
     ok = commitTramTrackDrag(scene, draft.start, draft.end);
+  } else if (draft.tool === 'light-rail-track') {
+    ok = commitLightRailTrackDrag(scene, draft.start, draft.end, draft.options.height);
+  } else if (draft.tool === 'light-rail-station') {
+    ok = placeLightRailStation(scene, draft.start.row, draft.start.col);
   } else if (draft.tool === 'ferry-pier') {
     ok = placeFerryPier(scene, draft.start.row, draft.start.col);
   } else if (draft.tool === 'undersea-tunnel') {

@@ -15,6 +15,7 @@ const mobileDynamicPanels = new Map();
 const MOBILE_PENDING_TRANSPORT_ACTIONS = new Set();
 const TOUCH_METRO_TOOLS = Object.freeze(['metro-line', 'metro-station', 'metro-track', 'metro-surface-station']);
 const TOUCH_TRAM_TOOLS = Object.freeze(['tram-track', 'tram-stop', 'tram-line']);
+const TOUCH_LIGHT_RAIL_TOOLS = Object.freeze(['light-rail-track', 'light-rail-station', 'light-rail-line']);
 const TOUCH_FERRY_TOOLS = Object.freeze(['ferry-pier', 'ferry-route']);
 function mobileToolCostLabel(tool) {
   return document.querySelector(`#tool-menu [data-tool="${tool}"] .tool-row-cost`)?.textContent || '';
@@ -97,12 +98,14 @@ function mobileSelectTool(tool) {
 function mobileDirectTapHandler(tool) {
   if (tool === 'metro-line') return typeof handleMetroLineClick === 'function' ? handleMetroLineClick : null;
   if (tool === 'tram-line') return typeof handleTramLineClick === 'function' ? handleTramLineClick : null;
+  if (tool === 'light-rail-line') return typeof handleLightRailLineClick === 'function' ? handleLightRailLineClick : null;
   if (tool === 'ferry-route') return typeof handleFerryRouteClick === 'function' ? handleFerryRouteClick : null;
   return null;
 }
 function mobileCancelDirectTapDraft(tool) {
   if (tool === 'metro-line' && typeof metroLineDraft !== 'undefined') metroLineDraft = null;
   if (tool === 'tram-line' && typeof tramLineDraft !== 'undefined') tramLineDraft = null;
+  if (tool === 'light-rail-line' && typeof lightRailLineDraft !== 'undefined') lightRailLineDraft = null;
   if (tool === 'ferry-route' && typeof ferryRouteDraft !== 'undefined') ferryRouteDraft = null;
 }
 
@@ -194,12 +197,13 @@ function mobileRenderDraft(draft) {
   if (draft.tool === 'power-line' && plan?.ok) status.textContent = mobileText('powerLineSummary', { count: plan.tiles.length, skipped: plan.skipped, trees: plan.clearedTrees });
   if (draft.tool === 'district-sign' && plan?.ok) status.textContent = `${plan.name} · ${plan.englishName}`;
   if (draft.tool === 'metro-track' && plan?.ok) status.textContent = mobileText('metroTrackPreview', { parts: metroTrackSummary(plan.kinds) });
+  if (draft.tool === 'light-rail-track' && plan?.ok) status.textContent = mobileText('metroTrackPreview', { parts: lightRailTrackSummary(plan.kinds) });
   if (draft.tool === 'promenade' && plan?.pierToggle) status.textContent = mobileText('pierToggleHint');
   if (plan?.option) document.getElementById('mobile-build-name').textContent = t(plan.option.titleKey);
   status.style.color = plan && !plan.ok ? '#8d1f1e' : '#374451';
   document.getElementById('mobile-build-cost').textContent = plan ? formatMoney(plan.cost) : '—';
   const companyFundedTool = TOUCH_BUS_TOOLS.includes(draft.tool) || draft.tool === 'ferry-pier'
-    || ['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop'].includes(draft.tool);
+    || ['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop', 'light-rail-track', 'light-rail-station'].includes(draft.tool);
   const funding = document.getElementById('mobile-build-funding');
   funding.hidden = !companyFundedTool;
   if (companyFundedTool) {
@@ -210,6 +214,12 @@ function mobileRenderDraft(draft) {
   document.getElementById('mobile-depot-options').hidden = draft.tool !== 'bus-depot';
   document.getElementById('mobile-district-options').hidden = draft.tool !== 'district-sign';
   document.getElementById('mobile-metro-height-options').hidden = draft.tool !== 'metro-track';
+  document.getElementById('mobile-lrt-height-options').hidden = draft.tool !== 'light-rail-track';
+  if (draft.tool === 'light-rail-track') {
+    document.querySelectorAll('[data-mobile-lrt-height]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.mobileLrtHeight === draft.options.height));
+    });
+  }
   if (draft.tool === 'metro-track') {
     document.querySelectorAll('[data-mobile-metro-height]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.mobileMetroHeight === draft.options.height));
@@ -534,7 +544,10 @@ function mobileRenderPage() {
   } else if (mobilePage === 'transport') {
     const group = (titleKey, tools) => `<h3>${mobileEscape(t(titleKey))}</h3><div class="m-list">${tools.map((tool) => mobileRow(`data-mobile-tool="${tool}"`, mobileToolLabel(tool), '', mobileToolIcon(tool), mobileToolCostLabel(tool))).join('')}</div>`;
     body.innerHTML = group('toolCategory.busTitle', TOUCH_BUS_TOOLS) + group('toolCategory.metroTitle', TOUCH_METRO_TOOLS)
-      + group('toolCategory.tramTitle', TOUCH_TRAM_TOOLS) + group('toolCategory.ferryTitle', TOUCH_FERRY_TOOLS)
+      + group('toolCategory.tramTitle', TOUCH_TRAM_TOOLS) + group('toolCategory.lightRailTitle', TOUCH_LIGHT_RAIL_TOOLS)
+      // (until the council funds it, why it will not build yet: light-rail.js)
+      + (typeof isLightRailUnlocked === 'function' && !isLightRailUnlocked() ? `<p>${mobileEscape(lightRailTrackRefusal('locked'))}</p>` : '')
+      + group('toolCategory.ferryTitle', TOUCH_FERRY_TOOLS)
       + `<h3>${mobileText('transportManagement')}</h3><div class="m-list">${TRANSPORT_PANEL_IDS.map((key) => mobileRow(`data-mobile-native="transport-${key}"`, t(TRANSPORT_PANEL_META[key].labelKey), '', TRANSPORT_PANEL_META[key].icon)).join('')}</div><p>${mobileText('transportInfo')}</p>`;
   }
   panel.querySelector('button:not([hidden])')?.focus({ preventScroll: true });
@@ -589,6 +602,7 @@ function setupMobileUi() {
         <span id="mobile-stop-options" hidden role="group" data-mobile-aria="stopSides"><button type="button" data-mobile-stop-side="first" data-mobile-aria="sideA"></button><button type="button" data-mobile-stop-side="second" data-mobile-aria="sideB"></button><button type="button" data-mobile-stop-side="both"></button></span>
         <span id="mobile-depot-options" hidden><button type="button" id="mobile-depot-rotate" data-mobile-aria="rotateEntrance"></button></span>
         <span id="mobile-metro-height-options" hidden role="group" data-mobile-aria="metroHeight">${METRO_RAIL_HEIGHTS.map((height) => `<button type="button" data-mobile-metro-height="${height}" aria-pressed="false" data-i18n="metroHeight.${height}"></button>`).join('')}</span>
+        <span id="mobile-lrt-height-options" hidden role="group" data-mobile-aria="metroHeight">${LIGHT_RAIL_HEIGHTS.map((height) => `<button type="button" data-mobile-lrt-height="${height}" aria-pressed="false" data-i18n="lightRailHeight.${height}"></button>`).join('')}</span>
         <span id="mobile-shelter-options" hidden>
           <span role="group" data-mobile-aria="shelterMode"><button type="button" data-mobile-shelter-mode="basin" aria-pressed="false" data-i18n="typhoonShelter.mode.basin"></button><button type="button" data-mobile-shelter-mode="entrance" aria-pressed="false" data-i18n="typhoonShelter.mode.entrance"></button></span>
           <span id="mobile-shelter-subtract-options" role="group" data-mobile-aria="shelterRange"><button type="button" data-mobile-shelter-subtract="false" aria-pressed="false" data-mobile-text="shelterAdd"></button><button type="button" data-mobile-shelter-subtract="true" aria-pressed="false" data-mobile-text="shelterSubtract"></button></span>
@@ -659,6 +673,8 @@ function setupMobileUi() {
       mobileBuildSession.setOptions({ depotSide: getBusDepotRawSideForCorner(next) });
     } else if (button.dataset.mobileMetroHeight) {
       mobileBuildSession.setOptions({ height: button.dataset.mobileMetroHeight });
+    } else if (button.dataset.mobileLrtHeight) {
+      mobileBuildSession.setOptions({ height: button.dataset.mobileLrtHeight });
     } else if (button.dataset.mobileShelterMode) {
       typhoonShelterMode = button.dataset.mobileShelterMode;
       if (typhoonShelterMode === 'entrance') mobileCancelBuild();

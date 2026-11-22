@@ -195,3 +195,24 @@ test('公屋／居屋 on touch: the residential tool keeps the housing type pick
   assert.match(mobile, /id="mobile-housing-select" hidden/);
   assert.match(mobile, /event\.target\.id === 'mobile-housing-select'/);
 });
+
+// Norton, 2026-11-22: 屯門沒有輕鐵，只有電車 - the light rail came after the phone's tools and was left off
+test('the phone has the light rail: track (ground or elevated), station and line, and says why it is locked', () => {
+  const c = setup();
+  assert.equal(vm.runInContext("['light-rail-track', 'light-rail-station'].every((tool) => TOUCH_SUPPORTED_TOOLS.includes(tool))", c), true);
+  assert.equal(vm.runInContext("MOBILE_DIRECT_TAP_TOOLS.includes('light-rail-line')", c), true);
+  const actions = fs.readFileSync(path.join(ROOT, 'tool-actions.js'), 'utf8');
+  assert.match(actions, /ok = commitLightRailTrackDrag\(scene, draft\.start, draft\.end, draft\.options\.height\);/);
+  assert.match(actions, /ok = placeLightRailStation\(scene, draft\.start\.row, draft\.start\.col\);/);
+  assert.match(actions, /else if \(!isLightRailUnlocked\(\)\) plan\.reason = lightRailTrackRefusal\('locked'\);/);
+  const mobile = fs.readFileSync(path.join(ROOT, 'mobile-ui.js'), 'utf8');
+  assert.match(mobile, /group\('toolCategory\.lightRailTitle', TOUCH_LIGHT_RAIL_TOOLS\)/);
+  assert.match(mobile, /if \(tool === 'light-rail-line'\) return typeof handleLightRailLineClick === 'function' \? handleLightRailLineClick : null;/);
+  assert.match(mobile, /data-mobile-lrt-height="\$\{height\}"/);
+  // and chapter 7 says how it opens
+  const { CAMPAIGN_CHAPTER_SPECS } = require('../campaign-chapters.js');
+  const card = CAMPAIGN_CHAPTER_SPECS.ch07.intro.find((line) => line.card);
+  assert.match(card.hint.zhHant, /輕鐵要人口到 15,000，再喺立法會通過【輕便鐵路撥款】先開放/);
+  assert.match(card.hint.en, /Light Rail Funding/);
+  assert.match(card.hint.ja, /ライトレール建設出資/);
+});

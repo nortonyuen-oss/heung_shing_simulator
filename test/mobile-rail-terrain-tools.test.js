@@ -95,11 +95,11 @@ function session(c, tool, start, end = start, options = {}) {
 }
 function confirm(s) { const draft = s.getState(); return s.confirm(draft.id, draft.owner); }
 
-test('C3 adds exactly eleven tools to the touch catalog', () => {
+test('C3 adds exactly eleven tools to the touch catalog (and the light rail\'s two, 2026-11-22)', () => {
   const c = setup();
-  assert.equal(vm.runInContext('TOUCH_RAIL_TOOLS.length', c), 6);
+  assert.equal(vm.runInContext('TOUCH_RAIL_TOOLS.length', c), 8);
   assert.equal(vm.runInContext('TOUCH_TERRAIN_MARINE_TOOLS.length', c), 5);
-  assert.equal(vm.runInContext('new Set(TOUCH_SUPPORTED_TOOLS).size', c), 62, 'with the 社區中心 (welfare.js), the 郵輪碼頭 (cruise-terminal.js), the 城寨園區 (walled-city.js), the 濕地公園 and the 沙田馬場 (racecourse.js)');
+  assert.equal(vm.runInContext('new Set(TOUCH_SUPPORTED_TOOLS).size', c), 64, 'with the 社區中心 (welfare.js), the 郵輪碼頭 (cruise-terminal.js), the 城寨園區 (walled-city.js), the 濕地公園, the 沙田馬場 (racecourse.js) and the 輕鐵 track and station');
 });
 
 test('undersea tunnel: a drag across open sea prices both bores and the two portals, built once', () => {

@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.0.15 — 【玩轉18區】
+# 香城模擬器 (Heung Shing Simulator) v6.1.0 — 【屋邨仔】
 
-香城模擬器 (Heung Shing Simulator) v6.0.15 — 【玩轉18區】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.1.0 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.1.0 — 【屋邨仔】 / 【Estate Kids】
+
+Public and HOS housing estates are planned whole. A dragged 公屋 or 居屋 area is one estate, laid out as the Housing Authority lays one out: rows of blocks a tile apart around a central garden, with a community centre at 4 blocks, a market by the road at 6 and a ball court at 8 (an HOS court gets a community centre at 6 and no market). The open space meets Hong Kong's planning standard of 1 m² a person, and every leftover tile becomes a park, the first 2x2 a basketball court, so no tile stays stuck empty. Blocks open one at a time, every block of an estate in one design, with estates taking 和諧式, Y型 and 舊長型 (and 安泰苑 and 十字型 for HOS) in turn. A hillside site is planned terrace by terrace, its slopes planted with trees; an 8x8 public site takes the 安泰邨 estate art. The drag (on a computer and a phone) shows the plan, its population and open space, and hints when one more tile would fit another block. The community centre and market are built from the estate's inspect panel once half its blocks are lived in. Old public and HOS zones turn tiles no block can ever fill into sitting-out areas. Chapter 1 now zones private homes only.
 
 ## New in v6.0.15
 

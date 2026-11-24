@@ -1,3 +1,43 @@
+# Heung Shing Simulator v6.1.0 — 【屋邨仔】
+
+- 廣東話／台灣中文：【屋邨仔】
+- English: 【Estate Kids】
+- 日本語：【団地っ子】
+
+## 公屋屋邨同居屋屋苑，成個規劃好先起
+
+- **拖一塊地就係一個屋邨**：公屋區、居屋區照香港房委會咁成個邨一齊規劃，唔會再有卡住起唔到樓嘅 1x1 空位。
+  - 座與座之間留樓距，中間有中庭同公園。
+  - 公屋 4 座有社區中心，6 座有街市（貼近馬路），8 座有球場。
+  - 居屋 6 座有社區中心，冇街市。
+  - 休憩用地跟香港規劃標準：每人最少 1 m²；唔夠嘅話，中間嗰座會讓出嚟做公園。
+  - 剩低嘅位全部鋪成公園、遊樂場同休憩處；第一個 2x2 係籃球場。
+- **同邨同款**：一個屋邨所有座同一款；唔同屋邨輪住用和諧式、Y型、舊長型（居屋：安泰苑、十字型）。
+- **一座座入伙**：第一座入伙時鋪好園景。園景費 $100 一格，同分區費一齊付。
+- **社區中心同街市**：入伙過半之後，喺屋邨資料按掣起。
+- **斜坡屋邨**：分層平台規劃，每層平台各自起樓，層與層之間嘅斜坡種樹；設施計成個屋邨。
+- **8x8 公屋地盤**：用安泰邨成邨圖。
+- **劃地預覽**：電腦同手機都會顯示：
+  - 規劃圖（樓宇、設施、公園）
+  - 座數同人口
+  - 每人休憩用地
+  - 「拖到 11x6 可以多起 1 座」嘅提示
+- **第一次揀公屋／居屋**：會出一張教學卡。第 5 章黃大仙都有講屋邨點規劃。
+- **舊存檔**：屋邨以外嘅公屋／居屋格，如果永遠起唔到樓，空咗 6 個月就會變休憩處。
+- **第 1 章**：只開放私人住宅，等玩家先熟悉城市；公屋同居屋由之後章節開放。
+
+**台灣中文：** 公屋屋邨與居屋屋苑整體規劃。拖出一塊公屋區或居屋區就是一個屋邨，比照香港房委會整邨規劃，不會再出現卡住蓋不了樓的 1x1 空格：樓與樓之間留樓距，中間有中庭與公園；公屋 4 座有社區中心、6 座有街市（靠近馬路）、8 座有球場，居屋 6 座有社區中心、沒有街市；休憩用地依香港規劃標準每人至少 1 m²，不足時中間那座讓出來做公園；剩下的位置全部鋪成公園、遊樂場與休憩處，第一個 2x2 是籃球場。同邨同款：一個屋邨所有樓同一款，不同屋邨輪流用和諧式、Y型、舊長型（居屋：安泰苑、十字型）。樓宇一座座入住，第一座入住時鋪好園景（園景費每格 $100，隨分區費支付）；入住過半後可在屋邨資料按鈕興建社區中心與街市。斜坡屋邨分層平台規劃，平台之間的斜坡種樹；8x8 公屋地盤用安泰邨整邨圖。劃地預覽（電腦與手機）顯示規劃圖、座數、人口、每人休憩用地，以及「拖到 11x6 可以多蓋 1 座」的提示；第一次選公屋或居屋會出現教學卡。舊存檔中屋邨以外永遠蓋不了樓的公屋或居屋格，空置 6 個月後變成休憩處。第 1 章只開放私人住宅。
+
+**English:** Public and HOS housing estates are planned whole. A dragged 公屋 or 居屋 area is one estate, laid out as the Housing Authority lays one out, so no 1x1 tile stays stuck empty: blocks a tile apart around a central garden; a community centre at 4 blocks, a market by the road at 6 and a ball court at 8 (an HOS court: a community centre at 6, no market); open space to Hong Kong's planning standard of at least 1 m² a person, the middle block making way for a park when short; every tile left a park, playground or sitting-out area, the first 2x2 a basketball court. One design to an estate, with estates taking 和諧式, Y型 and 舊長型 in turn (HOS: 安泰苑 and 十字型). Blocks open one at a time; the gardens are laid with the first block, their landscaping ($100 a tile) paid with the zoning; once half the blocks are lived in, the community centre and market are built from the estate's inspect panel. A hillside site is planned terrace by terrace, its slopes planted with trees; an 8x8 public site takes the 安泰邨 estate art. The drag, on a computer and a phone, shows the plan, its blocks, population and open space a person, and hints when one more tile would fit another block; a tip explains it the first time. In old saves, a public or HOS tile outside any estate that no block can ever fill becomes a sitting-out area after six months. Chapter 1 zones private homes only.
+
+**日本語:** 公営団地と居屋苑をまとめて計画。公営住宅区・居屋区をドラッグした範囲が1つの団地になり、香港の住宅委員会のように団地全体を計画するので、建物が建たない1x1の空きマスは残りません。棟の間に間隔を取り、中央に中庭と公園。公営団地は4棟でコミュニティセンター、6棟で道路沿いに街市、8棟で球技場。居屋苑は6棟でコミュニティセンター、街市なし。休憩用地は香港の計画基準どおり1人1 m²以上、足りなければ中央の棟が公園に。残りのマスはすべて公園・遊び場・休憩所になり、最初の2x2はバスケットコート。1つの団地は1つのデザインで、団地ごとに和諧式・Y型・旧長型（居屋：安泰苑・十字型）を順に使います。棟は1棟ずつ入居し、最初の棟で緑地を整備（造園費1マス$100、区画指定と一緒に支払い）。半分の棟が入居したら、団地の情報からコミュニティセンターと街市を建設できます。斜面の団地は段ごとに計画し、段の間の斜面に植樹。8x8の公営住宅地は安泰邨の団地画像に。ドラッグ中のプレビュー（パソコン・スマートフォン）で計画図、棟数、人口、1人あたりの休憩用地、「11x6まで広げるともう1棟」のヒントを表示し、初回は説明カードを表示。旧セーブでは、団地外で棟が永久に建たない公営住宅・居屋のマスが6か月後に休憩所に。第1章は民間住宅のみ。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.0.15 — 【玩轉18區】
 
 - 廣東話／台灣中文：【玩轉18區】

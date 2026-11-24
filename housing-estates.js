@@ -773,7 +773,7 @@ function buildHousingEstateInspectHtml(row, col) {
 
 // ── The drag preview (placement-previews.js): each block, facility and park the drag would plan ──
 
-function drawHousingEstatePlanPreview(scene, g, r1, c1, r2, c2, type, density) {
+function drawHousingEstatePlanPreview(scene, g, r1, c1, r2, c2, type, density, options = {}) {
   const { plan, text, hint } = housingEstateSummaryForRect(r1, c1, r2, c2, type, density);
   const colors = { block: 0xffffff, low: 0xe8e2d0, estate8: 0xffffff, market: 0xffa040, centre: 0xff7a7a, sports: 0x7ab8ff, park3: 0x4fcf6a, park2: 0x4fcf6a, park1: 0x4fcf6a };
   plan.slots.forEach((slot) => {
@@ -799,7 +799,8 @@ function drawHousingEstatePlanPreview(scene, g, r1, c1, r2, c2, type, density) {
     g.fillPath();
     g.strokePath();
   });
-  if (typeof showUnderseaTunnelPreviewLabel === 'function') {
+  // (the phone says it in its status line instead)
+  if (options.label !== false && typeof showUnderseaTunnelPreviewLabel === 'function') {
     // (over the middle of the site, so it stays on screen whichever corner the drag began at)
     showUnderseaTunnelPreviewLabel(scene, Math.round((r1 + r2) / 2), Math.round((c1 + c2) / 2), hint ? `${text}\n${hint}` : text, plan.blocks + plan.lowBlocks > 0);
   }

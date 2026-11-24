@@ -247,6 +247,29 @@ function check(name, ok, detail) {
     check('the rotate option flips the shared orientation flag', (await draft()).options.turn !== beforeTurn.options.turn);
     await page.click('#mobile-cancel');
 
+    // ── 公屋屋邨 on the phone (Norton, 2026-11-24: 記得手機版的也加進去) ──────────
+    await page.evaluate(() => {
+      for (let col = 99; col <= 110; col++) { mapData[124][col] = ROAD; roadTileCount++; refreshTileArea(activeScene, 124, col); }
+      city.budget = 2000000;
+    });
+    await nav('build'); await page.click('[data-mobile-category="zones"]'); await page.click('[data-mobile-tool="zone-res"]');
+    await page.selectOption('#mobile-housing-select', 'public');
+    check('the first pick of 公屋 brings the estate tip', await page.locator('#housing-estate-tip-dialog').isVisible());
+    await page.click('#housing-estate-tip-dialog .dialog-ok-btn');
+    await tapTile(125, 100); await tapTile(130, 109);
+    const estateDraft = await page.evaluate(() => ({
+      status: document.getElementById('mobile-build-status').textContent,
+      drawn: activeScene.buildingGuideGraphic.commandBuffer.length,
+      tiles: mobileBuildSession.getState().plan.tiles.length,
+    }));
+    check('the phone previews the estate: its summary in the status line, its plan drawn', estateDraft.status.includes('4 座') && estateDraft.status.includes('街市')
+      && estateDraft.drawn > estateDraft.tiles * 10, estateDraft);
+    await confirmBuild();
+    check('confirming plans the estate', await page.evaluate(() => {
+      const estates = Object.values(city.housingEstates);
+      return estates.length === 1 && estates[0].type === 'public' && estates[0].slots.filter((s) => s.kind === 'block').length === 4;
+    }));
+
     check('all C3 tools are present in the touch catalog', await page.evaluate(() =>
       ['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop', 'light-rail-track', 'light-rail-station', 'ferry-pier',
         'undersea-tunnel', 'typhoon-shelter', 'terrain', 'promenade', 'floating-restaurant'].every(tool => TOUCH_SUPPORTED_TOOLS.includes(tool))

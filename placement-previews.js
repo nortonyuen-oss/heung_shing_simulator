@@ -386,8 +386,10 @@ function drawTouchPlacementPreview(scene, draft) {
   const g = scene.buildingGuideGraphic;
   const plan = draft.plan;
   const tiles = plan.tiles.length ? plan.tiles : [draft.start];
+  // 公屋區 teal, 居屋區 violet, as on the computer (housing-types.js)
+  const housingType = draft.tool === 'zone-res' && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(draft.options?.housingType) : 'private';
   const color = !plan.ok || draft.tool === 'bulldoze' ? 0xe04b49
-    : draft.tool === 'zone-res' ? 0x35c06f : draft.tool === 'zone-com' ? 0x4499ff
+    : draft.tool === 'zone-res' ? (housingType === 'public' ? 0x3fd6c4 : housingType === 'hos' ? 0xb07ce8 : 0x35c06f) : draft.tool === 'zone-com' ? 0x4499ff
       : draft.tool === 'zone-ind' ? 0xffcc00 : 0x45e6c3;
   tiles.forEach(({ row, col }) => {
     if (!isInsideMap(row, col)) return;
@@ -397,6 +399,12 @@ function drawTouchPlacementPreview(scene, draft) {
     g.closePath().fillPath().strokePath();
   });
   if (draft.tool === 'bus-stop' || draft.tool === 'bus-depot') drawTouchBusPlacementPreview(scene, draft);
+  // 公屋／居屋: the estate it would plan - blocks, facilities and parks - with its summary in the status
+  // line (housing-estates.js)
+  if (plan.ok && housingType !== 'private' && draft.end && typeof drawHousingEstatePlanPreview === 'function') {
+    drawHousingEstatePlanPreview(scene, g, draft.start.row, draft.start.col, draft.end.row, draft.end.col, housingType,
+      getHousingZoneDensity(draft.options.density, housingType), { label: false });
+  }
   if (isTouchRangeDraft(draft)) {
     if (!scene.mobileEndpointLabels) {
       scene.mobileEndpointLabels = ['A', 'B'].map((text) => {

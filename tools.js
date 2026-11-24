@@ -70,7 +70,7 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
 function handleNewTool(scene, tile) {
   const { row, col } = tile;
 
-  if (selectedTool === 'zone-res')      return placeZone(scene, row, col, ZONE_RES, selectedZoneDensity.res, typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private');
+  if (selectedTool === 'zone-res')      return placeZone(scene, row, col, ZONE_RES, selectedZoneDensity.res, getSelectedHousingType());
   if (selectedTool === 'zone-com')      return placeZone(scene, row, col, ZONE_COM, selectedZoneDensity.com);
   if (selectedTool === 'zone-ind')      return placeZone(scene, row, col, ZONE_IND, selectedZoneDensity.ind);
   if (selectedTool === 'dezone')        return dezoneAt(scene, row, col);
@@ -222,6 +222,12 @@ function spendBudget(amount) {
 
 let districtHeightCapNoticeAt = 0;
 
+// The residential tool's housing type, as it may be zoned now (第 1 章: private only, housing-types.js)
+function getSelectedHousingType() {
+  const picked = typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+  return typeof getAvailableHousingType === 'function' ? getAvailableHousingType(picked) : picked;
+}
+
 // 公屋區／居屋區 (housing-types.js) are zoned at medium density at least, as estates are, unless the
 // district caps the height lower
 function getHousingZoneDensity(density, housingType = 'private') {
@@ -236,7 +242,8 @@ function isSameZoneAt(row, col, zoneType, density, housingType) {
 }
 
 function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW, housingType = 'private') {
-  housingType = zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
+  housingType = zoneType === ZONE_RES && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(housingType)
+    : zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
   density = getHousingZoneDensity(density, housingType);
   if (!isInsideMap(row, col) || [WATER, BEACH, ROAD].includes(mapData[row][col]) || !canPlaceBuilding(row, col)) return { ok: false, cost: 0, density };
   if (zoneType === ZONE_RES && density !== DENSITY_LOW && lowDensityLockSet.has(getTileId(row, col))) return { ok: false, cost: 0, density, reason: 'lowDensity' };
@@ -248,7 +255,8 @@ function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW, housin
 
 function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType = 'private') {
   if (!isInsideMap(row, col)) return false;
-  housingType = zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
+  housingType = zoneType === ZONE_RES && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(housingType)
+    : zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
   if (housingType !== 'private') density = Math.max(density, DENSITY_MED);
 
   // 地區特色: a height-capped district (西貢, 南丫島…) zones at its cap instead; one notice per
@@ -715,12 +723,14 @@ function getParkPlacementQuote(row, col, parkOption) {
     cost: parkOption.cost ?? INFRA_COSTS[parkType], spriteKey, footprintCols, footprintRows };
 }
 
-function placePark(scene, row, col, parkOption) {
+// options.free: laid at no charge (a 公屋／居屋 estate's landscaping, paid with its zoning, and 空格綠化:
+// housing-estates.js); options.refresh false: the caller refreshes once after a batch
+function placePark(scene, row, col, parkOption, options = {}) {
   const quote = getParkPlacementQuote(row, col, parkOption);
   if (!quote.ok) return false;
   const { spriteKey, footprintCols, footprintRows } = quote;
   const parkType = parkOption.type;
-  if (!spendBudget(quote.cost)) {
+  if (!options.free && !spendBudget(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
@@ -743,7 +753,7 @@ function placePark(scene, row, col, parkOption) {
     originY: opts.originY,
     scale: opts.scale,
   };
-  refreshInfrastructureEffects(scene);
+  if (options.refresh !== false) refreshInfrastructureEffects(scene);
 
   return true;
 }
@@ -761,12 +771,13 @@ function getSportsGroundPlacementQuote(row, col, option) {
     cost: INFRA_COSTS[type], spriteKey, footprintCols, footprintRows };
 }
 
-function placeSportsGround(scene, row, col, option) {
+// options as placePark's (a 公屋 estate's basketball court is laid with its landscaping: housing-estates.js)
+function placeSportsGround(scene, row, col, option, options = {}) {
   const quote = getSportsGroundPlacementQuote(row, col, option);
   if (!quote.ok) return false;
   const { spriteKey, footprintCols, footprintRows } = quote;
   const { type } = option;
-  if (!spendBudget(quote.cost)) {
+  if (!options.free && !spendBudget(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
@@ -786,7 +797,7 @@ function placeSportsGround(scene, row, col, option) {
     originY: opts.originY,
     scale: opts.scale,
   };
-  refreshInfrastructureEffects(scene);
+  if (options.refresh !== false) refreshInfrastructureEffects(scene);
   return true;
 }
 

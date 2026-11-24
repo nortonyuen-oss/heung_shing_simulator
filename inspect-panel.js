@@ -533,6 +533,9 @@ function showInspectPanel(scene, row, col, pointer = null) {
 
   }
 
+  // 公屋／居屋屋邨: its blocks, open space and facilities (housing-estates.js)
+  if (typeof buildHousingEstateInspectHtml === 'function') html += buildHousingEstateInspectHtml(row, col);
+
   // Service coverage
   if (svc || zone !== ZONE_NONE) {
     html += `

@@ -1619,6 +1619,10 @@ function applySaveData(scene, save) {
 
   // 公屋區／居屋區 (housing-types.js): older saves have none
   if (typeof normalizeHousingZones === 'function') city.housingZones = normalizeHousingZones(city.housingZones, MAP_WIDTH, MAP_HEIGHT);
+  // 公屋／居屋屋邨 (housing-estates.js): older saves have none
+  if (typeof normalizeHousingEstates === 'function') city.housingEstates = normalizeHousingEstates(city.housingEstates, MAP_WIDTH, MAP_HEIGHT);
+  if (!city.housingGapMonths || typeof city.housingGapMonths !== 'object' || Array.isArray(city.housingGapMonths)) city.housingGapMonths = {};
+  if (typeof invalidateHousingEstateIndex === 'function') invalidateHousingEstateIndex();
 
   // Restore zone density map (falls back to DENSITY_LOW for older saves)
   if (save.zoneDensityMap) {

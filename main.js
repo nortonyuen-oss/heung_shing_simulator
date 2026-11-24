@@ -2540,6 +2540,11 @@ function fillZoneRect(scene, startTile, endTile) {
       applyToolAt(scene, r, c);
     }
   }
+  // 公屋／居屋: the rectangle just zoned is one estate, planned whole (housing-estates.js)
+  if (selectedTool === 'zone-res' && typeof createHousingEstateFromZoning === 'function' && typeof getSelectedHousingType === 'function') {
+    const housingType = getSelectedHousingType();
+    if (housingType !== 'private') createHousingEstateFromZoning(scene, r1, c1, r2, c2, housingType);
+  }
 }
 
 function getTileFaceVertices(row, col, ox, oy, hw, hh) {

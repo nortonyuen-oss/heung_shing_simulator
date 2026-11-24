@@ -174,7 +174,7 @@ test('housing zones in the game: loaded, painted, saved, drawn, grown, counted a
   assert.ok(html.indexOf('src="model-catalog.js"') < html.indexOf('src="housing-types.js"'));
   assert.ok(html.indexOf('src="housing-types.js"') < html.indexOf('src="sim-growth.js"'));
   assert.ok(html.indexOf('src="housing-types.js"') < html.indexOf('src="model-assets.js"'));
-  assert.match(source('tools.js'), /placeZone\(scene, row, col, ZONE_RES, selectedZoneDensity\.res, typeof selectedHousingType/);
+  assert.match(source('tools.js'), /placeZone\(scene, row, col, ZONE_RES, selectedZoneDensity\.res, getSelectedHousingType\(\)\)/);
   assert.match(source('tools.js'), /setHousingZoneType\(row, col, housingType\)/);
   assert.match(source('tools.js'), /setHousingZoneType\(row, col, 'private'\)/, 'de-zoning clears the type');
   assert.match(source('tool-actions.js'), /placeZone\(scene, row, col, zone, draft\.options\.density, draft\.options\.housingType\)/);

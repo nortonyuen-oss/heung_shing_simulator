@@ -67,7 +67,7 @@ test('moved residential models keep their old slot as legacy and join the new se
 
 test('growth, the house tool, preloading and the texture pool skip legacy models', () => {
   const growth = source('sim-growth.js');
-  assert.equal((growth.match(/!m\.legacy/g) || []).length, 3, 'residential, commercial and industrial pickers');
+  assert.equal((growth.match(/!m\.legacy/g) || []).length, 4, 'residential, commercial and industrial pickers, and an estate\'s own design (housing-estates.js)');
   const main = source('main.js');
   assert.match(main, /function getPlaceableHouseModels\(tool\) \{\n\s+return \(houseModelSets\[tool\] \?\? \[\]\)\.filter\(\(model\) => !model\.legacy\);/);
   assert.doesNotMatch(main, /const models = houseModelSets\[(selectedHouseSet|tool)\] \?\? \[\];/);
@@ -246,7 +246,7 @@ test('estate lots: every anchor scanned monthly, open blocks held, each estate i
   assert.match(scan, /holdEstateLot\(r, c, size\)/);
   assert.match(scan, /isEstateLotDistrictAllowed\(size, tier\)/);
   assert.match(scan, /zone === ZONE_COM \? commercialSizes/, 'commercial large lots (none for now) share the scan');
-  assert.match(growth, /if \(isEstateLotHeld\(id\)\) return;/, 'piecemeal growth waits on a held block');
+  assert.match(growth, /if \(isEstateLotHeld\(id\) \|\| inHousingEstate\) return;/, 'piecemeal growth waits on a held block');
   assert.match(growth, /isEstateLotDistrictAllowed\(footprintSize, siteFactors\?\.wealthDistrictTier\)/);
   assert.match(source('city-state.js'), /clearEstateLotHolds\(\)/, 'holds end with the city');
 

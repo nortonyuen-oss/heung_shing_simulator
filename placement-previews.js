@@ -108,7 +108,7 @@ function drawZoneSelectionPreview(scene, start, end) {
   });
 
   // 公屋區 teal, 居屋區 violet (housing-types.js)
-  const housingType = typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+  const housingType = typeof getSelectedHousingType === 'function' ? getSelectedHousingType() : 'private';
   const color = selectedTool === 'zone-res' ? (housingType === 'public' ? 0x3fd6c4 : housingType === 'hos' ? 0xb07ce8 : 0x44ff66)
               : selectedTool === 'zone-com' ? 0x4499ff
               : 0xffcc00;
@@ -124,6 +124,13 @@ function drawZoneSelectionPreview(scene, start, end) {
   g.closePath();
   g.fillPath();
   g.strokePath();
+
+  // 公屋／居屋: the estate the drag would plan - its blocks, facilities and parks, and what it comes to
+  // (housing-estates.js)
+  if (selectedTool === 'zone-res' && housingType !== 'private' && typeof drawHousingEstatePlanPreview === 'function') {
+    const density = typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(selectedZoneDensity.res ?? DENSITY_LOW, housingType) : DENSITY_MED;
+    drawHousingEstatePlanPreview(scene, g, r1, c1, r2, c2, housingType, density);
+  }
 }
 
 function updateBuildingPlacementGuide(scene, pointer) {

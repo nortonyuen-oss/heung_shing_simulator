@@ -27,6 +27,20 @@ function normalizeHousingType(value) {
   return value === 'public' || value === 'hos' ? value : 'private';
 }
 
+// 第 1 章 has private homes only, while the player gets to know the world (Norton, 2026-11-24)
+const HOUSING_TYPE_LOCKED_CHAPTERS = Object.freeze(['ch01']);
+
+function isHousingTypeAvailable(type, run = typeof city !== 'undefined' ? city?.campaign : null) {
+  if (normalizeHousingType(type) === 'private') return true;
+  return !HOUSING_TYPE_LOCKED_CHAPTERS.includes(run?.chapterId);
+}
+
+// The type the zone tool zones: the one picked, or private where that one is not open yet
+function getAvailableHousingType(type) {
+  const normalized = normalizeHousingType(type);
+  return isHousingTypeAvailable(normalized) ? normalized : 'private';
+}
+
 function getResidentialHousingTypeFromFileName(fileName) {
   const base = String(fileName ?? '').split('/').pop().replace(/\.[^.]+$/, '');
   return RESIDENTIAL_HOUSING_TYPE_BY_MODEL[base] ?? 'private';
@@ -103,6 +117,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOUSING_TYPES,
     RESIDENTIAL_HOUSING_TYPE_BY_MODEL,
     normalizeHousingType,
+    isHousingTypeAvailable,
     getResidentialHousingTypeFromFileName,
     getBuildingHousingType,
     countHousingTypeResidents,

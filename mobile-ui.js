@@ -194,6 +194,7 @@ function mobileRenderDraft(draft) {
     ? mobileText(plan.connected ? 'depotInUseConnected' : 'depotInUseDisconnected', { buses: plan.vehicleCount, routes: plan.routeCount })
     : mobileText(plan.connected ? 'depotConnected' : 'depotDisconnected');
   if (draft.tool === 'dezone' && plan?.ok) status.textContent = mobileText('dezoneSummary', { count: plan.tiles.length, buildings: plan.keptBuildings });
+  if (draft.tool === 'zone-res' && plan?.ok && plan.estateSummary) status.textContent = plan.estateSummary;
   if (draft.tool === 'power-line' && plan?.ok) status.textContent = mobileText('powerLineSummary', { count: plan.tiles.length, skipped: plan.skipped, trees: plan.clearedTrees });
   if (draft.tool === 'district-sign' && plan?.ok) status.textContent = `${plan.name} · ${plan.englishName}`;
   if (draft.tool === 'metro-track' && plan?.ok) status.textContent = mobileText('metroTrackPreview', { parts: metroTrackSummary(plan.kinds) });
@@ -272,7 +273,8 @@ function mobileRenderDraft(draft) {
   const housingSelect = document.getElementById('mobile-housing-select');
   housingSelect.hidden = draft.tool !== 'zone-res';
   if (draft.tool === 'zone-res') {
-    housingSelect.innerHTML = ['private', 'public', 'hos'].map((type) => `<option value="${type}" ${type === housingType ? 'selected' : ''}>${mobileEscape(t(`zone.housing.${type}`))}</option>`).join('');
+    // (第 1 章: private homes only, housing-types.js)
+    housingSelect.innerHTML = ['private', 'public', 'hos'].map((type) => `<option value="${type}" ${type === housingType ? 'selected' : ''}${typeof isHousingTypeAvailable === 'function' && !isHousingTypeAvailable(type) ? ' disabled' : ''}>${mobileEscape(t(`zone.housing.${type}`))}</option>`).join('');
   }
   const maxDensity = getDistrictMaxZoneDensity();
   const minDensity = housingType === 'private' || maxDensity < DENSITY_MED ? DENSITY_LOW : DENSITY_MED;
@@ -722,10 +724,12 @@ function setupMobileUi() {
     if (event.target.id === 'mobile-terrain-select') mobileBuildSession.setOptions({ terrainType: event.target.value });
     if (event.target.id === 'mobile-housing-select') {
       // 公屋／居屋 start at medium density at least; the desktop menu remembers the same choice
-      const housingType = event.target.value;
+      const housingType = typeof getAvailableHousingType === 'function' ? getAvailableHousingType(event.target.value) : event.target.value;
       const draft = mobileBuildSession.getState();
       selectedHousingType = housingType;
       if (typeof updateZoneDensityBadges === 'function') updateZoneDensityBadges();
+      // 公屋／居屋屋邨: the first time, how an estate is planned (housing-estates.js)
+      if (housingType !== 'private' && typeof showHousingEstateTipOnce === 'function') showHousingEstateTipOnce();
       mobileBuildSession.setOptions({ housingType, density: getHousingZoneDensity(draft?.options?.density ?? DENSITY_LOW, housingType) });
     }
     if (event.target.id === 'mobile-speed') setSimSpeed(Number(event.target.value));

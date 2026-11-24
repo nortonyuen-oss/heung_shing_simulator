@@ -811,9 +811,12 @@ function setupZoneDensityTools(menu) {
     // 私人／公屋／居屋 (housing-types.js): the residential tool's housing type
     const housingButton = event.target.closest('[data-housing]');
     if (housingButton) {
+      if (housingButton.disabled) return;
       selectedHousingType = housingButton.dataset.housing;
       closeZoneDensityMenu();
       updateZoneDensityBadges();
+      // 公屋／居屋屋邨: the first time, how an estate is planned (housing-estates.js)
+      if (selectedHousingType !== 'private' && typeof showHousingEstateTipOnce === 'function') showHousingEstateTipOnce();
       return;
     }
     const btn = event.target.closest('[data-density]');
@@ -843,7 +846,7 @@ function openZoneDensityMenu(toolKey, triggerButton) {
 
   // Determine zone letter and current density
   const zoneType = toolKey.replace('zone-', '');          // 'res', 'com', 'ind'
-  const housingType = zoneType === 'res' ? selectedHousingType : 'private';
+  const housingType = zoneType === 'res' ? getSelectedHousingType() : 'private';
   const letter   = zoneType === 'res' ? getHousingZoneLetter(housingType) : zoneType === 'com' ? 'C' : 'I';
   const colorKey = zoneType === 'res' ? getHousingZoneColorKey(housingType) : zoneType;
   // 公屋／居屋 zone at medium density at least (tools.js getHousingZoneDensity)
@@ -901,6 +904,11 @@ function openZoneDensityMenu(toolKey, triggerButton) {
       btn.dataset.housing = type;
       btn.classList.toggle('is-active', type === housingType);
       btn.title = t(`zone.housingTip.${type}`);
+      // 第 1 章: private homes only (housing-types.js)
+      if (typeof isHousingTypeAvailable === 'function' && !isHousingTypeAvailable(type)) {
+        btn.disabled = true;
+        btn.title = t('zone.housingLockedChapter');
+      }
       const block = document.createElement('span');
       block.className = `zone-block ${getHousingZoneColorKey(type)}`;
       block.textContent = getHousingZoneLetter(type);
@@ -960,7 +968,7 @@ function updateZoneDensityBadges() {
   const ZONE_COSTS = { res: COST_ZONE_RES, com: COST_ZONE_COM, ind: COST_ZONE_IND };
   ['res', 'com', 'ind'].forEach((type) => {
     const el = document.getElementById(`zone-${type}-badge`);
-    const housingType = type === 'res' && typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+    const housingType = type === 'res' ? getSelectedHousingType() : 'private';
     const density = type === 'res' && typeof getHousingZoneDensity === 'function'
       ? getHousingZoneDensity(selectedZoneDensity[type] ?? 1, housingType)
       : selectedZoneDensity[type] ?? 1;

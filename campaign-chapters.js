@@ -998,10 +998,14 @@
       { speaker: 'playboy', text: T('有求必應？我求姻緣求咗三年，Kelly、Fion、阿欣全部覆我「你係好人」。', 'Every wish answered? Three years I\'ve prayed for love - Kelly, Fion and Yan all replied "you\'re a nice guy".', '有求必応？三年も縁結びを祈ったのに、ケリーもフィオンもヤンも返事は「いい人ね」。') },
       { speaker: 'secretary', text: T('宗教活動有助提升城市文化及旅遊魅力。', 'Religious life adds to the city\'s culture and its appeal to visitors.', '宗教行事は都市の文化と観光の魅力を高めます。') },
       { speaker: 'treasurer', text: T('但公屋維修同消防都要錢。', 'But public-housing repairs and fire cover both cost money.', 'でも公営住宅の修繕も消防も金がかかる。') },
+      // 公屋／居屋屋邨 (housing-estates.js, Norton 2026-11-24)
+      { speaker: 'secretary', text: T('房委會起屋邨，係成個邨一齊規劃㗎：拖一塊 10x6 左右嘅公屋區，就有 4 座、街市同社區中心，中間仲有公園。',
+        'The Housing Authority plans an estate as a whole: drag a public housing area of about 10x6 and you get 4 blocks, a market and a community centre, with parks in between.',
+        '住宅委員会は団地を丸ごと計画します。10x6ほどの公営住宅区をドラッグすれば、4棟と街市、コミュニティセンター、その間に公園ができます。') },
       { card: T('任務開始：黃大仙《有求必應》', 'Mission start: Wong Tai Sin - "Every Wish Answered"', '任務開始：黄大仙「有求必応」'),
-        hint: T('人口達 60,000，公屋同居屋住戶佔三至七成（住宅分區揀「公屋區」或「居屋區」）；起黃大仙祠（大型廟宇），6 格內有巴士站或地鐵站；地鐵同巴士有乘客；警署、消防局、醫院同學校各覆蓋六成住宅，有兩個街市；滿意度 60%，每月收支正數。',
-          'Reach 60,000 people with public and HOS housing at 30-70% of residents (zone residential land as Public Housing or HOS Housing); build Wong Tai Sin Temple (the grand temple) with a bus stop or metro station within 6 tiles; riders on the metro and buses; police, fire, hospital and school cover each reaching 60% of the homes, and two markets; happiness of 60% and a monthly surplus.',
-          '人口60,000人、公営住宅と居屋の住民を3〜7割に（住宅区で「公営住宅区」か「居屋区」を選ぶ）。黄大仙祠（大型寺院）を建て、6マス以内にバス停か地下鉄駅を。地下鉄とバスに乗客。警察・消防・病院・学校がそれぞれ住宅の6割をカバー、市場2か所。満足度60%、月の収支を黒字に。') },
+        hint: T('人口達 60,000，公屋同居屋住戶佔三至七成（住宅分區揀「公屋區」或「居屋區」，拖一塊地就係一個屋邨）；起黃大仙祠（大型廟宇），6 格內有巴士站或地鐵站；地鐵同巴士有乘客；警署、消防局、醫院同學校各覆蓋六成住宅，有兩個街市；滿意度 60%，每月收支正數。',
+          'Reach 60,000 people with public and HOS housing at 30-70% of residents (zone residential land as Public Housing or HOS Housing; each area dragged is one estate); build Wong Tai Sin Temple (the grand temple) with a bus stop or metro station within 6 tiles; riders on the metro and buses; police, fire, hospital and school cover each reaching 60% of the homes, and two markets; happiness of 60% and a monthly surplus.',
+          '人口60,000人、公営住宅と居屋の住民を3〜7割に（住宅区で「公営住宅区」か「居屋区」を選ぶ。ドラッグした範囲が1つの団地になる）。黄大仙祠（大型寺院）を建て、6マス以内にバス停か地下鉄駅を。地下鉄とバスに乗客。警察・消防・病院・学校がそれぞれ住宅の6割をカバー、市場2か所。満足度60%、月の収支を黒字に。') },
     ]),
     stars: Object.freeze([
       {

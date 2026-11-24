@@ -136,6 +136,9 @@ const city = {
   walledCity: null,
   // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
   housingZones: {},
+  // 公屋／居屋屋邨 (housing-estates.js): { id: estate }, and 空格綠化's months a stuck tile has stood empty
+  housingEstates: {},
+  housingGapMonths: {},
   // 舊樓 (welfare.js): homes repaired and blocks redeveloped, all time
   buildingRepairs: 0,
   buildingRebuilds: 0,
@@ -509,6 +512,8 @@ function resetGameState() {
   city.airportHistory = [];
   city.walledCity = null;
   city.housingZones = {};
+  city.housingEstates = {};
+  city.housingGapMonths = {};
   city.buildingRepairs = 0;
   city.buildingRebuilds = 0;
   city.regionDestinations = null;

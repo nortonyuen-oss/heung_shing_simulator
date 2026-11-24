@@ -581,6 +581,8 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
     const sizes = zone === ZONE_RES ? residentialSizes : zone === ZONE_COM ? commercialSizes : null;
     if (!sizes?.length) continue;
     if (scene.buildingSprites.has(id)) continue;
+    // (an estate's land grows by its plan: housing-estates.js)
+    if (typeof isHousingEstateTile === 'function' && isHousingEstateTile(r, c)) continue;
 
     const landScore = getZoneGrowthLandScore(r, c, zone, qualityContexts.landValueMap);
     const housingType = zone === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(r, c) : 'private';
@@ -718,6 +720,8 @@ function buildZoneGrowthSteps(scene) {
   step('largeLots', () => scanForLargeResidentialLots(scene, ctx.qualityContexts));
   step('estateUpgrades', () => scanForLowDensityEstateUpgrades(scene, ctx.qualityContexts));
   step('legacyRenewal', () => renewLegacyModelBuildings(scene, ctx.qualityContexts));
+  // 公屋／居屋屋邨: a block at a time, and 空格綠化 monthly (housing-estates.js)
+  if (typeof growHousingEstates === 'function') step('housingEstates', () => growHousingEstates(scene));
   // The tile list is read when the chunk runs (it is cached and may be invalidated by the
   // steps before it); each chunk walks its own slice.
   const tileCount = getDetailedZoneGrowthTiles().length;
@@ -770,9 +774,11 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
     : zone === ZONE_RES && typeof getPublicMarketResidentialGrowthMultiplier === 'function'
       ? getPublicMarketResidentialGrowthMultiplier(r, c, districtTier) : 1;
 
+  // a 公屋／居屋 estate's land grows by its plan, block by block (housing-estates.js)
+  const inHousingEstate = typeof isHousingEstateTile === 'function' && isHousingEstateTile(r, c);
   if (!hasBldg) {
     // Grow a new building - unless the block is held for an estate (scanForLargeResidentialLots)
-    if (isEstateLotHeld(id)) return;
+    if (isEstateLotHeld(id) || inHousingEstate) return;
     if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul * marketGrowthMul) {
       spawnZoneBuilding(scene, r, c, zone, 1, density, {
         landScore,
@@ -806,11 +812,12 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
     }
 
     if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul * marketGrowthMul) {
-      if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record, ctx.residentialQualityContext)) return;
+      if (zone === ZONE_RES && !inHousingEstate && tryMergeResidentialCluster(scene, r, c, record, ctx.residentialQualityContext)) return;
       upgradeZoneBuilding(scene, r, c, zone, landScore, ctx.residentialQualityContext, ctx.commercialQualityContext);
     } else if (
       record.level >= 3
       && (zone === ZONE_RES || zone === ZONE_COM)
+      && !inHousingEstate
       && runMonthlyVisualCheck
       && isBuildingHighScoreVisual(record)
       && Math.random() < PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH
@@ -828,6 +835,7 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
     } else if (
       record.level >= 3
       && (zone === ZONE_RES || zone === ZONE_COM)
+      && !inHousingEstate
       && runMonthlyVisualCheck
       && isHighScoreModelEligible(landScore)
       && (city.unemploymentRate ?? 1) < 0.12
@@ -882,7 +890,9 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     const isHousingEstate = anchorFactors.housingType === 'public' || anchorFactors.housingType === 'hos';
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
     const siteFactors = getResidentialSiteFactors(r, c, footprintSize, residentialQualityContext);
-    const model = getRandomHouseModel(setKey, siteFactors.quality, preferHighScore, density, siteFactors, forceWealthTier);
+    // an estate's block takes its estate's design when that art is ready (housing-estates.js)
+    const model = getForcedHouseModel(setKey, footprintSize, optionsOverride.forceModelFile)
+      ?? getRandomHouseModel(setKey, siteFactors.quality, preferHighScore, density, siteFactors, forceWealthTier);
 
     if (model) {
       selectedModel = model;
@@ -987,6 +997,16 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
   markPowerGridDirty();
   invalidateBuildingCountCache();
   return true;
+}
+
+// A house model by its art's file name (no extension), in the lot size's set, ready to draw - or null
+function getForcedHouseModel(setKey, footprintSize, fileBase) {
+  if (!fileBase) return null;
+  const base = (model) => String(model.sourceFileName || model.fileName || '').split('/').pop().replace(/\.[^.]+$/, '');
+  const model = (houseModelSets?.[setKey] ?? []).find((m) => !m.legacy && base(m) === fileBase
+    && m.footprintCols === footprintSize && m.footprintRows === footprintSize
+    && m.metadata && m.metadata.scale > 0.05 && isSelectableZoneModelTexture(m));
+  return model ? rememberSelectedZoneModel(model) : null;
 }
 
 function getResidential2x2Chance(density) {
@@ -1143,12 +1163,16 @@ function canPlaceZoneBuildingFootprint(scene, r, c, zoneType, footprintCols, foo
   const baseHeight = getTileHeight(r, c);
   // a lot never spans 私人, 公屋 and 居屋 land (housing-types.js)
   const housingType = zoneType === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(r, c) : null;
+  // (one of an estate's planned blocks exactly: housing-estates.js)
+  const estateSlot = typeof isHousingEstateHomeSlotAt === 'function' && isHousingEstateHomeSlotAt(r, c, footprintCols, footprintRows);
   for (let dr = 0; dr < footprintRows; dr++) {
     for (let dc = 0; dc < footprintCols; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc))                        return false;
       if (zoneMap[rr][cc] !== zoneType)                return false;
       if (housingType !== null && getHousingZoneType(rr, cc) !== housingType) return false;
+      // an estate's land takes only its own planned blocks (housing-estates.js)
+      if (!estateSlot && typeof isHousingEstateTile === 'function' && isHousingEstateTile(rr, cc)) return false;
       if (scene.buildingSprites.has(getTileId(rr, cc))) return false;
       if (!canPlaceBuilding(rr, cc)) return false;
       if (getTileHeight(rr, cc) !== baseHeight) return false;
@@ -1212,6 +1236,7 @@ function getMergeableResidentialBuildingsAt(scene, r, c, footprintSize) {
       if (!isInsideMap(rr, cc)) return null;
       if (zoneMap[rr][cc] !== ZONE_RES) return null;
       if (typeof getHousingZoneType === 'function' && getHousingZoneType(rr, cc) !== housingType) return null;
+      if (typeof isHousingEstateTile === 'function' && isHousingEstateTile(rr, cc)) return null;
       if (!canPlaceBuilding(rr, cc)) return null;
       if (getTileHeight(rr, cc) !== baseHeight) return null;
 
@@ -1451,9 +1476,15 @@ function upgradeZoneBuilding(
 }
 
 // 公屋／居屋 estates keep their lot when they level up or down (housing-types.js)
+// - and an estate's block keeps its estate's design (同邨同款, housing-estates.js)
 function getHousingEstateLotOverride(zone, r, c, record) {
   if (zone !== ZONE_RES || typeof getHousingZoneType !== 'function' || getHousingZoneType(r, c) === 'private') return {};
-  return { forceFootprint: Math.max(record?.footprintCols ?? 1, record?.footprintRows ?? 1) };
+  const override = { forceFootprint: Math.max(record?.footprintCols ?? 1, record?.footprintRows ?? 1) };
+  const hit = typeof getHousingEstateAt === 'function' ? getHousingEstateAt(r, c) : null;
+  if (hit && hit.slot.row === r && hit.slot.col === c && typeof housingEstateModelFor === 'function') {
+    override.forceModelFile = housingEstateModelFor(hit.estate, hit.slot);
+  }
+  return override;
 }
 
 function shrinkOrRemoveZoneBuilding(scene, r, c) {

@@ -48,7 +48,7 @@ function getTouchToolOptions(tool) {
     : type ? selectInfraPlacementModel(type) : null;
   // 公屋／居屋 (housing-types.js): the residential tool starts on the type last picked, at the density it allows
   if (tool === 'zone-res') {
-    const housingType = typeof selectedHousingType !== 'undefined' ? selectedHousingType : 'private';
+    const housingType = typeof getSelectedHousingType === 'function' ? getSelectedHousingType() : 'private';
     const density = typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(DENSITY_LOW, housingType) : DENSITY_LOW;
     return { density, housingType, range: true, model: null };
   }
@@ -390,6 +390,13 @@ function previewTouchToolAction(scene, draft) {
     plan.ok = plan.tiles.length > 0;
     plan.density = Math.min(draft.options.density, getDistrictMaxZoneDensity());
     identity = tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+    // 公屋／居屋: the estate it would plan, in a line (housing-estates.js)
+    const housingType = draft.tool === 'zone-res' && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(draft.options.housingType) : 'private';
+    if (plan.ok && housingType !== 'private' && typeof housingEstateSummaryForRect === 'function') {
+      const estate = housingEstateSummaryForRect(draft.start.row, draft.start.col, draft.end.row, draft.end.col, housingType,
+        getHousingZoneDensity(draft.options.density, housingType));
+      plan.estateSummary = estate.hint ? `${estate.text} ${estate.hint}` : estate.text;
+    }
   } else if (draft.tool === 'bulldoze') {
     plan.tiles = draft.options.range ? touchRectTiles(draft.start, draft.end) : [{ row, col }];
     const demolition = getTouchDemolitionPlan(scene, plan.tiles, draft.options);
@@ -490,6 +497,11 @@ function commitTouchToolAction(scene, draft, plan) {
   } else if (draft.tool.startsWith('zone-')) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
     for (const { row, col } of plan.tiles) ok = placeZone(scene, row, col, zone, draft.options.density, draft.options.housingType) && ok;
+    // 公屋／居屋: the rectangle just zoned is one estate, planned whole (housing-estates.js)
+    const housingType = draft.tool === 'zone-res' && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(draft.options.housingType) : 'private';
+    if (housingType !== 'private' && typeof createHousingEstateFromZoning === 'function') {
+      createHousingEstateFromZoning(scene, draft.start.row, draft.start.col, draft.end.row, draft.end.col, housingType);
+    }
   } else if (draft.tool === 'bulldoze') {
     const previous = selectedTool;
     selectedTool = 'bulldoze';

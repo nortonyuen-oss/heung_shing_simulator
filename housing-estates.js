@@ -74,18 +74,20 @@ function housingEstateBlockColumns(L, t) {
 // The whole plan of a W x D site (W along the front road, row 0 at the road), as items
 // { kind, row, col, size, variant? }. 居屋 tries its 4x4 courts and its 3x3 block; the 3x3 wins only
 // with a quarter more residents (§3.6). An 8x8 公屋 site is the 安泰邨 estate art whole (§9, Norton).
-function planHousingEstate(W, D, type = 'public', density = 2) {
+// options.facilityBlocks: the blocks the facilities are counted by - a terrace of a hillside estate
+// counts the whole estate's, or none (planHousingEstateSite); left out, the site's own.
+function planHousingEstate(W, D, type = 'public', density = 2, options = {}) {
   if (type === 'public' && W === 8 && D === 8) {
     return { W, D, type, density, blockSize: 8, planned: 1,
       items: [{ kind: 'estate8', row: 0, col: 0, size: 8 }], population: housingEstateBlockPopulation(8, density), parks: 0 };
   }
-  if (type !== 'hos' || D < 4 || W < 4) return planHousingEstateWith(W, D, type, density, 3);
-  const four = planHousingEstateWith(W, D, type, density, 4);
-  const three = planHousingEstateWith(W, D, type, density, 3);
+  if (type !== 'hos' || D < 4 || W < 4) return planHousingEstateWith(W, D, type, density, 3, options);
+  const four = planHousingEstateWith(W, D, type, density, 4, options);
+  const three = planHousingEstateWith(W, D, type, density, 3, options);
   return three.population > 1.25 * four.population ? three : four;
 }
 
-function planHousingEstateWith(W, D, type, density, t) {
+function planHousingEstateWith(W, D, type, density, t, options = {}) {
   const items = [];
   let row = 0;
   for (const band of housingEstateDepthBands(D, t)) {
@@ -149,10 +151,11 @@ function planHousingEstateWith(W, D, type, density, t) {
   const frontScore = (s) => s.row * 10 + Math.abs(s.col + 0.5 - cx);
   const centreScore = (s) => Math.hypot(s.row + 0.5 - cy, s.col + 0.5 - cx);
   const backScore = (s) => -s.row * 10 + Math.abs(s.col + 0.5 - cx);
-  if (planned >= rule.market) place('market', frontScore, true);
-  if (planned >= rule.centre) place('centre', centreScore, true);
-  if (planned >= rule.secondCentre) place('centre', centreScore, true);
-  if (planned >= rule.sports) place('sports', backScore, false);
+  const counted = options.facilityBlocks ?? planned;
+  if (counted >= rule.market) place('market', frontScore, true);
+  if (counted >= rule.centre) place('centre', centreScore, true);
+  if (counted >= rule.secondCentre) place('centre', centreScore, true);
+  if (counted >= rule.sports) place('sports', backScore, false);
   // (the facilities are not open space: what they took is made up again)
   ensureOpenSpace();
 
@@ -236,30 +239,45 @@ function largestTrueRectangle(cells) {
   return best;
 }
 
-// Free tiles of a rectangle cut into rectangles, largest first, until none are left
-function splitIntoRectangles(rect, isFree) {
-  const cells = Array.from({ length: rect.rows }, (_, r) => Array.from({ length: rect.cols }, (_, c) => !!isFree(rect.row + r, rect.col + c)));
-  const parts = [];
-  for (;;) {
-    const part = largestTrueRectangle(cells);
-    if (!part) break;
-    for (let r = part.row; r < part.row + part.rows; r++) for (let c = part.col; c < part.col + part.cols; c++) cells[r][c] = false;
-    parts.push({ row: rect.row + part.row, col: rect.col + part.col, rows: part.rows, cols: part.cols });
+// Free tiles of a rectangle cut into rectangles, largest first, until none are left. With heightOf, each
+// rectangle keeps to one height: a hillside site comes apart into its level terraces (平台).
+function splitIntoRectangles(rect, isFree, heightOf = null) {
+  const heights = new Set();
+  for (let r = 0; r < rect.rows; r++) for (let c = 0; c < rect.cols; c++) {
+    if (isFree(rect.row + r, rect.col + c)) heights.add(heightOf ? heightOf(rect.row + r, rect.col + c) : 0);
   }
-  return parts;
+  const parts = [];
+  heights.forEach((height) => {
+    const cells = Array.from({ length: rect.rows }, (_, r) => Array.from({ length: rect.cols }, (_, c) => !!isFree(rect.row + r, rect.col + c)
+      && (!heightOf || heightOf(rect.row + r, rect.col + c) === height)));
+    for (;;) {
+      const part = largestTrueRectangle(cells);
+      if (!part) break;
+      for (let r = part.row; r < part.row + part.rows; r++) for (let c = part.col; c < part.col + part.cols; c++) cells[r][c] = false;
+      parts.push({ row: rect.row + part.row, col: rect.col + part.col, rows: part.rows, cols: part.cols });
+    }
+  });
+  return parts.sort((a, b) => b.rows * b.cols - a.rows * a.cols);
 }
 
-// Every part of a site planned and laid on the map: slots { kind, row, col, size, variant?, label? }
-function planHousingEstateSite(rect, type, density, isFree, isRoad) {
+// Every part of a site planned and laid on the map: slots { kind, row, col, size, variant?, label? }.
+// On a hillside each terrace is planned on its own, and the facilities are the whole estate's - counted
+// by all its blocks, on its largest terrace.
+function planHousingEstateSite(rect, type, density, isFree, isRoad, heightOf = null) {
   const slots = [];
   let planned = 0;
-  for (const part of splitIntoRectangles(rect, isFree)) {
+  const parts = splitIntoRectangles(rect, isFree, heightOf).map((part) => {
     const front = housingEstateFront(part, isRoad);
-    const { W, D } = housingEstateFrame(part, front);
-    const plan = planHousingEstate(W, D, type, density);
+    return { part, front, ...housingEstateFrame(part, front) };
+  });
+  const total = parts.length > 1
+    ? parts.reduce((sum, { W, D }) => sum + planHousingEstate(W, D, type, density, { facilityBlocks: 0 }).planned, 0)
+    : null;
+  parts.forEach(({ part, front, W, D }, index) => {
+    const plan = planHousingEstate(W, D, type, density, total === null ? {} : { facilityBlocks: index === 0 ? total : 0 });
     planned += plan.planned;
     plan.items.forEach((item) => slots.push({ ...item, ...housingEstateItemToMap(part, front, item) }));
-  }
+  });
   // A座, B座 ... front to back across the parts
   slots.filter((slot) => slot.kind === 'block' || slot.kind === 'estate8').forEach((slot, i) => {
     slot.label = HOUSING_ESTATE_BLOCK_LETTERS[i] ?? String(i + 1);
@@ -339,6 +357,7 @@ function normalizeHousingEstates(raw, width = Infinity, height = Infinity) {
       models: estate.models && typeof estate.models === 'object' ? { ...estate.models } : {},
       slots: slots.map((slot) => ({ kind: slot.kind, row: slot.row, col: slot.col, size: slot.size,
         ...(slot.variant ? { variant: String(slot.variant) } : {}), ...(slot.label ? { label: String(slot.label) } : {}) })),
+      greenSlopes: (Array.isArray(estate.greenSlopes) ? estate.greenSlopes : []).filter((id) => /^\d+:\d+$/.test(id)),
       landscaped: estate.landscaped === true,
       landscapingDue: Math.max(0, Math.round(Number(estate.landscapingDue) || 0)),
     };
@@ -411,7 +430,7 @@ function previewHousingEstateRect(r1, c1, r2, c2, type, density) {
     if (typeof activeScene !== 'undefined' && activeScene?.buildingSprites?.has(getTileId(row, col))) return false;
     return !isHousingEstateTile(row, col);
   };
-  return { rect, ...planHousingEstateSite(rect, type, density, isFree, isHousingEstateRoadTile) };
+  return { rect, ...planHousingEstateSite(rect, type, density, isFree, isHousingEstateRoadTile, getTileHeight) };
 }
 
 function describeHousingEstatePlan(plan, type, cols, rows) {
@@ -446,12 +465,22 @@ function housingEstateSummaryForRect(r1, c1, r2, c2, type, density) {
   return { plan, text: describeHousingEstatePlan(plan, type, cols, rows), hint };
 }
 
+// The slope tiles of a site (a terrace's edge: nothing may be built there), to be planted
+function housingEstateSlopeTiles(rect) {
+  const out = [];
+  if (typeof isSlopeTile !== 'function') return out;
+  for (let r = rect.row; r < rect.row + rect.rows; r++) for (let c = rect.col; c < rect.col + rect.cols; c++) {
+    if ((typeof isInsideMap !== 'function' || isInsideMap(r, c)) && isSlopeTile(r, c) && mapData[r][c] !== ROAD) out.push(`${r}:${c}`);
+  }
+  return out;
+}
+
 // After the zone tool zones a 公屋 or 居屋 rectangle: the tiles it took become one planned estate.
 function createHousingEstateFromZoning(scene, r1, c1, r2, c2, type) {
   if (type !== 'public' && type !== 'hos') return null;
   const rect = { row: Math.min(r1, r2), col: Math.min(c1, c2), rows: Math.abs(r2 - r1) + 1, cols: Math.abs(c2 - c1) + 1 };
   const density = Math.max(2, zoneDensityMap[rect.row]?.[rect.col] ?? 2);
-  const site = planHousingEstateSite(rect, type, density, (row, col) => isHousingEstateFreeTile(scene, row, col, type), isHousingEstateRoadTile);
+  const site = planHousingEstateSite(rect, type, density, (row, col) => isHousingEstateFreeTile(scene, row, col, type), isHousingEstateRoadTile, getTileHeight);
   if (!site.slots.length) return null;
   const estates = getHousingEstates();
   const seq = Object.keys(estates).reduce((max, id) => Math.max(max, Number(id.replace(/^estate-/, '')) || 0), 0) + 1;
@@ -462,6 +491,8 @@ function createHousingEstateFromZoning(scene, r1, c1, r2, c2, type) {
     id, type, ...nameHousingEstate(type, seq * 7 + rect.row + rect.col), density,
     models: chooseHousingEstateModels(type, used, seq),
     slots: site.slots,
+    // 斜坡綠化: the slopes between its terraces, planted with trees with its landscaping
+    greenSlopes: housingEstateSlopeTiles(rect),
     landscaped: false,
     landscapingDue: 0,
   };
@@ -543,6 +574,12 @@ function landscapeHousingEstate(scene, estate) {
       if (park && canPlaceBuildingFootprint(slot.row, slot.col, slot.size, slot.size)) placePark(scene, slot.row, slot.col, park, { free: true, refresh: false });
     } else if (HOUSING_ESTATE_FACILITY_KINDS.includes(slot.kind) && !isHousingEstateSlotBuilt(slot)) {
       layHousingEstateReservedLawn(scene, slot);
+    }
+  });
+  (estate.greenSlopes || []).forEach((id) => {
+    const [row, col] = id.split(':').map(Number);
+    if (typeof placeTree === 'function' && typeof canPlantTreeAt === 'function' && canPlantTreeAt(scene, row, col)) {
+      placeTree(scene, row, col, { planted: true, spend: false });
     }
   });
   estate.landscaped = true;

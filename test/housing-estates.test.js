@@ -124,6 +124,34 @@ test('a site with things in the way is cut into rectangles, every free tile plan
   assert.deepEqual(site.slots.filter((s) => s.kind === 'block').map((s) => s.label), 'ABCDEFGHJLNQRTUVWXYZ'.slice(0, site.blocks).split(''));
 });
 
+test('a hillside site comes apart into level terraces: no block across two heights, one set of facilities (Norton, 2026-11-24)', () => {
+  // rows 0-5 at one height, row 6 the slope (nothing built there), rows 7-12 a level higher
+  const rect = { row: 0, col: 0, rows: 13, cols: 10 };
+  const heightOf = (r) => (r >= 6 ? 1 : 0);
+  const free = (r) => r !== 6;
+  const site = estates.planHousingEstateSite(rect, 'public', 2, free, (r) => r === -1, heightOf);
+  site.slots.forEach((slot) => {
+    const heights = new Set();
+    for (let r = 0; r < slot.size; r++) heights.add(heightOf(slot.row + r));
+    assert.equal(heights.size, 1, `${slot.kind} at ${slot.row}:${slot.col} stands on one level`);
+    assert.ok(slot.row + slot.size <= 6 || slot.row >= 7, 'nothing on the slope');
+  });
+  assert.equal(site.blocks, 9, 'the terrace with the facilities 4 blocks, the other 5');
+  assert.equal(site.facilities.filter((f) => f === 'market').length, 1, 'one market for the estate');
+  assert.equal(site.facilities.filter((f) => f === 'centre').length, 1, 'one community centre');
+  assert.ok(site.facilities.includes('sports'), 'eight blocks between them: a ball court');
+  // a cliff with no slope tile between: still no block across it
+  const cliff = estates.planHousingEstateSite({ row: 0, col: 0, rows: 12, cols: 10 }, 'public', 2, () => true, () => false, heightOf);
+  cliff.slots.forEach((slot) => {
+    const heights = new Set();
+    for (let r = 0; r < slot.size; r++) heights.add(heightOf(slot.row + r));
+    assert.equal(heights.size, 1, `${slot.kind} at ${slot.row}`);
+  });
+  // the slopes inside the site are planted with the landscaping
+  assert.match(source('housing-estates.js'), /greenSlopes: housingEstateSlopeTiles\(rect\),/);
+  assert.match(source('housing-estates.js'), /placeTree\(scene, row, col, \{ planted: true, spend: false \}\);/);
+});
+
 test('同邨同款: one design an estate, estates in turn on the design fewest have, never by year; saves keep only what makes sense', () => {
   // (Norton, 2026-11-24: 唔好分年份 - few cities reach the 1990s, and by era a city would be all one design)
   const used = [];

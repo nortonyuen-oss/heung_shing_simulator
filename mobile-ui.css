@@ -251,4 +251,6 @@
 [data-ui-profile="touch"] #mobile-stop-options { display: inline-flex; flex-shrink: 0; gap: 4px; }
 [data-ui-profile="touch"] #mobile-recreation-select { min-width: 0; max-width: min(280px, 55vw); }
 [data-ui-profile="touch"] #mobile-housing-select { min-width: 0; max-width: min(160px, 38vw); flex-shrink: 0; }
+[data-ui-profile="touch"] #mobile-industry-select { min-width: 0; max-width: min(240px, 65vw); flex-shrink: 0; }
+[data-ui-profile="touch"] #mobile-density { flex-shrink: 0; white-space: nowrap; }
 [data-ui-profile="touch"] #mobile-ui.is-district-sign #mobile-build-status { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }

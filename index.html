@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="ui-profile.js"></script>
-  <title>香城模擬器 | Heung Shing Simulator v6.1.1 — 【屋邨仔】</title>
+  <title>香城模擬器 | Heung Shing Simulator v6.1.2 — 【屋邨仔】</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -2620,6 +2620,8 @@
     #zone-density-menu {
       z-index: 14;
     }
+    #zone-density-menu[data-current-zone="ind"] { width: 246px; max-width: calc(100vw - 24px); }
+    #zone-density-menu[data-current-zone="ind"] .popup-button { width: 100%; }
 
     /* Shared popup button */
     .popup-button {
@@ -2673,6 +2675,7 @@
     .zone-block.res { background: #2e9e3e; }
     .zone-block.com { background: #2255cc; }
     .zone-block.ind { background: #c8a800; }
+    .zone-block.sci { background: #168cba; }
     /* 公屋區 / 居屋區 (housing-types.js), the colours of their zone overlays */
     .zone-block.pub { background: #1d8c7f; }
     .zone-block.hos { background: #7a4cae; }
@@ -6998,7 +7001,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <div class="about-text">
           <div class="about-name" data-i18n="app.name">Heung Shing Simulator</div>
           <div class="about-english" data-i18n="dialog.aboutEnglishName">Heung Shing Simulator</div>
-          <div class="about-version" data-i18n="dialog.version">Version 6.1.1 — 【屋邨仔】</div>
+          <div class="about-version" data-i18n="dialog.version">Version 6.1.2 — 【屋邨仔】</div>
           <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
           <div class="about-inspired" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
           <div class="about-motto" data-i18n="dialog.aboutMotto">Plan · Build · Govern · Thrive</div>
@@ -8562,6 +8565,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="model-catalog.js"></script>
   <script src="housing-types.js"></script>
   <script src="housing-estates.js"></script>
+  <script src="industrial-zones.js"></script>
   <script src="map-utils.js"></script>
   <script src="simulation.js"></script>
   <script src="traffic-demand.js"></script>

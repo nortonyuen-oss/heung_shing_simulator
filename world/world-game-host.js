@@ -161,6 +161,7 @@ class WorldGameHost {
   restoreGame(game) {
     const api = HeungShingWorld;
     Object.assign(city, game.city);
+    if (typeof normalizeIndustrialZones === 'function') city.industrialZones = normalizeIndustrialZones(city.industrialZones, MAP_WIDTH, MAP_HEIGHT);
     for (const [name, grid] of Object.entries({ mapData, heightMap, zoneMap, zoneDensityMap })) api.restoreSparseGameGrid(grid, game.layers[name]);
     for (const [id, value] of Object.entries(game.buildingData)) buildingData[id] = value;
     bridgeMap = new Map(game.bridgeMap); roadUnderlayMap = new Map(game.roadUnderlayMap);

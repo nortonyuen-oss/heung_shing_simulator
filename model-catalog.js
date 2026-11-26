@@ -522,8 +522,8 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
     footprintRows: 3,
   },
   {
-    // 5x5 science parks only: merged from a block industry fills (sim-infrastructure.js
-    // tryMergeLargeSciencePark); no folder of its own
+    // 5x5 research art: grows on dedicated science land, or merges from existing industry
+    // (sim-infrastructure.js tryMergeLargeSciencePark); no folder of its own
     keyPrefix: 'industrial_building_5x5',
     folder: 'Models/industrial/5x5/',
     apiFolder: 'industrial/5x5',

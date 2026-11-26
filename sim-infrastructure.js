@@ -86,19 +86,21 @@ function tryConvertSingleIndustrialToSciencePark(scene, row, col, record, reques
   return true;
 }
 
-// 5x5 science parks (19W, 2026-10-17): no industrial lot grows that big, so a park of that size is
-// made by merging a 5x5 block that industry already fills - every tile zoned industrial, level, and
+// Ordinary industry can also form a 5x5 science park (19W) by merging a block it already fills.
+// Dedicated science land can grow this art directly. For a merge, every tile is industrial, level, and
 // covered by level-3 industrial buildings lying wholly inside it. At most one a month.
 const SCIENCE_PARK_LARGE_SIZE = 5;
 const SCIENCE_PARK_LARGE_MERGE_FACTOR = 0.5;
 
 function getScienceParkMergeBlockAt(scene, r, c, size = SCIENCE_PARK_LARGE_SIZE) {
   const baseHeight = getTileHeight(r, c);
+  const industrialType = typeof getIndustrialZoneType === 'function' ? getIndustrialZoneType(r, c) : null;
   const anchors = new Map();
   for (let dr = 0; dr < size; dr++) {
     for (let dc = 0; dc < size; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc) || zoneMap[rr][cc] !== ZONE_IND) return null;
+      if (industrialType !== null && getIndustrialZoneType(rr, cc) !== industrialType) return null;
       if (!canPlaceBuilding(rr, cc) || getTileHeight(rr, cc) !== baseHeight) return null;
       const sprite = scene.buildingSprites.get(getTileId(rr, cc));
       const rec = sprite ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
@@ -131,7 +133,7 @@ function tryMergeLargeSciencePark(scene) {
         if (!members) continue;
         const density = zoneDensityMap[ar]?.[ac] ?? DENSITY_LOW;
         members.forEach((m) => removeBuilding(scene, m.row, m.col, { refreshInfrastructure: false }));
-        spawnZoneBuilding(scene, ar, ac, ZONE_IND, 3, density, { forceFootprint: size });
+        spawnZoneBuilding(scene, ar, ac, ZONE_IND, 3, density, { forceFootprint: size, scienceOnly: true });
         return !!buildingData[getTileId(ar, ac)];
       }
     }

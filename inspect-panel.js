@@ -471,7 +471,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
   // Zone / residential building
   if (zone !== ZONE_NONE) {
     const density  = zoneDensityMap[row]?.[col] ?? 1;
-    const demand   = zone === ZONE_RES ? city.demandR : zone === ZONE_COM ? city.demandC : city.demandI;
+    const demand   = zone === ZONE_RES ? city.demandR : zone === ZONE_COM ? city.demandC
+      : typeof getIndustrialGrowthDemand === 'function' ? getIndustrialGrowthDemand(row, col, bData) : city.demandI;
     const zColor   = ZONE_COLORS[zone] ?? '#aaa';
     const hasRoad  = hasAdjacentRoad(row, col);
 
@@ -495,7 +496,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
       const isResidentialBldg = bData.type === 'residential';
       const lvl      = bData.level ?? 1;
       const dispKey  = isResidentialBldg ? getResidentialSubLabelKey(bData) : lvl;
-      const dispName = BLDG_DISPLAY[bData.type][dispKey] ?? `${getBuildingTypeLabel(bData.type)} ${dispKey}`;
+      const dispName = bData.type === 'industrial' && isScienceParkIndustrialRecord(bData) ? t('building.sciencePark')
+        : BLDG_DISPLAY[bData.type][dispKey] ?? `${getBuildingTypeLabel(bData.type)} ${dispKey}`;
       const popLabel = BLDG_POP_LABEL[bData.type] ?? t('inspect.residents');
       const avgEducation = typeof getAverageEducationForBuilding === 'function'
         ? getAverageEducationForBuilding(bData, inspectRecord.anchorRow, inspectRecord.anchorCol)
@@ -517,6 +519,9 @@ function showInspectPanel(scene, row, col, pointer = null) {
       // 公屋／居屋 come only as whole blocks (housing-types.js): a strip too narrow stays open
       const lotHousingType = zone === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(row, col) : 'private';
       if (lotHousingType !== 'private') bldgHtml += `<div class="insp-row insp-muted">${t(`zone.housingLotTip.${lotHousingType}`)}</div>`;
+      if (zone === ZONE_IND && typeof getIndustrialZoneType === 'function' && getIndustrialZoneType(row, col) === 'science') {
+        bldgHtml += `<div class="insp-row insp-muted">${t('zone.scienceLotTip')}</div>`;
+      }
     }
 
     html += `

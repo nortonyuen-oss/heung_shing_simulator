@@ -808,6 +808,13 @@ function setupZoneDensityTools(menu) {
   densityMenu.addEventListener('pointerleave', () => scheduleZoneDensityClose());
   densityMenu.addEventListener('pointerdown', (e) => e.stopPropagation());
   densityMenu.addEventListener('click', (event) => {
+    const industrialButton = event.target.closest('[data-industry]');
+    if (industrialButton) {
+      selectedIndustrialType = industrialButton.dataset.industry;
+      closeZoneDensityMenu();
+      updateZoneDensityBadges();
+      return;
+    }
     // 私人／公屋／居屋 (housing-types.js): the residential tool's housing type
     const housingButton = event.target.closest('[data-housing]');
     if (housingButton) {
@@ -847,8 +854,9 @@ function openZoneDensityMenu(toolKey, triggerButton) {
   // Determine zone letter and current density
   const zoneType = toolKey.replace('zone-', '');          // 'res', 'com', 'ind'
   const housingType = zoneType === 'res' ? getSelectedHousingType() : 'private';
-  const letter   = zoneType === 'res' ? getHousingZoneLetter(housingType) : zoneType === 'com' ? 'C' : 'I';
-  const colorKey = zoneType === 'res' ? getHousingZoneColorKey(housingType) : zoneType;
+  const science = zoneType === 'ind' && getSelectedIndustrialType() === 'science';
+  const letter   = zoneType === 'res' ? getHousingZoneLetter(housingType) : zoneType === 'com' ? 'C' : science ? 'S' : 'I';
+  const colorKey = zoneType === 'res' ? getHousingZoneColorKey(housingType) : science ? 'sci' : zoneType;
   // 公屋／居屋 zone at medium density at least (tools.js getHousingZoneDensity)
   const minDensity = housingType === 'private' ? 1 : 2;
   const baseCost = zoneType === 'res' ? 50 : zoneType === 'com' ? 60 : 50;
@@ -920,6 +928,37 @@ function openZoneDensityMenu(toolKey, triggerButton) {
     });
   }
 
+  if (zoneType === 'ind') {
+    const heading = document.createElement('div');
+    heading.className = 'popup-section-label';
+    heading.textContent = t('zone.industryType');
+    densityMenu.append(heading);
+    ['regular', 'science'].forEach((type) => {
+      const btn = document.createElement('button');
+      btn.className = 'popup-button';
+      btn.type = 'button';
+      btn.dataset.industry = type;
+      btn.classList.toggle('is-active', type === getSelectedIndustrialType());
+      btn.title = t(`zone.industryTip.${type}`);
+      const block = document.createElement('span');
+      block.className = `zone-block ${type === 'science' ? 'sci' : 'ind'}`;
+      block.textContent = type === 'science' ? 'S' : 'I';
+      const label = document.createElement('span');
+      label.className = 'popup-label';
+      label.textContent = t(`zone.industry.${type}`);
+      const demand = document.createElement('span');
+      demand.className = 'popup-cost';
+      const value = (type === 'science' ? city.demandScienceI : city.demandRegularI) ?? city.demandI ?? 0;
+      demand.textContent = `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
+      btn.append(block, label, demand);
+      densityMenu.append(btn);
+    });
+    const hint = document.createElement('div');
+    hint.className = 'popup-section-label';
+    hint.textContent = t(`zone.industryTip.${science ? 'science' : 'regular'}`);
+    densityMenu.append(hint);
+  }
+
   densityMenu.classList.add('is-open');
   placePopupBesideTrigger(densityMenu, triggerButton.getBoundingClientRect());
 }
@@ -969,10 +1008,11 @@ function updateZoneDensityBadges() {
   ['res', 'com', 'ind'].forEach((type) => {
     const el = document.getElementById(`zone-${type}-badge`);
     const housingType = type === 'res' ? getSelectedHousingType() : 'private';
+    const science = type === 'ind' && getSelectedIndustrialType() === 'science';
     const density = type === 'res' && typeof getHousingZoneDensity === 'function'
       ? getHousingZoneDensity(selectedZoneDensity[type] ?? 1, housingType)
       : selectedZoneDensity[type] ?? 1;
-    const letter = type === 'res' ? getHousingZoneLetter(housingType) : type === 'com' ? 'C' : 'I';
+    const letter = type === 'res' ? getHousingZoneLetter(housingType) : type === 'com' ? 'C' : science ? 'S' : 'I';
     if (el) el.textContent = `${letter}${density}`;
 
     // Update button tooltip to reflect current density + cost
@@ -980,7 +1020,8 @@ function updateZoneDensityBadges() {
     if (btn) {
       const baseCost = (ZONE_COSTS[type] ?? 50) * (DENSITY_COST_MUL[density] ?? 1);
       const cost = typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(baseCost) : Math.round(baseCost);
-      const zone = type === 'res' && housingType !== 'private' ? t(`zone.housing.${housingType}`) : getZoneLabel(type);
+      const zone = type === 'res' && housingType !== 'private' ? t(`zone.housing.${housingType}`)
+        : science ? t('zone.industry.science') : getZoneLabel(type);
       const densityName = getDensityLabel(density);
       const title = t('tool.zone', { zone, density: densityName, cost });
       btn.title = title;

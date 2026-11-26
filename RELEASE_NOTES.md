@@ -1,3 +1,28 @@
+# Heung Shing Simulator v6.1.2 — 【屋邨仔】
+
+- 廣東話／台灣中文：【屋邨仔】
+- English: 【Estate Kids】
+- 日本語：【団地っ子】
+
+## 科學園直接劃地，工業需求更合理
+
+- **科學園分區**：工業選單可以揀「一般工業區／科學園區」，電腦同手機都用得。科學園只起科研建築，最少 2×2 格，較大平地可起 3×3、5×5；毋須先等高等教育達 80%。
+- **兩類需求分開計**：一般工業由居民消費、商業供應鏈同就業需要帶動；科研需求隨教育同科研政策增加，未有第一座科學園都會計算。供應過多會回落，交通、污染同缺電仍影響發展。
+- **自然轉型保留**：高等教育 80% 後一般工業仍可自然變科學園。科學園升降級時保留科研建築同地盤；舊存檔科研樓照常識別。
+- **第二關二星減壓**：巴士目標由每月 3,000 降至 1,500 人次。直接劃地起嘅科研樓會計入科學園同 300 職位目標；《科研發展法》、中學或大學仍需要。四項齊備後月底正常授星，二星不限時。
+
+**台灣中文：** 工業工具可直接選擇科學園區，至少 2×2 格，只興建科研建築。一般工業需求納入居民消費、商業供應鏈與就業需要，科研需求隨教育與科研政策提升，第一座科學園出現前也會計算，供給過多則回落。保留高等教育達 80% 後的自然轉型，科學園升降級與舊存檔維持科研建築。第二關二星巴士目標由每月 3,000 降至 1,500 人次；直接劃地興建的科學園會計入科研建築與 300 職位目標，仍須通過《科研發展法》並有中學或大學，月底正常授星。
+
+**English:** Zone Science Park land directly from the industrial tool on a computer or phone: only research buildings grow, with lots of at least 2×2 tiles. General industry responds to local consumption, commercial supply chains and jobs; science demand responds to education and research policies even before the first park, and cools with oversupply. Natural conversion at 80% higher education remains. Research buildings retain their art and lot when levelling up or down and remain recognized in old saves. Chapter 2 star two now needs 1,500 monthly bus riders instead of 3,000. Directly zoned parks count toward its research-building and 300-job goals; the Science Development Act and a secondary school or university are still required, with the star awarded at month end.
+
+**日本語:** 工業ツールからサイエンスパーク区を直接指定。パソコン・スマートフォンで、2×2マス以上の敷地に研究施設だけが建ちます。一般工業は地域の消費・供給網・雇用、研究需要は教育と研究政策で発展し、最初のパークがなくても需要を計算。供給過剰で需要は下がります。高等教育80%での自然転換を維持し、研究施設はレベルが上下しても画像と敷地を保ち、旧セーブでも認識されます。第2章の二つ目の星に必要なバス月間乗客を3,000人から1,500人へ。直接指定して建てた研究施設も雇用300人の目標に数え、科学開発法と中学校または大学がそろうと月末に星を獲得します。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.1.1 — 【屋邨仔】
 
 - 廣東話／台灣中文：【屋邨仔】

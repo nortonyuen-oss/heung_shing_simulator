@@ -177,7 +177,7 @@ test('housing zones in the game: loaded, painted, saved, drawn, grown, counted a
   assert.match(source('tools.js'), /placeZone\(scene, row, col, ZONE_RES, selectedZoneDensity\.res, getSelectedHousingType\(\)\)/);
   assert.match(source('tools.js'), /setHousingZoneType\(row, col, housingType\)/);
   assert.match(source('tools.js'), /setHousingZoneType\(row, col, 'private'\)/, 'de-zoning clears the type');
-  assert.match(source('tool-actions.js'), /placeZone\(scene, row, col, zone, draft\.options\.density, draft\.options\.housingType\)/);
+  assert.match(source('tool-actions.js'), /placeZone\(scene, row, col, zone, draft\.options\.density, draft\.options\.housingType, draft\.options\.industrialType\)/);
   assert.match(source('save.js'), /city\.housingZones = normalizeHousingZones\(city\.housingZones, MAP_WIDTH, MAP_HEIGHT\)/);
   assert.match(source('save.js'), /getZoneOverlayCode\(zone, r, c\)/);
   assert.match(source('city-state.js'), /city\.housingZones = \{\};/);

@@ -225,9 +225,10 @@ function getZoneDeclineBudgets(zoneBuildingCount) {
   };
 }
 
-function getZoneDeclineDemand(zone) {
+function getZoneDeclineDemand(zone, row = null, col = null, record = null) {
   if (zone === ZONE_RES) return Number(city.demandR) || 0;
   if (zone === ZONE_COM) return Number(city.demandC) || 0;
+  if (row !== null && typeof getIndustrialGrowthDemand === 'function') return getIndustrialGrowthDemand(row, col, record);
   return Number(city.demandI) || 0;
 }
 
@@ -242,7 +243,7 @@ function collectZoneDeclineCandidates() {
     const zone = zoneMap[row]?.[col] ?? ZONE_NONE;
     if (zone === ZONE_NONE) return;
     const hasRoad = hasAdjacentRoad(row, col);
-    const demand = getZoneDeclineDemand(zone);
+    const demand = getZoneDeclineDemand(zone, row, col, record);
     if (hasRoad && demand >= -0.5) return;
     candidates.push({ row, col, record });
   });
@@ -754,7 +755,7 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
   const hasRoad = hasAdjacentRoad(r, c);
   const demand  = zone === ZONE_RES ? city.demandR
                 : zone === ZONE_COM ? city.demandC
-                : city.demandI;
+                : typeof getIndustrialGrowthDemand === 'function' ? getIndustrialGrowthDemand(r, c, buildingData[id]) : city.demandI;
 
   // Power multiplies growth speed. A citywide shortage slows all powered
   // tiles; unpowered tiles remain mostly stagnant.
@@ -941,7 +942,10 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     options = { ...model.metadata };
   } else {
     const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore, optionsOverride);
-    const model = getRandomIndustrialBuildingModel(footprintSize, footprintSize);
+    if (!footprintSize) return false;
+    const scienceOnly = !!optionsOverride.scienceOnly
+      || (typeof getIndustrialZoneType === 'function' && getIndustrialZoneType(r, c) === 'science');
+    const model = getRandomIndustrialBuildingModel(footprintSize, footprintSize, scienceOnly);
     if (model) {
       selectedModel = model;
       key = model.key;
@@ -980,7 +984,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     offsetY: options.offsetY,
     anchorMode: options.anchorMode,
     assetId: options.assetId ?? selectedModel?.assetId,
-    sourceFileName: options.sourceFileName,
+    sourceFileName: options.sourceFileName ?? selectedModel?.sourceFileName,
     wealthTier: zone === ZONE_RES
       ? (options.wealthTier ?? selectedModel?.wealthTier ?? 'L')
       : undefined,
@@ -1109,6 +1113,10 @@ function chooseNonResidentialFootprint(
   optionsOverride = {},
   siteFactors = null,
 ) {
+  if (zone === ZONE_IND && (optionsOverride.scienceOnly
+    || (typeof getIndustrialZoneType === 'function' && getIndustrialZoneType(r, c) === 'science'))) {
+    return chooseScienceParkFootprint(scene, r, c, density, optionsOverride);
+  }
   const forcedSize = optionsOverride.forceFootprint ?? null;
   if (forcedSize) {
     const forcedFactors = zone === ZONE_COM && optionsOverride.commercialQualityContext
@@ -1146,6 +1154,21 @@ function chooseNonResidentialFootprint(
   return 1;
 }
 
+// Dedicated parks never fall back to a 1x1 factory, including while textures load.
+function chooseScienceParkFootprint(scene, r, c, density, optionsOverride = {}) {
+  const fits = (size) => (Array.isArray(industrialBuildingModels) ? industrialBuildingModels : []).some((model) => (
+    !model.legacy && isScienceParkModel(model) && model.metadata?.scale > 0.05
+    && isSelectableZoneModelTexture(model) && model.footprintCols === size && model.footprintRows === size
+  )) && canPlaceZoneBuildingFootprint(scene, r, c, ZONE_IND, size, size);
+  if (optionsOverride.forceFootprint) return fits(optionsOverride.forceFootprint) ? optionsOverride.forceFootprint : 0;
+  const sizes = [5, 3, 2].filter(fits);
+  for (const size of sizes.slice(0, -1)) {
+    const chance = size === 5 ? (density === DENSITY_HIGH ? 0.25 : 0.12) : 0.55;
+    if (Math.random() < chance) return size;
+  }
+  return sizes.at(-1) ?? 0;
+}
+
 function getNonResidentialLargeSpawnChance(zone, footprintSize, density) {
   const table = zone === ZONE_COM ? COM_LARGE_SPAWN_CHANCE : IND_LARGE_SPAWN_CHANCE;
   return table?.[density]?.[footprintSize] ?? 0;
@@ -1163,6 +1186,7 @@ function canPlaceZoneBuildingFootprint(scene, r, c, zoneType, footprintCols, foo
   const baseHeight = getTileHeight(r, c);
   // a lot never spans 私人, 公屋 and 居屋 land (housing-types.js)
   const housingType = zoneType === ZONE_RES && typeof getHousingZoneType === 'function' ? getHousingZoneType(r, c) : null;
+  const industrialType = zoneType === ZONE_IND && typeof getIndustrialZoneType === 'function' ? getIndustrialZoneType(r, c) : null;
   // (one of an estate's planned blocks exactly: housing-estates.js)
   const estateSlot = typeof isHousingEstateHomeSlotAt === 'function' && isHousingEstateHomeSlotAt(r, c, footprintCols, footprintRows);
   for (let dr = 0; dr < footprintRows; dr++) {
@@ -1171,6 +1195,7 @@ function canPlaceZoneBuildingFootprint(scene, r, c, zoneType, footprintCols, foo
       if (!isInsideMap(rr, cc))                        return false;
       if (zoneMap[rr][cc] !== zoneType)                return false;
       if (housingType !== null && getHousingZoneType(rr, cc) !== housingType) return false;
+      if (industrialType !== null && getIndustrialZoneType(rr, cc) !== industrialType) return false;
       // an estate's land takes only its own planned blocks (housing-estates.js)
       if (!estateSlot && typeof isHousingEstateTile === 'function' && isHousingEstateTile(rr, cc)) return false;
       if (scene.buildingSprites.has(getTileId(rr, cc))) return false;
@@ -1454,6 +1479,12 @@ function upgradeZoneBuilding(
   const id      = getTileId(r, c);
   const record  = buildingData[id];
   if (!record || record.level >= 3) return;
+  if (zone === ZONE_IND && isScienceParkIndustrialRecord(record)) {
+    record.level++;
+    markPowerGridDirty();
+    invalidateBuildingCountCache();
+    return;
+  }
   const density = record.density ?? (zoneDensityMap[r][c] ?? DENSITY_LOW);
 
   // In an economically healthy city with good land, commercial upgrades favour
@@ -1493,6 +1524,12 @@ function shrinkOrRemoveZoneBuilding(scene, r, c) {
   if (!record) return false;
 
   if (record.level > 1) {
+    if (record.type === 'industrial' && isScienceParkIndustrialRecord(record)) {
+      record.level--;
+      markPowerGridDirty();
+      invalidateBuildingCountCache();
+      return true;
+    }
     const zone    = zoneMap[r][c];
     const density = record.density ?? (zoneDensityMap[r][c] ?? DENSITY_LOW);
     if (!removeBuilding(scene, r, c, { refreshInfrastructure: false })) return false;
@@ -2227,7 +2264,7 @@ function getRandomCommercialBuildingModel(
   return rememberSelectedZoneModel(selected);
 }
 
-function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = null) {
+function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = null, scienceOnly = false) {
   const all = Array.isArray(industrialBuildingModels) ? industrialBuildingModels : [];
   const valid = all.filter((m) => (
     !m.legacy  // kept only for buildings already standing (model-catalog.js legacyFiles)
@@ -2238,6 +2275,11 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
     && (footprintRows === null || m.footprintRows === footprintRows)
   ));
   if (valid.length === 0) return null;
+
+  if (scienceOnly) {
+    const science = valid.filter(isScienceParkModel);
+    return science.length ? rememberSelectedZoneModel(pickVariedModel(science, `industrial:${footprintCols}x${footprintRows}:science-zone`)) : null;
+  }
 
   const allowScienceBias = footprintCols >= 2 && footprintRows >= 2;
   if (!allowScienceBias) {

@@ -456,7 +456,7 @@
             check: (s) => num(s.scienceParkJobs) >= 300, progress: (s) => `${fmt(s.scienceParkJobs)} / 300` },
           { id: 'school', label: T('有中學或者大學', 'A secondary school or a university', '中学校または大学'),
             check: (s) => built(s, 'secondary_school') || built(s, 'university'), progress: (s) => tick(built(s, 'secondary_school') || built(s, 'university')) },
-          ridersObjective('busRiders', 'bus', 3000, T('巴士每月載客 3,000 人次', 'Buses carry 3,000 riders a month', 'バスの月間乗客3,000人')),
+          ridersObjective('busRiders', 'bus', 1500, T('巴士每月載客 1,500 人次', 'Buses carry 1,500 riders a month', 'バスの月間乗客1,500人')),
         ]),
       },
       {

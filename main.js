@@ -212,6 +212,7 @@ let currentTerrainMetadata = null;
 let selectedZoneDensity = { res: 1, com: 1, ind: 1 };
 // 私人／公屋／居屋 for the residential zone tool (housing-types.js)
 let selectedHousingType = 'private';
+let selectedIndustrialType = 'regular';
 let zonePressTimers = {};
 let didLongPressZone = {};
 
@@ -650,6 +651,9 @@ function getResidentialSubLabelKey(record) {
 }
 
 function getZoneName(zone, row = null, col = null) {
+  if (zone === ZONE_IND && row !== null && typeof getIndustrialZoneType === 'function' && getIndustrialZoneType(row, col) === 'science') {
+    return t('zone.industry.science');
+  }
   if (zone === ZONE_RES && row !== null && typeof getHousingZoneType === 'function') {
     const housingType = getHousingZoneType(row, col);
     if (housingType !== 'private') return t(`zone.housing.${housingType}`);
@@ -791,7 +795,10 @@ function preload() {
     ...allHouseModels.filter((model) => model.housingType === 'public' || model.housingType === 'hos'),
   ]);
   const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
-  const initialIndustrialModels = selectInitialZoneModelsForPreload(industrialBuildingModels);
+  const initialIndustrialModels = dedupeZoneModelsByKey([
+    ...selectInitialZoneModelsForPreload(industrialBuildingModels),
+    ...selectInitialZoneModelsForPreload(industrialBuildingModels.filter(isScienceParkModel)),
+  ]);
   [...initialHouseModels, ...initialCommercialModels, ...initialIndustrialModels]
     .forEach((model) => initialZoneTextureKeys.add(model.key));
 
@@ -3441,6 +3448,9 @@ function preGenerateZoneTextures(scene) {
     { key: 'zone_overlay_ind_1', color: 0xffe580 },
     { key: 'zone_overlay_ind_2', color: 0xd4a000 },
     { key: 'zone_overlay_ind_3', color: 0x8a5e00 },
+    { key: 'zone_overlay_sci_1', color: 0x8cdeed },
+    { key: 'zone_overlay_sci_2', color: 0x249ec9 },
+    { key: 'zone_overlay_sci_3', color: 0x125c91 },
   ];
 
   configs.forEach(({ key, color }) => {

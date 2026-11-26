@@ -87,7 +87,7 @@ function showTileDebug(scene, pointer) {
 
   const demand = zone === ZONE_RES ? city.demandR
                : zone === ZONE_COM ? city.demandC
-               : zone === ZONE_IND ? city.demandI : 0;
+               : zone === ZONE_IND ? (typeof getIndustrialGrowthDemand === 'function' ? getIndustrialGrowthDemand(row, col, bData) : city.demandI) : 0;
 
   const powerMul   = powered ? 1.0 : 0.2;
   const growChance = (!hasBldg && hasRoad && demand > 0)

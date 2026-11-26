@@ -252,6 +252,76 @@ test('P2 runtime: without the transport expansion or any shelters, the new facts
   assert.equal(Object.keys(snapshot.festivalHeldYear).length, 0);
 });
 
+// Use the real medal snapshot that supplies the campaign's building counts and jobs,
+// including records from dedicated science zoning before the 80% conversion unlock.
+function scienceParkRuntime() {
+  const context = loadRuntime();
+  context.buildingData = {
+    '1:1': { type: 'industrial', spriteKey: 'science_2', sourceFileName: 'sciencePark2-01.png', footprintCols: 2, footprintRows: 2 },
+    '5:5': { type: 'secondary_school' },
+  };
+  context.industrialBuildingModels = [{ key: 'science_2', sourceFileName: 'sciencePark2-01.png' }];
+  context.getDistrictProfileEffect = () => 0;
+  context.city.activePolicies = { scienceDevelopment: true };
+  context.city.scienceParkUnlocked = false;
+  context.city.educationHigherIndex = 0.55;
+  context.isTransportExpansionActive = () => true;
+  context.getTransportExpansionState = () => ({ stops: [], routes: [], lastModeTotals: { bus: 1500 } });
+  for (const file of ['constants.js', 'model-catalog.js', 'sim-infrastructure.js', 'medal-definitions.js', 'medals.js']) {
+    vm.runInContext(source(file), context, { filename: file });
+  }
+  const state = source('city-state.js');
+  vm.runInContext(state.slice(state.indexOf('function getBuildingJobCapacity('), state.indexOf('function getPowerPlantAgeMonths(')), context);
+  return context;
+}
+
+test('02 star two: a directly built science park supplies real jobs and counts before the education unlock', () => {
+  const context = scienceParkRuntime();
+  const snapshot = context.buildCampaignSnapshot();
+  assert.equal(snapshot.buildings.science_park, 1);
+  assert.equal(snapshot.scienceParkJobs, 1440, 'a real 2x2 research building exceeds the 300-job target');
+  assert.equal(snapshot.transit.bus, 1500);
+  assert.equal(context.city.scienceParkUnlocked, false);
+  assert.equal(campaign.evaluateCampaignStar(specs.ch02, 1, snapshot).done, true);
+
+  // A saved record can identify its art by the catalog or the older misspelt file name.
+  delete context.buildingData['1:1'].sourceFileName;
+  assert.equal(context.buildCampaignSnapshot().buildings.science_park, 1);
+  context.buildingData['1:1'].sourceFileName = 'sicencePark2-03.png';
+  assert.equal(context.buildCampaignSnapshot().buildings.science_park, 1);
+
+  context.buildingData['1:1'] = { type: 'industrial', sourceFileName: 'industrialBuilding2-01.png', footprintCols: 2, footprintRows: 2 };
+  assert.equal(context.buildCampaignSnapshot().scienceParkJobs, 0, 'ordinary factory jobs do not satisfy research jobs');
+  assert.equal(campaign.evaluateCampaignStar(specs.ch02, 1, context.buildCampaignSnapshot()).done, false);
+  delete context.buildingData['1:1'];
+  context.city.industrialZones = { '1:1': 1 };
+  assert.equal(campaign.evaluateCampaignStar(specs.ch02, 1, context.buildCampaignSnapshot()).done, false, 'zoning without a building is insufficient');
+});
+
+test('02 star two: all four requirements and their 300-job / 1,500-rider boundaries apply together', () => {
+  const context = scienceParkRuntime();
+  const snapshot = { ...context.buildCampaignSnapshot(), scienceParkJobs: 300 };
+  const passes = (patch = {}) => campaign.evaluateCampaignStar(specs.ch02, 1, { ...snapshot, ...patch });
+  assert.equal(passes().done, true);
+  assert.equal(passes({ scienceParkJobs: 299 }).done, false);
+  assert.equal(passes({ transit: { bus: 1499 } }).done, false);
+  assert.equal(passes({ policies: { scienceDevelopment: false } }).done, false);
+  assert.equal(passes({ buildings: { science_park: 1 } }).done, false, 'a school is still needed');
+  assert.equal(passes({ buildings: { science_park: 1, university: 1 } }).done, true, 'a university can replace a secondary school');
+  assert.equal(passes({ buildings: { secondary_school: 1 } }).done, false, 'a research building is still needed');
+  const items = passes().items;
+  assert.equal(items.find(item => item.id === 'scienceJobs').progress, '300 / 300');
+  assert.equal(items.find(item => item.id === 'busRiders').progress, '1,500 / 1,500');
+  for (const label of Object.values(items.find(item => item.id === 'busRiders').label)) assert.match(label.replaceAll(',', ''), /1500/);
+
+  const run = campaign.createCampaignRun('ch02', 100);
+  run.stars = 1;
+  const result = campaign.advanceCampaignRun(run, specs.ch02, snapshot, 160);
+  assert.deepEqual(result.newStars, [2]);
+  assert.equal(run.stars, 2);
+  assert.equal(run.failed, false, 'the second star has no twelve-month deadline');
+});
+
 test('07 star 3: 跨區公共交通分擔率 is the share of cross-district commuters the lines off the map carry', () => {
   const share = specs.ch07.stars[2].objectives.find((objective) => objective.id === 'share');
   assert.equal(share.check({ offMapShare: 0.3 }), true);

@@ -52,6 +52,7 @@ function getTouchToolOptions(tool) {
     const density = typeof getHousingZoneDensity === 'function' ? getHousingZoneDensity(DENSITY_LOW, housingType) : DENSITY_LOW;
     return { density, housingType, range: true, model: null };
   }
+  if (tool === 'zone-ind') return { density: selectedZoneDensity.ind ?? DENSITY_LOW, industrialType: getSelectedIndustrialType(), range: true, model: null };
   // (the bulldozer's 地底: whether it digs for 地鐵 tunnels, under what stands on the ground)
   if (tool === 'bulldoze') return { density: DENSITY_LOW, range: false, underground: false, model: null };
   return { density: DENSITY_LOW, range: true, model: model ? { ...model } : null };
@@ -74,6 +75,7 @@ function touchTileIdentity(scene, row, col) {
   const sprite = scene.buildingSprites?.get(getTileId(row, col));
   const record = buildingData[getTileId(sprite?.mapRow ?? row, sprite?.mapCol ?? col)];
   return [row, col, mapData[row]?.[col], getTileHeight(row, col), zoneMap[row]?.[col], zoneDensityMap[row]?.[col],
+    typeof getIndustrialZoneType === 'function' ? getIndustrialZoneType(row, col) : 'regular',
     sprite?.mapRow, sprite?.mapCol, touchObjectIdentity(record), record?.type, record?.spriteKey, record?.customName,
     !!scene.treeSprites?.has(getTileId(row, col)), !!scene.debrisSprites?.has(getTileId(row, col)),
     typeof getBusStopSides === 'function' ? getBusStopSides(row, col) : null,
@@ -382,7 +384,7 @@ function previewTouchToolAction(scene, draft) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
     const tiles = touchRectTiles(draft.start, draft.end);
     plan.tiles = tiles.filter((tile) => {
-      const quote = getZonePlacementQuote(tile.row, tile.col, zone, draft.options.density, draft.options.housingType);
+      const quote = getZonePlacementQuote(tile.row, tile.col, zone, draft.options.density, draft.options.housingType, draft.options.industrialType);
       plan.cost += quote.cost;
       return quote.ok && !quote.noop;
     });
@@ -496,7 +498,7 @@ function commitTouchToolAction(scene, draft, plan) {
     commitRoadDrag(scene, draft.start, draft.end);
   } else if (draft.tool.startsWith('zone-')) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
-    for (const { row, col } of plan.tiles) ok = placeZone(scene, row, col, zone, draft.options.density, draft.options.housingType) && ok;
+    for (const { row, col } of plan.tiles) ok = placeZone(scene, row, col, zone, draft.options.density, draft.options.housingType, draft.options.industrialType) && ok;
     // 公屋／居屋: the rectangle just zoned is one estate, planned whole (housing-estates.js)
     const housingType = draft.tool === 'zone-res' && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(draft.options.housingType) : 'private';
     if (housingType !== 'private' && typeof createHousingEstateFromZoning === 'function') {

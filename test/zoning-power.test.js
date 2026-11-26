@@ -36,7 +36,7 @@ function setup(world, width = 8, height = 8) {
     getCardinalNeighbors: (r, c) => [[r - 1, c], [r, c + 1], [r + 1, c], [r, c - 1]],
   });
   const load = file => vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
-  load('constants.js'); load('map-utils.js'); load('housing-types.js'); load('world/world-game-host.js'); load('tools.js'); load('sim-infrastructure.js');
+  load('constants.js'); load('map-utils.js'); load('housing-types.js'); load('industrial-zones.js'); load('world/world-game-host.js'); load('tools.js'); load('sim-infrastructure.js');
   const state = fs.readFileSync(path.join(ROOT, 'city-state.js'), 'utf8');
   vm.runInContext(state.slice(state.indexOf('function getBuildingPowerDemand('), state.indexOf('function getPowerPlantAgeMonths(')), context);
   vm.runInContext('let _powerGridDirty = true; function markPowerGridDirty() { _powerGridDirty = true; }', context);

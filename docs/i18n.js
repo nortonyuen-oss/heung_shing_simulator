@@ -290,6 +290,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.1.2","date":"2026-11-26","dateLabel":"2026年11月26日","title":"屋邨仔","items":["工業選單新增「一般工業區／科學園區」，電腦同手機都可以直接劃科學園，只起科研建築，最少 2×2 格。","一般工業需求加入居民消費、商業供應鏈同就業需要；科研需求隨教育同科研政策增加，未有第一座科學園都會計算，供應過多則回落。","保留高等教育 80% 後一般工業自然轉型；科學園升降級保留科研建築。","第二關二星巴士目標由每月 3,000 降至 1,500 人次；直接劃地起嘅科學園會計入科研樓同 300 職位目標，達標後月底正常授星。"]},
     {"version":"v6.1.1","date":"2026-11-26","dateLabel":"2026年11月26日","title":"屋邨仔","items":["修正手機玩一陣就閃退、退返主畫面：瀏覽器版以前會將每首播過嘅歌留喺記憶體（每首 65–104 MB），而家只保留播緊嗰首。","修正新城市出現 UFO 時每格畫面出錯。"]},
     {"version":"v6.1.0","date":"2026-11-24","dateLabel":"2026年11月24日","title":"屋邨仔","items":["拖一塊公屋區或居屋區就係一個屋邨：照房委會咁成個邨規劃，座與座有樓距，中間有中庭同公園，唔會再有起唔到樓嘅空位。","公屋 4 座有社區中心、6 座有街市、8 座有球場；休憩用地跟香港標準每人 1 m²；第一個 2x2 係籃球場。","同邨同款，唔同屋邨輪住用和諧式、Y型、舊長型；斜坡屋邨分層平台，斜坡種樹；8x8 公屋地盤用安泰邨成邨圖。","劃地預覽（電腦同手機）顯示規劃圖、座數同人口；第 1 章只開放私人住宅。"]},
     {"version":"v6.0.15","date":"2026-11-22","dateLabel":"2026年11月22日","title":"玩轉18區","items":["手機版加入輕鐵：交通頁有輕鐵路軌（地面／高架）、輕鐵站同輕鐵路線，同電腦版一樣。","輕鐵未開放時會講明：人口到 15,000，再喺立法會通過【輕便鐵路撥款】；第 7 章屯門任務卡都有講。"]},
@@ -684,6 +685,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.1.2": {"title":"屋邨仔","items":["工業選單新增「一般工業區／科學園區」，電腦與手機都可直接劃設科學園，只會興建科研建築，至少 2×2 格。","一般工業需求加入居民消費、商業供應鏈與就業需求；科研需求隨教育與科研政策增加，第一座科學園出現前也會計算，供給過多則回落。","保留高等教育達 80% 後一般工業自然轉型的機制；科學園升降級保留科研建築。","第二關二星巴士目標由每月 3,000 降至 1,500 人次；直接劃地興建的科學園會計入科研建築與 300 職位目標，達標後於月底授星。"]},
     "v6.1.1": {"title":"屋邨仔","items":["修正手機玩一陣子就閃退、回到主畫面：瀏覽器版以前會把每首播過的歌留在記憶體（每首 65–104 MB），現在只保留正在播的那首。","修正新城市出現 UFO 時每格畫面出錯。"]},
     "v6.1.0": {"title":"屋邨仔","items":["拖出一塊公屋區或居屋區就是一個屋邨：比照房委會整邨規劃，樓與樓之間有樓距，中間有中庭與公園，不再有蓋不了樓的空格。","公屋 4 座有社區中心、6 座有街市、8 座有球場；休憩用地依香港標準每人 1 m²；第一個 2x2 是籃球場。","同邨同款，不同屋邨輪流用和諧式、Y型、舊長型；斜坡屋邨分層平台，斜坡種樹；8x8 公屋地盤用安泰邨整邨圖。","劃地預覽（電腦與手機）顯示規劃圖、座數與人口；第 1 章只開放私人住宅。"]},
     "v6.0.15": {"title":"玩轉18區","items":["手機版加入輕鐵：交通頁有輕鐵路軌（地面／高架）、輕鐵站與輕鐵路線，與電腦版相同。","輕鐵未開放時會說明：人口達 15,000，並在立法會通過【輕便鐵路撥款】；第 7 章屯門任務卡也有說明。"]},
@@ -1071,6 +1073,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.1.2": {"title":"Estate Kids","items":["The industrial tool now offers General Industry and Science Park on computers and phones. Dedicated science land grows only research buildings on lots of at least 2×2 tiles.","General industry responds to residents, commercial supply chains and employment needs. Research demand rises with education and research policies, even before the first park, and eases when supply is high.","Ordinary industry still converts naturally at 80% higher education. Science parks keep their research buildings when they level up or down.","Chapter 2 star two now needs 1,500 bus riders a month, down from 3,000. Directly zoned parks count toward its research-building and 300-job goals, with stars awarded at month end."]},
     "v6.1.1": {"title":"Estate Kids","items":["Fixed phones closing the game after a while: the browser version kept every song played in memory (65-104 MB each); now only the song playing is kept.","Fixed a UFO over a new city throwing an error on every frame."]},
     "v6.1.0": {"title":"Estate Kids","items":["A dragged public or HOS area is one estate, planned whole as the Housing Authority plans one: blocks a tile apart around a central garden, and no tile left that a block can never fill.","A public estate gets a community centre at 4 blocks, a market at 6 and a ball court at 8; open space meets Hong Kong's 1 m² a person; the first 2x2 park is a basketball court.","One design to an estate, estates taking 和諧式, Y型 and 舊長型 in turn; hillside estates on terraces with planted slopes; an 8x8 public site takes the 安泰邨 estate art.","The drag shows the plan, its blocks and population on a computer and a phone; chapter 1 zones private homes only."]},
     "v6.0.15": {"title":"The 18 Districts","items":["The light rail on a phone: the transport page has light rail track (ground or elevated), stations and lines, as on a computer.","Until it opens, the game says how: 15,000 people and Light Rail Funding passed by the council; chapter 7's Tuen Mun card says so too."]},
@@ -1458,6 +1461,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.1.2": {"title":"団地っ子","items":["工業ツールに「一般工業区／サイエンスパーク区」を追加。パソコン・スマートフォンから直接指定でき、2×2マス以上の敷地に研究施設だけが建ちます。","一般工業の需要に住民の消費・商業の供給網・雇用を反映。研究需要は教育と研究政策で増え、最初のパークがなくても計算し、供給過剰で下がります。","高等教育80%で一般工業が自然に転換する仕組みを維持。サイエンスパークはレベルが上下しても研究施設を保ちます。","第2章の二つ目の星に必要なバス月間乗客を3,000人から1,500人へ。直接指定して建てたパークも研究施設と雇用300人の目標に数え、月末に星を獲得できます。"]},
     "v6.1.1": {"title":"団地っ子","items":["スマートフォンで遊んでいるうちに落ちる問題を修正：ブラウザー版は再生した曲をすべてメモリに残していました（1曲65〜104 MB）。今は再生中の曲だけを残します。","新しい都市にUFOが現れると毎フレームエラーが出る問題を修正。"]},
     "v6.1.0": {"title":"団地っ子","items":["公営住宅区・居屋区をドラッグした範囲が1つの団地に。住宅委員会のように団地全体を計画し、棟の間に間隔、中央に中庭と公園。建たない空きマスは残りません。","公営団地は4棟でコミュニティセンター、6棟で街市、8棟で球技場。休憩用地は香港基準の1人1 m²。最初の2x2はバスケットコート。","1団地1デザイン、団地ごとに和諧式・Y型・旧長型を順に。斜面は段ごとに計画して斜面に植樹。8x8の公営住宅地は安泰邨の団地画像に。","ドラッグ中に計画図・棟数・人口を表示（パソコン・スマートフォン）。第1章は民間住宅のみ。"]},
     "v6.0.15": {"title":"18区をめぐる","items":["スマートフォンにライトレール：交通ページに線路（地上／高架）、駅、路線を追加。パソコン版と同じ操作。","開放前は条件を表示：人口15,000と立法会での【ライトレール建設出資】可決。第7章屯門のミッションカードにも記載。"]},
@@ -1870,8 +1874,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.1.1 — 【屋邨仔】",
-      versionDesc: "6.0.0 大升級：全新《玩轉18區》主線，香港 18 區逐區通關。6.1.0【屋邨仔】：公屋居屋成個屋邨一齊規劃，有中庭、公園、街市同社區中心。",
+      versionBadge: "v6.1.2 — 【屋邨仔】",
+      versionDesc: "6.1.2【屋邨仔】：直接劃科學園，教育科研帶動需求，改善一般工業需求；第二關二星巴士目標降至每月 1,500 人次。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1984,8 +1988,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.1.1 — 【屋邨仔】",
-      versionDesc: "6.0.0 大改版：全新《玩轉18區》主線，香港 18 區逐區過關。6.1.0【屋邨仔】：公屋居屋整個屋邨一起規劃，有中庭、公園、街市與社區中心。",
+      versionBadge: "v6.1.2 — 【屋邨仔】",
+      versionDesc: "6.1.2【屋邨仔】：直接劃設科學園，教育科研帶動需求，改善一般工業需求；第二關二星巴士目標降至每月 1,500 人次。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2098,8 +2102,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "Heung Shing Simulator",
       title: "Heung Shing Simulator",
-      versionBadge: "v6.1.1 — 【Estate Kids】",
-      versionDesc: "6.0.0: The 18 Districts, a story campaign across Hong Kong. 6.1.0 【Estate Kids】: public and HOS estates planned whole, with gardens, parks, a market and a community centre.",
+      versionBadge: "v6.1.2 — 【Estate Kids】",
+      versionDesc: "6.1.2 【Estate Kids】: zone science parks directly, grow industry through education and local supply chains, and reach chapter 2 star two with 1,500 monthly bus riders.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2213,8 +2217,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城シミュレーター",
       title: "香城シミュレーター",
-      versionBadge: "v6.1.1 — 【団地っ子】",
-      versionDesc: "6.0.0：新ストーリーモード「18区をめぐる」。6.1.0【団地っ子】：公営団地と居屋苑を丸ごと計画。中庭、公園、街市、コミュニティセンター。",
+      versionBadge: "v6.1.2 — 【団地っ子】",
+      versionDesc: "6.1.2【団地っ子】：サイエンスパークを直接指定。教育・研究と地域の供給網で工業需要を改善。第2章の二つ目の星はバス月間1,500人。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

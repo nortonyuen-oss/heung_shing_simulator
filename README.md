@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.1.1 — 【屋邨仔】
+# 香城模擬器 (Heung Shing Simulator) v6.1.2 — 【屋邨仔】
 
-香城模擬器 (Heung Shing Simulator) v6.1.1 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.1.2 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.1.2
+
+Zone a Science Park directly from the industrial tool on a computer or phone: only research buildings grow there, with demand driven by education and research policies. General industry also responds to local consumption and commercial supply chains; existing industry can still convert naturally at 80% higher education. Chapter 2's second star now needs 1,500 bus riders a month, down from 3,000. Directly zoned research buildings count toward its Science Park and 300-job objectives.
 
 ## New in v6.1.1
 

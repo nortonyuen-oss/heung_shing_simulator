@@ -111,7 +111,7 @@ function drawZoneSelectionPreview(scene, start, end) {
   const housingType = typeof getSelectedHousingType === 'function' ? getSelectedHousingType() : 'private';
   const color = selectedTool === 'zone-res' ? (housingType === 'public' ? 0x3fd6c4 : housingType === 'hos' ? 0xb07ce8 : 0x44ff66)
               : selectedTool === 'zone-com' ? 0x4499ff
-              : 0xffcc00;
+              : typeof getSelectedIndustrialType === 'function' && getSelectedIndustrialType() === 'science' ? 0x249ec9 : 0xffcc00;
 
   g.fillStyle(color, 0.18);
   g.lineStyle(2, color, 0.95);
@@ -390,7 +390,7 @@ function drawTouchPlacementPreview(scene, draft) {
   const housingType = draft.tool === 'zone-res' && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(draft.options?.housingType) : 'private';
   const color = !plan.ok || draft.tool === 'bulldoze' ? 0xe04b49
     : draft.tool === 'zone-res' ? (housingType === 'public' ? 0x3fd6c4 : housingType === 'hos' ? 0xb07ce8 : 0x35c06f) : draft.tool === 'zone-com' ? 0x4499ff
-      : draft.tool === 'zone-ind' ? 0xffcc00 : 0x45e6c3;
+      : draft.tool === 'zone-ind' ? (draft.options?.industrialType === 'science' ? 0x249ec9 : 0xffcc00) : 0x45e6c3;
   tiles.forEach(({ row, col }) => {
     if (!isInsideMap(row, col)) return;
     const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);

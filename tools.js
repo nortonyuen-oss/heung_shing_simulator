@@ -72,7 +72,7 @@ function handleNewTool(scene, tile) {
 
   if (selectedTool === 'zone-res')      return placeZone(scene, row, col, ZONE_RES, selectedZoneDensity.res, getSelectedHousingType());
   if (selectedTool === 'zone-com')      return placeZone(scene, row, col, ZONE_COM, selectedZoneDensity.com);
-  if (selectedTool === 'zone-ind')      return placeZone(scene, row, col, ZONE_IND, selectedZoneDensity.ind);
+  if (selectedTool === 'zone-ind')      return placeZone(scene, row, col, ZONE_IND, selectedZoneDensity.ind, 'private', getSelectedIndustrialType());
   if (selectedTool === 'dezone')        return dezoneAt(scene, row, col);
   if (selectedTool === 'power-line')    return placePowerLine(scene, row, col);
   if (selectedTool === 'power-coal')    return placeInfraBuilding(scene, row, col, 'power_plant_coal');
@@ -236,25 +236,28 @@ function getHousingZoneDensity(density, housingType = 'private') {
   return Math.min(Math.max(density, floor), maxDensity);
 }
 
-function isSameZoneAt(row, col, zoneType, density, housingType) {
+function isSameZoneAt(row, col, zoneType, density, housingType, industrialType = 'regular') {
   return zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density
-    && (zoneType !== ZONE_RES || typeof getHousingZoneType !== 'function' || getHousingZoneType(row, col) === housingType);
+    && (zoneType !== ZONE_RES || typeof getHousingZoneType !== 'function' || getHousingZoneType(row, col) === housingType)
+    && (zoneType !== ZONE_IND || typeof getIndustrialZoneType !== 'function' || getIndustrialZoneType(row, col) === industrialType);
 }
 
-function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW, housingType = 'private') {
+function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW, housingType = 'private', industrialType = 'regular') {
+  industrialType = typeof normalizeIndustrialType === 'function' ? normalizeIndustrialType(industrialType) : 'regular';
   housingType = zoneType === ZONE_RES && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(housingType)
     : zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
   density = getHousingZoneDensity(density, housingType);
   if (!isInsideMap(row, col) || [WATER, BEACH, ROAD].includes(mapData[row][col]) || !canPlaceBuilding(row, col)) return { ok: false, cost: 0, density };
   if (zoneType === ZONE_RES && density !== DENSITY_LOW && lowDensityLockSet.has(getTileId(row, col))) return { ok: false, cost: 0, density, reason: 'lowDensity' };
-  const noop = isSameZoneAt(row, col, zoneType, density, housingType);
+  const noop = isSameZoneAt(row, col, zoneType, density, housingType, industrialType);
   const base = zoneType === ZONE_RES ? COST_ZONE_RES : zoneType === ZONE_COM ? COST_ZONE_COM : COST_ZONE_IND;
   const fee = base * (DENSITY_COST_MUL[density] ?? 1);
   return { ok: true, noop, density, cost: noop ? 0 : typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(fee) : Math.round(fee) };
 }
 
-function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType = 'private') {
+function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType = 'private', industrialType = 'regular') {
   if (!isInsideMap(row, col)) return false;
+  industrialType = typeof normalizeIndustrialType === 'function' ? normalizeIndustrialType(industrialType) : 'regular';
   housingType = zoneType === ZONE_RES && typeof getAvailableHousingType === 'function' ? getAvailableHousingType(housingType)
     : zoneType === ZONE_RES && typeof normalizeHousingType === 'function' ? normalizeHousingType(housingType) : 'private';
   if (housingType !== 'private') density = Math.max(density, DENSITY_MED);
@@ -289,9 +292,9 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType
   }
 
   // No-op if exactly the same zone+density (and housing type) already applied
-  if (isSameZoneAt(row, col, zoneType, density, housingType)) return true;
+  if (isSameZoneAt(row, col, zoneType, density, housingType, industrialType)) return true;
 
-  const { cost } = getZonePlacementQuote(row, col, zoneType, density, housingType);
+  const { cost } = getZonePlacementQuote(row, col, zoneType, density, housingType, industrialType);
 
   if (!spendBudget(cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
@@ -306,6 +309,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW, housingType
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
   if (zoneType === ZONE_RES && typeof setHousingZoneType === 'function') setHousingZoneType(row, col, housingType);
+  if (zoneType === ZONE_IND && typeof setIndustrialZoneType === 'function') setIndustrialZoneType(row, col, industrialType);
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   // Roads/plants may already have a clean cached grid before this lot exists.
   // Refresh its connection on the next simulation pulse so the lot can grow.
@@ -348,6 +352,7 @@ function removeZoneOverlay(scene, row, col) {
   }
   zoneMap[row][col] = ZONE_NONE;
   if (typeof setHousingZoneType === 'function') setHousingZoneType(row, col, 'private');
+  if (typeof setIndustrialZoneType === 'function') setIndustrialZoneType(row, col, 'regular');
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   if (wasZoned && typeof markPowerGridDirty === 'function') markPowerGridDirty();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();

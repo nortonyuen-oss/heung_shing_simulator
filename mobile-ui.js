@@ -182,10 +182,12 @@ function mobileRenderDraft(draft) {
   if (!draft) { clearTouchPlacementPreview(typeof activeScene === 'undefined' ? null : activeScene); return; }
   const plan = draft.plan;
   document.getElementById('mobile-build-name').textContent = draft.tool === 'zone-res' && ['public', 'hos'].includes(draft.options.housingType)
-    ? t(`zone.housing.${draft.options.housingType}`) : mobileToolLabel(draft.tool);
+    ? t(`zone.housing.${draft.options.housingType}`) : draft.tool === 'zone-ind' && draft.options.industrialType === 'science'
+      ? t('zone.industry.science') : mobileToolLabel(draft.tool);
   const status = document.getElementById('mobile-build-status');
   status.textContent = plan?.reason || (plan?.summary ? mobileText('summary', plan.summary)
     : plan ? mobileText('valid', { count: plan.tiles.length, skipped: plan.skipped || 0 }) : mobileText('tap'));
+  if (draft.tool === 'zone-ind' && !draft.start) status.textContent = t(`zone.industryShortTip.${draft.options.industrialType || 'regular'}`);
   if (draft.tool === 'bus-stop' && plan?.eligibleSides?.length && !plan.reason) {
     const catchment = getTransportStopCatchmentUnits({ id: 'mobile-preview', ...draft.start });
     status.textContent = mobileText('stopCoverage', { residents: Math.round(catchment.residents || 0), jobs: Math.round(catchment.destinationUnits || 0) });
@@ -275,6 +277,16 @@ function mobileRenderDraft(draft) {
   if (draft.tool === 'zone-res') {
     // (第 1 章: private homes only, housing-types.js)
     housingSelect.innerHTML = ['private', 'public', 'hos'].map((type) => `<option value="${type}" ${type === housingType ? 'selected' : ''}${typeof isHousingTypeAvailable === 'function' && !isHousingTypeAvailable(type) ? ' disabled' : ''}>${mobileEscape(t(`zone.housing.${type}`))}</option>`).join('');
+  }
+  const industrialSelect = document.getElementById('mobile-industry-select');
+  industrialSelect.hidden = draft.tool !== 'zone-ind';
+  if (draft.tool === 'zone-ind') {
+    industrialSelect.setAttribute('aria-label', t('zone.industryType'));
+    industrialSelect.title = t(`zone.industryTip.${draft.options.industrialType || 'regular'}`);
+    industrialSelect.innerHTML = ['regular', 'science'].map((type) => {
+      const value = (type === 'science' ? city.demandScienceI : city.demandRegularI) ?? city.demandI ?? 0;
+      return `<option value="${type}" ${type === (draft.options.industrialType || 'regular') ? 'selected' : ''}>${mobileEscape(t(`zone.industry.${type}`))} ${value >= 0 ? '+' : ''}${value.toFixed(2)}</option>`;
+    }).join('');
   }
   const maxDensity = getDistrictMaxZoneDensity();
   const minDensity = housingType === 'private' || maxDensity < DENSITY_MED ? DENSITY_LOW : DENSITY_MED;
@@ -612,6 +624,7 @@ function setupMobileUi() {
         <select id="mobile-terrain-select" hidden data-mobile-aria="chooseStyle"></select>
         <span id="mobile-restaurant-options" hidden><button type="button" id="mobile-restaurant-rotate" data-mobile-text="rotateRestaurant"></button></span>
         <select id="mobile-housing-select" hidden data-mobile-aria="housingType"></select>
+        <select id="mobile-industry-select" hidden></select>
         <span id="mobile-density" hidden>${[[DENSITY_LOW,'low'],[DENSITY_MED,'medium'],[DENSITY_HIGH,'high']].map(([value,key]) => `<button type="button" data-mobile-density="${value}" aria-pressed="false" data-mobile-text="${key}"></button>`).join('')}</span>
         <span id="mobile-bulldoze-options" hidden><button type="button" data-mobile-range="false" data-mobile-text="single"></button><button type="button" data-mobile-range="true" data-mobile-text="range"></button><button type="button" id="mobile-bulldoze-underground" hidden aria-pressed="false" data-i18n="transport.nav.underground"></button></span>
         <span id="mobile-demolition-warning" hidden data-mobile-text="irreversible" style="font-size:12px;color:#8d1f1e"></span>
@@ -720,6 +733,12 @@ function setupMobileUi() {
     }
   });
   mobileUi.addEventListener('change', (event) => {
+    if (event.target.id === 'mobile-industry-select') {
+      selectedIndustrialType = normalizeIndustrialType(event.target.value);
+      selectedZoneDensity.ind = mobileBuildSession.getState()?.options.density ?? DENSITY_LOW;
+      if (typeof updateZoneDensityBadges === 'function') updateZoneDensityBadges();
+      mobileBuildSession.setOptions({ industrialType: selectedIndustrialType });
+    }
     if (event.target.id === 'mobile-recreation-select') mobileBuildSession.setOptions({ variant: event.target.value });
     if (event.target.id === 'mobile-terrain-select') mobileBuildSession.setOptions({ terrainType: event.target.value });
     if (event.target.id === 'mobile-housing-select') {

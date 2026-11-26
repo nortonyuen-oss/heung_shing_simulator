@@ -24,6 +24,11 @@ function updateHUD() {
   updateDemandBar('bar-r', city.demandR, '#44cc55');
   updateDemandBar('bar-c', city.demandC, '#4488ff');
   updateDemandBar('bar-i', city.demandI, '#ffcc00');
+  const industrialBar = document.getElementById('bar-i');
+  if (industrialBar) industrialBar.parentElement.title = t('zone.industryDemand', {
+    regular: (city.demandRegularI ?? city.demandI ?? 0).toFixed(2),
+    science: (city.demandScienceI ?? 0).toFixed(2),
+  });
 
   updateBudgetStrip();
   updateStatusAlert();

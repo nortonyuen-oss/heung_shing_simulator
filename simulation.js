@@ -579,12 +579,10 @@ function updateDemand() {
   const resCnt    = Math.max(1, city.residentialCount);
   const comCnt    = city.commercialCount;
   const indCnt    = city.industrialCount;
-  const total     = resCnt + comCnt + indCnt;
   const pop       = city.population;
 
   const basicEdu   = clamp(city.educationBasicIndex ?? 0, 0, 1);
   const higherEdu  = clamp(city.educationHigherIndex ?? 0, 0, 1);
-  const scienceShare = clamp(city.scienceIndustryShare ?? 0, 0, 1);
   const lawIndex   = clamp(city.ruleOfLawIndex ?? 0, 0, 1);
   const hsiRatio   = clamp(((city.stockMarket?.hsi ?? HSI_BASE_LEVEL) - HSI_BASE_LEVEL) / (HSI_BASE_LEVEL * 0.35), -1, 1);
   const stockExchangeBoost = hasBuildingType('stock_exchange') ? 0.08 : 0;
@@ -722,41 +720,25 @@ function updateDemand() {
     -1, 1
   );
 
-  // ── demandI (dual-track) ──────────────────────────────────────────────────
-  // Traditional track: driven by low-edu labour surplus.
-  const regularIndCnt = indCnt * (1 - scienceShare);
-  const regularIndLabourTerm = lowEduWorkers > 0
-    ? clamp(lowEduJobGap / lowEduWorkers, -1, 1) * 0.55
-    : 0;
-  const regularIndBase = 0.30 - clamp((regularIndCnt / Math.max(total, 1)) * 1.5, 0, 0.40);
-
-  // Science-park track: driven by high-edu workers who cannot find commercial jobs.
-  //   Higher scienceShare means industrial sector can absorb educated workers.
-  const sciParkLabourTerm = highEduWorkers > 0
-    ? clamp(highEduJobGap / highEduWorkers, -1, 1) * 0.60
-    : 0;
-
-  const pollutionPenalty = clamp(city.pollution / 200, 0, 0.30);
+  // ── demandI: independent traditional / science-park markets ────────────────
   const transportIndustrialBonus = typeof getTransportIndustrialDemandBonus === 'function'
     ? getTransportIndustrialDemandBonus()
     : 0;
-
-  city.demandI = clamp(
-    regularIndLabourTerm * (1 - scienceShare) * 0.6
-    + regularIndBase    * (1 - scienceShare)
-    + sciParkLabourTerm * scienceShare * 0.8
-    + 0.18 * basicEdu
-    - pollutionPenalty
-    - (isPolicyActive('cleanAir') ? 0.05 : 0)
-    + (isPolicyActive('scienceDevelopment') ? 0.05 : 0)
-    + (isPolicyActive('industrialBuildingRevitalization') ? 0.12 : 0)
-    + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0)
-    + transportIndustrialBonus
-    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandI') : 0)
-    + (regionFlows?.demandI ?? 0)
-    - powerShortageDemandPenalty,
-    -1, 1
-  );
+  const industrialDemand = calculateIndustrialDemand({
+    population: pop, labourForce, basicEducation: basicEdu, higherEducation: higherEdu,
+    lowEduWorkers, commercialJobs: comJobCap, regularJobs: regularIndJobCap, scienceJobs: sciParkJobCap,
+    pollution: city.pollution,
+    researchSupport: (isPolicyActive('scienceDevelopment') ? 0.7 : 0) + (isPolicyActive('strongCountryManufacturing') ? 0.3 : 0),
+    regularPolicyBonus: (isPolicyActive('industrialBuildingRevitalization') ? 0.12 : 0)
+      + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0) - (isPolicyActive('cleanAir') ? 0.04 : 0),
+    sharedAdjustment: transportIndustrialBonus
+      + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandI') : 0)
+      + (regionFlows?.demandI ?? 0) - powerShortageDemandPenalty,
+  });
+  city.demandRegularI = industrialDemand.regular;
+  city.demandScienceI = industrialDemand.science;
+  // The I bar shows the stronger opportunity; each lot uses its own market's demand.
+  city.demandI = Math.max(city.demandRegularI, city.demandScienceI);
 }
 
 // ── Zone growth / shrink ──────────────────────────────────────────────────────

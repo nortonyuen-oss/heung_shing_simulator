@@ -107,7 +107,7 @@ function setHousingZoneType(row, col, type) {
 // The overlay texture code: res / pub / hos
 function getZoneOverlayCode(zone, row, col) {
   if (zone === ZONE_COM) return 'com';
-  if (zone === ZONE_IND) return 'ind';
+  if (zone === ZONE_IND) return typeof getIndustrialZoneType === 'function' && getIndustrialZoneType(row, col) === 'science' ? 'sci' : 'ind';
   const type = getHousingZoneType(row, col);
   return type === 'public' ? 'pub' : type === 'hos' ? 'hos' : 'res';
 }

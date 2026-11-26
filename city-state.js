@@ -136,6 +136,7 @@ const city = {
   walledCity: null,
   // 公屋區／居屋區 (housing-types.js): { 'row:col': 1 公屋 | 2 居屋 }; private residential tiles are absent
   housingZones: {},
+  industrialZones: {}, // { 'row:col': 1 } for dedicated science-park land
   // 公屋／居屋屋邨 (housing-estates.js): { id: estate }, and 空格綠化's months a stuck tile has stood empty
   housingEstates: {},
   housingGapMonths: {},
@@ -203,6 +204,8 @@ const city = {
   demandR: 0.3,
   demandC: 0.3,
   demandI: 0.5,
+  demandRegularI: 0.5,
+  demandScienceI: -0.2,
   educationBasicIndex: 0,
   educationHigherIndex: 0,
   educationAverageLevel: 0,
@@ -410,6 +413,8 @@ function resetGameState() {
   city.demandR    = 0.3;
   city.demandC    = 0.3;
   city.demandI    = 0.5;
+  city.demandRegularI = 0.5;
+  city.demandScienceI = -0.2;
   city.educationBasicIndex = 0;
   city.educationHigherIndex = 0;
   city.educationAverageLevel = 0;
@@ -512,6 +517,7 @@ function resetGameState() {
   city.airportHistory = [];
   city.walledCity = null;
   city.housingZones = {};
+  city.industrialZones = {};
   city.housingEstates = {};
   city.housingGapMonths = {};
   city.buildingRepairs = 0;
@@ -679,6 +685,8 @@ function normalizeCityFinanceState() {
   city.epidemicSeverity = toFiniteOr(city.epidemicSeverity, 0);
   city.epidemicMonthsLeft = Math.max(0, Math.floor(toFiniteOr(city.epidemicMonthsLeft, 0)));
   city.scienceParkUnlocked = !!city.scienceParkUnlocked;
+  city.demandRegularI = toFiniteOr(city.demandRegularI, city.demandI ?? 0.5);
+  city.demandScienceI = toFiniteOr(city.demandScienceI, -0.2);
   city.ruleOfLawIndex = toFiniteOr(city.ruleOfLawIndex, 0);
   city.crimeRateIndex = toFiniteOr(city.crimeRateIndex, 0);
   city.scienceIndustryShare = toFiniteOr(city.scienceIndustryShare, 0);

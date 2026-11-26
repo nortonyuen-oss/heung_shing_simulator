@@ -145,7 +145,7 @@
   // ── The city as the chapters read it ──────────────────────────────────────
 
   // Bus routes that ran last month with riders: how many, their net between them, and how many
-  // have stops in two or more district signs' areas (跨區, ch07).
+  // go off the map or have stops in two district signs' areas (跨區, ch07).
   function collectBusRouteFacts() {
     const facts = { busRoutes: 0, busRoutesNet: 0, crossDistrictRoutes: 0 };
     const state = typeof isTransportExpansionActive === 'function' && isTransportExpansionActive()
@@ -154,7 +154,11 @@
     const stops = new Map((state.stops || []).map((stop) => [stop.id, stop]));
     (state.routes || []).forEach((route) => {
       const last = Array.isArray(route.history) ? route.history[route.history.length - 1] : null;
-      if (route.status === 'suspended' || !last || !(Number(last.passengers) > 0)) return;
+      // passengers counts completed trips (alightings). Riders boarding at the far end
+      // already used the route even if their bus is still outside when the month closes.
+      // The two counters overlap, so use either as evidence of service, never add them.
+      const carriedRiders = Number(last?.passengers) > 0 || Number(last?.offMapPassengers) > 0;
+      if (route.status === 'suspended' || !last || !carriedRiders) return;
       facts.busRoutes += 1;
       facts.busRoutesNet += Number(last.net) || 0;
       // a route to a 區外站 crosses districts by going to another (docs/region-transit-design.md)

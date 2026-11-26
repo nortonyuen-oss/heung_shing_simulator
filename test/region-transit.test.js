@@ -260,6 +260,82 @@ test('the month keeps the riders at the 區外站, the region flows take them of
   assert.equal(run(context, 'getTransportExpansionState().routes[0].history.at(-1).offMapPassengers'), 100);
 });
 
+test('riders boarding outside the map remain in the live route statistics while the bus is hidden', () => {
+  const context = createOffMapVm();
+  run(context, `
+    var route = createTransportRoute({ stopIds: [eastStop, westStop, centralStop.id], fare: 35 });
+    var bought = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(bought.id, route.id);
+    var bus = getTransportExpansionState().vehicles.find(vehicle => vehicle.id === bought.id);
+    bus.orderIndex = 1; bus.progress = 0; bus.dwellMinutesRemaining = 0;
+    bus.passengersAboard = 0;
+    centralStop.waitingPassengers = 12;
+    advanceTransportVehiclesByDisplayMinutes(1.51);
+    updateTransportSimulation();
+  `);
+  assert.equal(run(context, 'getTransportVehicleOffMapAlpha(bus)'), 0);
+  assert.equal(run(context, 'route.monthToDatePassengers'), 0, 'the incoming passengers have not alighted yet');
+  assert.equal(run(context, 'route.monthToDateOffMapPassengers'), 12);
+  assert.equal(run(context, 'route.lastStats.offMapPassengers'), 12, 'visibility does not erase actual off-map boardings');
+});
+
+test('Tuen Mun counts five carrying routes, including three buses outside the map, across settlement and save reload', () => {
+  const context = createOffMapVm();
+  context.HeungShingStorage = { request: async () => ({ ok: true, json: async () => ({ data: null }) }) };
+  context.getCurrentLanguage = () => 'zhHant';
+  context.setTimeout = () => 0;
+  context.clearTimeout = () => {};
+  const clock = {};
+  context.onGameClockEvent = (name, handler) => { clock[name] = handler; };
+  context.collectMedalSnapshot = () => ({ buildings: { police_station: 1 }, transit: context.getTransportExpansionState().lastModeTotals });
+  context.settleLightRailMonth = () => ({ revenue: 0, passengers: 1, cost: 0 });
+  for (const file of ['campaign-chapters.js', 'campaign.js']) vm.runInContext(read(file), context, { filename: file });
+  run(context, `
+    var outsideBuses = [];
+    for (let index = 0; index < 3; index++) {
+      const route = createTransportRoute({ stopIds: [eastStop, westStop, centralStop.id], fare: 35 });
+      const bought = buyTransportVehicle(depotId, 'standard_double_decker');
+      assignTransportVehicleToRoute(bought.id, route.id);
+      const bus = getTransportExpansionState().vehicles.find(vehicle => vehicle.id === bought.id);
+      bus.orderIndex = 1; bus.progress = 0; bus.dwellMinutesRemaining = 0; bus.passengersAboard = 0;
+      centralStop.waitingPassengers = 12;
+      advanceTransportVehiclesByDisplayMinutes(1.51);
+      outsideBuses.push(bus);
+    }
+    for (let index = 0; index < 2; index++) {
+      const route = createTransportRoute({ stopIds: [eastStop, westStop], fare: 35 });
+      const bought = buyTransportVehicle(depotId, 'standard_double_decker');
+      assignTransportVehicleToRoute(bought.id, route.id);
+      const bus = getTransportExpansionState().vehicles.find(vehicle => vehicle.id === bought.id);
+      bus.orderIndex = 0; bus.progress = 0; bus.dwellMinutesRemaining = 0;
+      bus.passengersAboard = 20; bus.passengerDistanceTiles = 20;
+      advanceTransportVehiclesByDisplayMinutes(5.26);
+    }
+    // An extra off-map route with no bus or passengers must not earn KPI credit.
+    createTransportRoute({ stopIds: [eastStop, westStop, centralStop.id], fare: 35 });
+    city.month = 2;
+    city.monthlyIncome = 1000; city.monthlyExpenses = 500;
+    city.trafficIndex = 0.4; city.crimeRateIndex = 0.2;
+    city.campaign = createCampaignRun('ch07', city.year * 12);
+    city.campaign.eventsShown.levelCrossing = true;
+    settleTransportMonth();
+  `);
+  assert.equal(run(context, 'outsideBuses.filter(bus => getTransportVehicleOffMapAlpha(bus) === 0).length'), 3);
+  assert.equal(run(context, 'getTransportExpansionState().routes.filter(route => route.history.at(-1).passengers === 0 && route.history.at(-1).offMapPassengers === 12).length'), 3);
+  const snapshot = context.buildCampaignSnapshot();
+  assert.equal(snapshot.busRoutes, 5, 'off-map riders count as actual service before they alight in town');
+  assert.equal(snapshot.crossDistrictRoutes, 3);
+  assert.equal(run(context, 'evaluateCampaignStar(CAMPAIGN_CHAPTER_SPECS.ch07, 0, buildCampaignSnapshot(), city.campaign).done'), true);
+  clock['gameclock:month']();
+  assert.equal(context.city.campaign.stars, 1, 'the real month-turn awards the star');
+  assert.equal(context.getCampaignProfile().chapters.ch07.stars, 1);
+  run(context, 'restoreExpansionState(JSON.parse(JSON.stringify(getExpansionSaveState())))');
+  assert.equal(context.buildCampaignSnapshot().busRoutes, 5, 'an empty off-map route does not count after reload either');
+  assert.equal(context.buildCampaignSnapshot().crossDistrictRoutes, 3, 'saved off-map service is still counted');
+  run(context, 'setTransportRouteSuspended(getTransportExpansionState().routes[0].id, true)');
+  assert.equal(context.buildCampaignSnapshot().crossDistrictRoutes, 2, 'suspended routes do not qualify');
+});
+
 test('the route editor adds the 區外站 at an exit, keeps it last, and picks the district', () => {
   const ui = read('transport-ui.js');
   assert.match(ui, /if \(handleTransportOffMapStopClick\(row, col\)\) return true;/);

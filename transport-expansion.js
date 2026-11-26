@@ -2776,6 +2776,7 @@ function updateTransportSimulation() {
     const stats = normalizeTransportStats({
       potentialPassengers,
       monthlyPassengers: servedPassengers,
+      offMapPassengers: route.monthToDateOffMapPassengers,
       loadFactor,
       reliability,
       headwayMinutes,

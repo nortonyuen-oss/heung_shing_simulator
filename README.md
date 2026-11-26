@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.1.2 — 【屋邨仔】
+# 香城模擬器 (Heung Shing Simulator) v6.1.3 — 【屋邨仔】
 
-香城模擬器 (Heung Shing Simulator) v6.1.2 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.1.3 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.1.3
+
+Tuen Mun's first star now counts cross-district bus routes when passengers have boarded at the off-map stop but have not yet returned to alight in town. Buses still outside at month end no longer cause carrying-route KPIs to be missed. Live off-map ridership statistics are populated too. Empty and suspended routes remain excluded; regression coverage includes month-end star awards and save reloads.
 
 ## New in v6.1.2
 

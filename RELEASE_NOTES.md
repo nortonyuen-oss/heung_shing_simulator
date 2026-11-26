@@ -1,3 +1,28 @@
+# Heung Shing Simulator v6.1.3 — 【屋邨仔】
+
+- 廣東話／台灣中文：【屋邨仔】
+- English: 【Estate Kids】
+- 日本語：【団地っ子】
+
+## 屯門跨區巴士，喺圖外載客都計 KPI
+
+- **修正屯門一星漏計**：乘客喺區外站上咗車，但巴士未返圖內畀佢哋落車，原本會被當成冇載客。依家實際區外上落客紀錄亦會計入載客路線，5 條載客線、當中 3 條跨區可以正常達標。
+- **實時區外客量**：補回路線即時統計嘅區外客量欄位。
+- **實際服務先計**：空線、停駛線仍然唔計；圖內已完成車程同區外上落客只作載客證明，同一條線唔會重複計數。
+- **月底及存檔驗證**：已加入回歸測試，涵蓋三架巴士仍喺圖外、月底正常授星及存檔重載後保留路線判定。
+
+**台灣中文：** 修正屯門一星跨區巴士 KPI 漏算：乘客在區外站上車但尚未回到圖內下車時，路線原本會被視為沒有載客；現在實際區外上落客紀錄也會計入載客路線。同步補上路線即時區外客量統計。空路線、停駛路線仍不計入，每條路線只計一次；回歸測試確認 5 條載客路線、其中 3 條跨區且巴士仍在圖外時，月底正常授星，存檔重載後也保留判定。
+
+**English:** Fixed Tuen Mun star one missing cross-district bus routes when passengers had boarded at the off-map stop but had not yet returned to alight in town. Actual off-map boarding/alighting records now count as evidence of service, and live off-map ridership statistics are populated. Empty and suspended routes remain excluded; each route counts once. Regression tests verify month-end star awards with five carrying routes, three buses still outside, and route recognition after save reload.
+
+**日本語:** 屯門の一つ目の星で区外バス路線を数え漏らす問題を修正。区外停留所で乗車し、まだ街へ戻って降車していない乗客も、実際の載客として数えます。リアルタイム区外乗客数も反映。空の路線と運休路線は引き続き対象外で、各路線を1回だけ計数。載客路線5本・区外3本のバスが地図外にいる状態で月末に星を獲得し、セーブ再読込後も路線を認識する回帰テストを追加しました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.1.2 — 【屋邨仔】
 
 - 廣東話／台灣中文：【屋邨仔】

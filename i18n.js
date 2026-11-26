@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '6.1.2';
+let appVersion = '6.1.3';
 let appReleaseTheme = '【屋邨仔】';
 const APP_RELEASE_THEMES = {"en":"【Estate Kids】","zhHant":"【屋邨仔】","ja":"【団地っ子】"};
 function localizedReleaseTheme() {

@@ -1,3 +1,29 @@
+# Heung Shing Simulator v6.1.1 — 【屋邨仔】
+
+- 廣東話／台灣中文：【屋邨仔】
+- English: 【Estate Kids】
+- 日本語：【団地っ子】
+
+## 手機唔再玩玩下閃退；UFO 唔再出錯
+
+- **手機閃退**：
+  - 瀏覽器版（手機用緊嘅版本）每首播過嘅歌都會完整解碼留喺記憶體，一首 65–104 MB，播完都唔放。
+  - 隨機播放半個鐘，就積到大約 500 MB 音樂，手機頂唔順就會關咗個遊戲，退返主畫面。
+  - 而家只會保留播緊嗰首歌，記憶體唔會再越用越多。
+- **UFO 事件出錯**：新城市可以去嘅地方少過當晚 UFO 要去嘅站數，飛去第二個站就每格畫面都出錯。而家城市有幾多個地方，UFO 就去幾多個站。
+
+**台灣中文：** 手機不再玩一陣子就閃退：瀏覽器版（手機用的版本）每首播過的歌都會完整解碼留在記憶體，每首 65–104 MB 而且不會釋放；隨機播放半小時就累積約 500 MB 音樂，手機負荷不了就關掉遊戲回到主畫面。現在只保留正在播的那首歌。UFO 事件：新城市可去的地方少於當晚 UFO 要去的站數時，飛往第二站就每格畫面都出錯；現在 UFO 只去城市有的地方。
+
+**English:** Phones no longer close the game after a while. The browser version (the one phones play) kept every song the jukebox had played fully decoded in memory, 65-104 MB a song, and never let them go; half an hour of shuffle held about 500 MB of music and the phone shut the game. Now only the song playing is kept. A UFO over a young city with fewer places to visit than the night's stops threw an error on every frame from its second stop; it now visits only the places the city has.
+
+**日本語:** スマートフォンで遊んでいるうちに落ちる問題を修正。ブラウザー版（スマートフォンで動く版）は、ジュークボックスで再生した曲をすべて解凍したままメモリに残していました（1曲65〜104 MB）。シャッフルで30分遊ぶと約500 MBの音楽がたまり、スマートフォンがゲームを終了していました。今は再生中の曲だけを残します。UFOイベント：訪れる場所が当夜の停留数より少ない新しい都市では、2か所目から毎フレームエラーが出ていましたが、都市にある場所だけを回るようにしました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.1.0 — 【屋邨仔】
 
 - 廣東話／台灣中文：【屋邨仔】

@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.1.0 — 【屋邨仔】
+# 香城模擬器 (Heung Shing Simulator) v6.1.1 — 【屋邨仔】
 
-香城模擬器 (Heung Shing Simulator) v6.1.0 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.1.1 — 【屋邨仔】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.1.1
+
+Phones stop closing the game after a while: the browser version kept every song the jukebox had played decoded in memory (65-104 MB a song), so half an hour of shuffle held about 500 MB of music and the phone shut the game; now only the song playing is kept. A UFO over a young city with few places to visit no longer throws an error on every frame.
 
 ## New in v6.1.0 — 【屋邨仔】 / 【Estate Kids】
 

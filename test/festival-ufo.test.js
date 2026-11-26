@@ -112,3 +112,15 @@ test('no visitor on a wet or stormy night', () => {
   assert.equal(isUfoWeatherClear({ condition: 'clear', typhoonStage: 'signal3' }), false);
   assert.equal(isUfoWeatherClear({ condition: 'clear', rainWarning: 'amber' }), false);
 });
+
+// v6.1.0, Norton: UFO event 手機版會有 error. A young city with one place to visit got a tour of 2-4
+// stops; from the second, route[stop] was undefined and every frame threw in getFestivalPlacementPoint.
+test('a city with fewer places than the night\'s stops gets a tour as long as its places, and nothing throws past them', () => {
+  const route = pickUfoRoute([{ target: { mode: 'tile', row: 5, col: 5 }, tile: [5, 5], rank: 4, district: 'all', id: 'a' }], 3, 'seed');
+  assert.equal(route.length, 1, 'one place, one stop');
+  const timeline = getUfoTimeline({ startMinute: 20 * 60, stops: route.length });
+  assert.ok(timeline.every((segment) => (segment.stop ?? 0) < route.length && (segment.to ?? 0) < route.length));
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'festival-ufo.js'), 'utf8');
+  assert.match(src, /if \(route\.length < \(sighting\.stops \|\| 1\)\) \{\s*sighting\.stops = route\.length;/);
+  assert.match(src, /const target = runtime\.route\[phase\.stop\];\s*const at = target && getFestivalPlacementPoint\(scene, target\);/);
+});

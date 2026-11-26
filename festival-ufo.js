@@ -396,7 +396,8 @@ function getUfoTravelPoint(from, to, t, now) {
 }
 
 function drawUfo(scene, runtime, phase, now) {
-  const at = getFestivalPlacementPoint(scene, runtime.route[phase.stop]);
+  const target = runtime.route[phase.stop];
+  const at = target && getFestivalPlacementPoint(scene, target);
   if (!at) return;
   runtime.stop = phase.phase === 'travel' ? phase.to : phase.stop;
   updateUfoCameraFollow(scene, runtime);
@@ -404,7 +405,7 @@ function drawUfo(scene, runtime, phase, now) {
   const altitude = UFO_SIGHTING.altitudeM * UFO_PX_PER_METRE;
   let off = getUfoOffset(phase, now);
   if (phase.phase === 'travel') {
-    const next = getFestivalPlacementPoint(scene, runtime.route[phase.to]) || at;
+    const next = (runtime.route[phase.to] && getFestivalPlacementPoint(scene, runtime.route[phase.to])) || at;
     const trip = getUfoTravelPoint(at, next, phase.t, now);
     off = { x: trip.x - at.x, y: trip.groundY - at.y - trip.lift, sx: 1, sy: 1, alpha: 1 };
   }
@@ -503,6 +504,13 @@ function updateUfo(scene, time) {
     if (key.startsWith('month:') && !isUfoWeatherClear()) { scene.ufoSchedule = null; return; }
     const route = pickUfoRoute(getUfoStopCandidates(), sighting.stops || 1, `ufo:${city.name}:${key}`);
     if (!route.length) return;
+    // a young city with fewer places to visit than the night's stops: the tour is as long as its
+    // places, or the timeline would send the saucer to a stop that is not there (v6.1.0, Norton: UFO
+    // event 手機版會有 error - every frame threw once it set off for a second stop)
+    if (route.length < (sighting.stops || 1)) {
+      sighting.stops = route.length;
+      if (key.startsWith('forced:') && ufoForced) ufoForced.stops = route.length;
+    }
     ufoRuntime = { key, monthIndex, sighting, route, places: getUfoPlaces(route), sprites: {}, loading: true };
     const runtime = ufoRuntime;
     const already = getCityFestivalState()?.ufo?.lastMonthIndex === monthIndex && key.startsWith('month:');

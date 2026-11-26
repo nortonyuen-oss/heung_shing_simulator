@@ -45,3 +45,27 @@ test('shuffle plays every gameplay track once before repeating, never the title 
   assert.equal(vm.runInContext('stepMusicTrack(1)', context), 0);
   assert.equal(vm.runInContext('stepMusicTrack(-1)', context), 4);
 });
+
+// v6.1.0, Norton: 手機版成日閃退，退回主畫面. On the browser version every song the jukebox played stayed
+// decoded in memory (65-104 MB each): half an hour of shuffle held ~500 MB and a phone closed the game.
+test('the browser version keeps only the song playing in memory', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'audio.js'), 'utf8');
+  const start = src.indexOf('function releaseWebMusicExcept(');
+  const fn = src.slice(start, src.indexOf('\n}\n', start) + 3);
+  const vm = require('node:vm');
+  const removed = [];
+  const cached = new Set(['music_0', 'music_1', 'music_2', 'amb_urban']);
+  const context = vm.createContext({
+    MUSIC_TRACKS: [{ key: 'music_0' }, { key: 'music_1' }, { key: 'music_2' }, { key: 'music_3' }],
+  });
+  vm.runInContext(fn, context);
+  const scene = {
+    cache: { audio: { exists: (key) => cached.has(key), remove: (key) => { cached.delete(key); removed.push(key); } } },
+    // music_1 still playing elsewhere: kept; a destroyed one does not count
+    sound: { sounds: [{ key: 'music_1', pendingRemove: false }, { key: 'music_2', pendingRemove: true }] },
+  };
+  assert.equal(context.releaseWebMusicExcept(scene, 'music_0'), 1);
+  assert.deepEqual(removed, ['music_2']);
+  assert.ok(cached.has('music_0') && cached.has('music_1') && cached.has('amb_urban'), 'the song playing, one still sounding, and the ambience stay');
+  assert.match(src, /if \(globalThis\.HEUNG_SHING_CONFIG\?\.platform === 'web'\) releaseWebMusicExcept\(activeScene, MUSIC_TRACKS\[trackIndex\]\.key\);/);
+});

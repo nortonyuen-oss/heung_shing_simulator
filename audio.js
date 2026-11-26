@@ -416,6 +416,23 @@ function changeTrack(direction) {
   updateJukeboxUi();
 }
 
+// The browser version keeps one song in memory. A song is decoded whole into memory (65-104 MB a
+// song), and every song the jukebox shuffled through stayed there: half an hour in, a phone held some
+// 500 MB of music and closed the game (v6.1.0, Norton: 手機版成日閃退，退回主畫面). The others are let
+// go when a song starts - fetched again (from the browser's cache) if they come round again.
+function releaseWebMusicExcept(scene, keepKey) {
+  if (!scene?.cache?.audio) return 0;
+  let released = 0;
+  MUSIC_TRACKS.forEach(({ key }) => {
+    if (key === keepKey || !scene.cache.audio.exists(key)) return;
+    // (never a song a sound still plays)
+    if ((scene.sound?.sounds || []).some((sound) => sound.key === key && !sound.pendingRemove)) return;
+    scene.cache.audio.remove(key);
+    released += 1;
+  });
+  return released;
+}
+
 function playTrack(trackIndex) {
   if (!activeScene) return;
   if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !activeScene.cache.audio.exists(MUSIC_TRACKS[trackIndex].key)) {
@@ -441,6 +458,7 @@ function playTrack(trackIndex) {
     activeMusic.stop();
     activeMusic.destroy();
   }
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') releaseWebMusicExcept(activeScene, MUSIC_TRACKS[trackIndex].key);
 
   const volume = getMusicOutputVolume(getCurrentMusicVolume());
 

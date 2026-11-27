@@ -156,6 +156,14 @@ jobs:
       - run: node scripts/restore-web-history.js
         env:
           GH_TOKEN: ${{ github.token }}
+      # Phones' GPU-compressed building art (scripts/compressed-textures.js), by source hash
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .data/astc-cache
+            .data/tools
+          key: astc-${{ runner.os }}-${{ hashFiles('scripts/compressed-textures.js') }}-${{ github.sha }}
+          restore-keys: astc-${{ runner.os }}-${{ hashFiles('scripts/compressed-textures.js') }}-
       - run: npm run build:web
         env:
           WEB_STATISTICS_ENABLED: 'true'

@@ -1,3 +1,31 @@
+# Heung Shing Simulator v6.2.2 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 手機建築圖改用 GPU 壓縮
+
+- **記憶體得返九分一**：一般圖片入到 GPU 每個像素佔 4 bytes，唔理原本係咩格式。網頁版依家幫每張建築圖整多一份 ASTC 6x6 壓縮版，GPU 直接用壓縮資料，記憶體只係原本九分一。太子大城市連長懸索橋，手機峰值由 483 MB 降到 284 MB。
+- **下載都細咗**：手機要下載嘅建築圖由 136 MB 減到 43.5 MB。
+- **邊啲機會用**：只限支援 ASTC 嘅手機瀏覽器（大部分近年 Android 手機、iPhone Safari 16.4 或以上）。電腦瀏覽器同桌面版照用原本嘅圖，冇改變。
+- **後備**：壓縮圖載唔到或者解唔到，會喺同一次載入即刻改載原圖，唔會冇圖。
+- **畫質**：遊戲正常縮放下同原圖睇唔出分別；夜景圖唔使再縮半，反而清楚咗。點擊建築用壓縮圖附帶嘅透明度遮罩判斷。
+- **發佈前檢查**：`npm run test:memory` 預設用壓縮圖跑，另外要用 `MEMORY_TEST_GPU_TEXTURES=off` 再跑一次原圖，兩次都要喺 500 MB 以內。
+- **官網畫廊**：新增公屋屋邨、行車天橋同懸索橋黃昏、夜景截圖。
+
+**台灣中文：** 手機的建築圖改用 GPU 壓縮。一般圖片進入 GPU 後每個像素佔 4 bytes；網頁版現在為每張建築圖多做一份 ASTC 6x6 壓縮版，GPU 直接使用壓縮資料，記憶體只需原本九分之一。太子大城市加長懸索橋在手機的峰值由 483 MB 降至 284 MB，需下載的建築圖由 136 MB 減至 43.5 MB。只限支援 ASTC 的手機瀏覽器；電腦瀏覽器與桌面版不變。壓縮圖載入失敗會立即改載原圖。發佈前記憶體檢查兩種情況都須通過。官網畫廊新增公屋屋邨、高架道路與懸索橋截圖。
+
+**English:** Phones keep building art GPU-compressed. A usual picture costs 4 bytes a pixel on the GPU whatever its file format; the web build now makes an ASTC 6x6 copy of each building picture that the GPU keeps compressed, at a ninth of the memory. The 太子 showcase with a long suspension bridge peaks at 284 MB on a phone, down from 483 MB, and the phone downloads 43.5 MB of building art instead of 136 MB. Only phone browsers with ASTC use it; computers and the desktop app are unchanged. If a compressed picture fails to load, the usual one loads in the same pass. The pre-release memory check runs both ways. The site gallery adds a public housing estate, a flyover and the suspension bridge at dusk and at night.
+
+**日本語:** スマートフォンの建物画像をGPU圧縮に。通常の画像はファイル形式にかかわらずGPU上で1ピクセル4バイト。ウェブ版は建物画像ごとにASTC 6x6の圧縮版を用意し、GPUが圧縮のまま保持するのでメモリーは9分の1。太子の大都市と長い吊り橋でのピークは483 MBから284 MBに、ダウンロードする建物画像は136 MBから43.5 MBに。ASTC対応のスマートフォンのブラウザーのみ。パソコンとデスクトップ版は変更なし。圧縮画像の読み込みに失敗した場合は同じ読み込みで通常の画像に切り替え。リリース前のメモリーチェックは両方を確認。公式サイトのギャラリーに公営団地、高架道路、夕暮れと夜の吊り橋を追加。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.1 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

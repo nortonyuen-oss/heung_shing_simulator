@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.1 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.2 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.1 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.2 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.2
+
+Phones now keep building art compressed on the GPU. The web build makes an ASTC 6x6 copy of each building picture (a ninth of the memory of the usual RGBA), and a phone browser that supports ASTC loads those copies instead of the WebP. The 太子 showcase with a long suspension bridge now peaks at 284 MB on a phone, down from 483 MB, and the phone downloads 43.5 MB of building art instead of 136 MB. Phones without ASTC, computers and the desktop app keep the WebP. If a compressed picture fails to load, the game loads the WebP in the same pass. `npm run test:memory` checks both paths before every release. The official site's gallery adds screenshots of a public housing estate, a flyover and the suspension bridge.
 
 ## New in v6.2.1
 

@@ -44,10 +44,12 @@ function getMemoryBudgetBytes(kind) {
 }
 
 // The bytes a texture holds on the GPU: four a pixel, a third more with its mip chain (power-of-two
-// sizes only - Phaser builds mipmaps for those).
+// sizes only - Phaser builds mipmaps for those); a GPU-compressed one, its blocks
+// (gpu-texture-compression.js).
 function estimateTextureBytes(texture) {
   let bytes = 0;
   (texture?.source || []).forEach((source) => {
+    if (source?.compressionAlgorithm) { bytes += Number(source.hsGpuBytes) || 0; return; }
     // (the picture held, not the size it is drawn at: a phone's night art is held at half size)
     const w = Number(source?.image?.width || source?.width) || 0, h = Number(source?.image?.height || source?.height) || 0;
     const pot = (v) => v > 0 && (v & (v - 1)) === 0;

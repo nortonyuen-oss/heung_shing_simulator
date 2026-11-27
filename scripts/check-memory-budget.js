@@ -14,7 +14,8 @@
 // measured: it cannot be read on a phone either.
 //
 // Options (environment): MEMORY_TEST_URL (default: serve release/web here), MEMORY_TEST_DAYS (4),
-// MEMORY_TEST_REPORT (.data/memory-check/report.json).
+// MEMORY_TEST_REPORT (.data/memory-check/report.json), MEMORY_TEST_GPU_TEXTURES (on; off: the WebP
+// fallback of a phone without ASTC).
 const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');
@@ -37,6 +38,7 @@ function probeInPage() {
   const groups = {};
   let total = 0;
   const seen = new Set();
+  const gpu = { count: 0 };
   Object.entries(s.textures.list).forEach(([key, texture]) => {
     if (['__DEFAULT', '__MISSING', '__WHITE', '__NORMAL'].includes(key)) return;
     (texture.source || []).forEach((source) => {
@@ -45,7 +47,9 @@ function probeInPage() {
       // (the picture held, not the size it is drawn at)
       const w = source.image?.width || source.width || 0, h = source.image?.height || source.height || 0;
       const pot = (v) => v > 0 && (v & (v - 1)) === 0;
-      const bytes = w * h * 4 * (pot(w) && pot(h) ? 4 / 3 : 1);
+      // (a GPU-compressed picture: its blocks - gpu-texture-compression.js)
+      const bytes = source.compressionAlgorithm ? Number(source.hsGpuBytes) || 0 : w * h * 4 * (pot(w) && pot(h) ? 4 / 3 : 1);
+      if (source.compressionAlgorithm) gpu.count += 1;
       const group = key.startsWith('bl_night__') ? 'buildingNight' : zoneKeys.has(key) ? 'zoneBuildings'
         : key.startsWith('hb_') ? 'bridges' : key.startsWith('roads_') ? 'roads' : key.startsWith('festival') ? 'festivals'
           : key.startsWith('traffic_') ? 'vehicles' : 'other';
@@ -55,7 +59,7 @@ function probeInPage() {
   });
   Object.keys(groups).forEach((k) => { groups[k] = Math.round(groups[k]); });
   return {
-    textures: Math.round(total / 1048576), groups,
+    textures: Math.round(total / 1048576), groups, gpuTextures: gpu.count,
     hour: Math.floor((city.timeOfDayMinutes || 0) / 60), day: city.day, sprites: s.children.list.length,
   };
 }
@@ -71,7 +75,14 @@ async function main() {
     url = `http://127.0.0.1:${port}/`;
     await new Promise((r) => setTimeout(r, 800));
   }
-  const browser = await chromium.launch({ headless: true, ...(process.env.CI ? {} : { channel: 'chrome' }), args: ['--js-flags=--expose-gc'] });
+  // A phone's GPU has ASTC, so by default the game loads its building art GPU-compressed
+  // (gpu-texture-compression.js) and the browser draws with SwiftShader, which has ASTC as a phone
+  // does (a Mac's GPU in Chrome does not). MEMORY_TEST_GPU_TEXTURES=off measures the WebP fallback
+  // a phone without ASTC gets.
+  const gpuTextures = process.env.MEMORY_TEST_GPU_TEXTURES !== 'off';
+  if (!gpuTextures) url += `${url.includes('?') ? '&' : '?'}gpuTextures=off`;
+  const browser = await chromium.launch({ headless: true, ...(process.env.CI ? {} : { channel: 'chrome' }),
+    args: ['--js-flags=--expose-gc', ...(gpuTextures ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [])] });
   const errors = [];
   try {
     const context = await browser.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
@@ -129,7 +140,7 @@ async function main() {
       if (sample.textures > peaks.textures) peaks.textures = sample.textures;
       if (sample.heap > peaks.heap) peaks.heap = sample.heap;
       if (sample.total > peaks.total) { peaks.total = sample.total; peakAt = sample; }
-      console.log(`  ${String(sample.t).padStart(3)}s ${String(sample.hour).padStart(2)}:00  textures ${sample.textures} MB  heap ${heap} MB  ${JSON.stringify(p.groups)}`);
+      console.log(`  ${String(sample.t).padStart(3)}s ${String(sample.hour).padStart(2)}:00  textures ${sample.textures} MB  heap ${heap} MB  ${JSON.stringify(p.groups)}${p.gpuTextures ? `  (${p.gpuTextures} compressed)` : ''}`);
       const days = (await page.evaluate(() => city.day + city.month * 31)) - startDay;
       const elapsed = Date.now() - t0;
       if ((days >= DAYS && elapsed > 120000) || elapsed > 300000) break;

@@ -85,6 +85,24 @@
 
 仍然見到：夜景建築圖逐張首次上傳（`texImage2D`）、拉遠拉近時 `adaptiveDepthSort`（約 5%）、模擬 pulse 步驟（約 3.5%）。
 
+## 2026-11-28：手機用 GPU 壓縮建築圖（ASTC 6x6）
+
+Norton：「可以點樣再減 texture」。v6.2.1 之後手機日間底數約 280 MB（地標同公共建築 133、住宅商業 90），因為一張圖上咗 GPU 就係每像素 4 byte，WebP 幾細都冇用。
+
+- **建置**（`scripts/compressed-textures.js`，`npm run build:web` 自動做）：住宅、商業、工業、地標、公共建築、公園、發電廠等嘅日間圖，加手機用嘅兩款夜景圖（`__night`、`__nightdeep`，加聖誕），共 530 張，每張：
+  - premultiply alpha（Phaser 畫圖係 premultiplied；壓縮數據上傳時唔會幫你乘），
+  - 自己做齊 mip chain 到 1x1（WebGL 1 唔可以幫壓縮 texture 生 mipmap，唔齊就唔可以 mipmap filter），
+  - ASTC 6x6（每像素 3.56 bit，RGBA 嘅九分之一），用 ARM 嘅 `astcenc` 5.7.1（固定版本，SHA-256 核對，自動下載去 `.data/tools`），
+  - 加一個四分一大小嘅 alpha mask（KTX key/value `HSAlphaMask`，每格取最實嘅像素），
+  - 包成 KTX 1 再 gzip（`.ktxz`；Cloudflare 唔會壓未知類型）。按來源 hash 快取喺 `.data/astc-cache`（CI 用 `actions/cache`）。第一次約 2–3 分鐘（8 核）。
+- **遊戲**（`gpu-texture-compression.js`）：網頁版、`low` 記憶體 profile（手機）、瀏覽器有 `WEBGL_compressed_texture_astc` 同 `DecompressionStream`，`load.image` 就改載壓縮版；其他情況（電腦、Electron、冇 ASTC、載入失敗）照舊載 WebP。`?gpuTextures=off|on` 或 localStorage `heungShing.gpuTextures` 可以強制。
+  - Phaser 3.60 每個 loader 喺建立時由 `FileTypesManager` 攞 file type，所以要喺嗰度換 `image`，唔可以改 `LoaderPlugin.prototype`。
+  - `addCompressedTexture` 嘅 data 一定要有 `format`（`renderer.getCompressedTextureName`），冇嘅話 Phaser 會靜靜雞整一張空白 texture。
+  - Phaser 一律將壓縮 texture 設做 `LINEAR`；mip chain 齊就自己改返 `LINEAR_MIPMAP_LINEAR`。上傳後放低 mip 數據（3.60 唔會喺 context lost 後重建 texture）。
+  - 壓縮 texture 冇像素可讀：`source.image` 換成只有尺寸嘅替身（`getSourceImage().width/height` 照用），`getPixelAlpha` 改讀 alpha mask（點擊建築、盂蘭燒衣位）。夜景圖唔再縮半（已經係九分之一）。
+- **結果**（`npm run test:memory`，太子 + 46 格懸索橋，手機模擬）：峰值 **483 → 280 MB**（texture 403 → 199：zone 91 → 10、地標等 133 → 64、夜景 64 → 22）。同一批圖手機下載量 136 MB（WebP）→ 43.5 MB。遊戲畫面肉眼睇唔出分別，夜景反而清晰咗；點擊判定同原圖 98.75% 一致（只差邊緣）。
+- 唔壓縮嘅：橋、地鐵、電車、輕鐵、避風塘、節慶、小食墟——呢啲圖遊戲會讀像素再畫第二樣嘢。馬路（28 MB）同街道 atlas（21 MB）未做。
+
 ## 仍然會見到嘅卡頓（下一步）
 
 - 夜晚 draw call 仍然 100–210：每款建築嘅夜景圖係獨立貼圖（四個 variant），拉遠時斷 batch 最多。可以考慮按區域或者按 variant 打包。

@@ -53,6 +53,12 @@ say-so - change the budget.
 
 The browser's own processes are not the game's and are not measured (a phone cannot report them).
 
+Building art reaches a phone GPU-compressed (ASTC 6x6, a ninth of RGBA): `npm run build:web` makes
+the copies (`scripts/compressed-textures.js`, ~2-3 min the first time, cached in `.data/astc-cache`)
+and `gpu-texture-compression.js` loads them on a phone whose browser has ASTC. The check runs that
+way by default (Chrome draws with SwiftShader, which has ASTC as a phone does). Run it once more with
+`MEMORY_TEST_GPU_TEXTURES=off` for a phone without ASTC, which loads the WebP - that must pass too.
+
 ## 3. Bump Version Everywhere
 
 ```bash

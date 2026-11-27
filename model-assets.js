@@ -611,6 +611,11 @@ function evictUnusedZoneTextures(scene) {
   const loaded = models.flatMap((model) => {
     const source = getLoadedZoneModelSource(scene, model);
     if (!source) return [];
+    // (what the GPU holds: a phone's compressed art is a ninth of RGBA - memory-budget.js)
+    if (typeof estimateTextureBytes === 'function') {
+      // (resident: getLoadedZoneModelSource checked it exists)
+      return [{ model, bytes: Math.ceil(estimateTextureBytes(scene.textures.list[model.key])) }];
+    }
     const isPowerOfTwo = (value) => value > 0 && (value & (value - 1)) === 0;
     const mipmapMultiplier = isPowerOfTwo(source.width) && isPowerOfTwo(source.height)
       ? 4 / 3

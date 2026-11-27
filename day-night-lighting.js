@@ -570,7 +570,8 @@ function shrinkBuildingNightTextureForDevice(scene, key) {
   const source = texture.source?.[0];
   const image = source?.image;
   const w = source?.width || 0, h = source?.height || 0;
-  if (!image || w < 128 || h < 128 || source.isRenderTexture) { texture.__deviceShrunk = true; return; }
+  // (a GPU-compressed picture is a ninth of the memory already, and has no pixels to draw from)
+  if (!image || image.hsCompressed || source.compressionAlgorithm || w < 128 || h < 128 || source.isRenderTexture) { texture.__deviceShrunk = true; return; }
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(w / 2));
   canvas.height = Math.max(1, Math.round(h / 2));

@@ -391,13 +391,26 @@ function getSpriteFootprintMetadata(
     );
   }
   spriteMetadataProfileStats.alphaScans++;
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  canvas.width = image.width;
-  canvas.height = image.height;
-  context.drawImage(image, 0, 0);
-
-  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  // (a phone's GPU-compressed picture has no pixels to read: its alpha mask stands in, cell by
+  // cell - gpu-texture-compression.js. The manifest's geometry normally answers before this.)
+  const mask = image.hsAlphaMask;
+  const canvas = mask ? { width: image.width, height: image.height } : document.createElement('canvas');
+  let pixels;
+  if (mask) {
+    pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+    for (let y = 0; y < canvas.height; y++) {
+      const row = Math.min(mask.h - 1, Math.floor(y / mask.scale)) * mask.w;
+      for (let x = 0; x < canvas.width; x++) {
+        pixels[(y * canvas.width + x) * 4 + 3] = mask.data[row + Math.min(mask.w - 1, Math.floor(x / mask.scale))];
+      }
+    }
+  } else {
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    canvas.width = image.width;
+    canvas.height = image.height;
+    context.drawImage(image, 0, 0);
+    pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  }
   let minX = canvas.width;
   let maxX = -1;
   let bottomY = -1;

@@ -54,13 +54,33 @@ async function main() {
     resources[logical] = name;
     return name;
   }
+  const stagedModelFiles = new Map();
   for (const [logical, entry] of Object.entries(models.entries)) {
     const file = path.join(ROOT, '.data/package-assets', entry.packagedPath);
     if (!fs.existsSync(file)) throw new Error(`Missing staged model ${entry.packagedPath}`);
+    stagedModelFiles.set(logical, file);
     const originalPackagedPath = entry.packagedPath;
     const immutable = await add(logical, file);
     resources[originalPackagedPath] = immutable;
     entry.packagedPath = immutable; entry.hash = path.basename(immutable).split('.')[0];
+  }
+  // Building art a phone's GPU keeps compressed (scripts/compressed-textures.js; the game picks it
+  // in gpu-texture-compression.js). WEB_GPU_TEXTURES=0 builds without it.
+  const gpuAssets = [];
+  if (process.env.WEB_GPU_TEXTURES !== '0') {
+    const gpu = require('./compressed-textures');
+    const todo = Object.keys(models.entries).filter(gpu.isCompressedModelTexture);
+    const started = Date.now();
+    let fresh = 0;
+    await gpu.compressTextures(todo.map((logical) => stagedModelFiles.get(logical)), async (file, result, index) => {
+      const name = `assets/${hash(result.data)}.ktxz`;
+      if (!fs.existsSync(path.join(OUT, name))) output(name, result.data);
+      gpuAssets.push(name);
+      models.entries[todo[index]].compressed = { astc: name, block: gpu.COMPRESSED_TEXTURE_SETTINGS.block };
+      if (!result.cached) fresh += 1;
+      if ((index + 1) % 100 === 0) console.log(`  GPU textures ${index + 1}/${todo.length}`);
+    });
+    console.log(`GPU textures: ${todo.length} building pictures as ASTC ${gpu.COMPRESSED_TEXTURE_SETTINGS.block} (${fresh} encoded, ${Math.round((Date.now() - started) / 1000)} s)`);
   }
   await add('build/icon.png', path.join(ROOT, 'build/icon.png'));
   const directories = ['UI', 'Music', 'Sounds', 'data', 'newRoadTiles', 'kenney_isometric-roads'];
@@ -159,7 +179,7 @@ async function main() {
     const name = path.relative(OUT, file).split(path.sep).join('/');
     if (!retention.assets[name]) retention.assets[name] = { lastUsedAt: config.builtAt, versions: [pkg.version] };
   }
-  const currentAssets = new Set([...Object.values(resources), ...immutableScripts, ...immutableStyles, resourceScript]);
+  const currentAssets = new Set([...Object.values(resources), ...gpuAssets, ...immutableScripts, ...immutableStyles, resourceScript]);
   for (const name of currentAssets) retention.assets[name] = { lastUsedAt: config.builtAt,
     versions: [...new Set([...(retention.assets[name]?.versions || []), pkg.version])] };
   output('asset-retention.json', JSON.stringify(retention));

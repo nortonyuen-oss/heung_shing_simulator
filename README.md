@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.0 — 【青馬飛架】
+# 香城模擬器 (Heung Shing Simulator) v6.2.1 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.0 — 【青馬飛架】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.1 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -10,7 +10,11 @@ post or reply. Website messages are tracked with the `website-feedback` issue la
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
 
-## New in v6.2.0 — 【青馬飛架】 / 【Spanning the Harbour】
+## New in v6.2.1
+
+Phones no longer close the game after a while of play. A big city at night held about 1.2 GB: every building model's four night pictures, loaded and never let go, and a suspension bridge's cables drawn as a picture per tile. In a browser, night art now loads only for the buildings on screen and is let go past a budget, a phone uses two night variants at half size, and the cables are drawn from three small shared pictures. The 太子 showcase with a long suspension bridge now peaks at 477 MB on a phone (textures 396, heap 89), checked before every release by `npm run test:memory`. The release is renamed 【天橋底下】.
+
+## New in v6.2.0 — 【天橋底下】 / 【Under the Flyover】
 
 Choose Ground, Flyover or Suspension Bridge in the road tool on a computer or phone. Flyovers climb four tiles at either end and cross roads, ground-level metro and light rail, or water; traffic on the bridge and the road below stays on its own level. Suspension bridges span at least ten water tiles, with Tsing Ma-style towers, cables, night lighting and sea reflections. Ground roads can now cross light rail at level crossings. Demolishing a bridge deck preserves the road or track below, and existing saves remain readable.
 

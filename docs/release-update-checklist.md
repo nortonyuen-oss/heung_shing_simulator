@@ -32,6 +32,27 @@ node --check model-catalog.js
 node --check save.js
 ```
 
+## 2b. Memory Budget (must pass)
+
+Norton, 2026-11-28: a phone browser closed the game after a while of play - the game held ~1.2 GB
+(building night art, a suspension bridge's cables). The game's own memory on a phone must stay
+within `MEMORY_BUDGET_MB.check` in `memory-budget.js`: **textures 420 MB, JavaScript heap 150 MB,
+500 MB together**.
+
+```bash
+npm run build:web
+npm run test:memory
+```
+
+It plays the built browser game in a phone-sized Chrome: the 太子 showcase city with a 懸索橋 over
+its longest stretch of sea, at speed through several days and nights, the camera moving about.
+It prints each sample (textures by kind, the heap after a garbage collection) and the peaks, and
+writes `.data/memory-check/report.json`. A FAIL blocks the release: look at the kind that grew
+(`buildingNight`, `bridges`, `festivals`, `zoneBuildings`...) and fix it, or - only with Norton's
+say-so - change the budget.
+
+The browser's own processes are not the game's and are not measured (a phone cannot report them).
+
 ## 3. Bump Version Everywhere
 
 ```bash

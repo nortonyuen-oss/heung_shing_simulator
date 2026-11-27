@@ -2403,10 +2403,13 @@ function isBuildingPixelOpaque(scene, building, worldX, worldY) {
   }
 
   if (typeof scene.textures?.getPixelAlpha === 'function') {
+    // (by its day art when it wears its night art: the same shape, and the night art may be held
+    // smaller than it is drawn - day-night-lighting.js shrinkBuildingNightTextureForDevice)
+    const dayKey = building.__dayTextureKey && scene.textures.exists(building.__dayTextureKey) ? building.__dayTextureKey : null;
     const alpha = scene.textures.getPixelAlpha(
-      textureX + (frame.x ?? 0),
-      textureY + (frame.y ?? 0),
-      building.texture.key,
+      textureX + (dayKey ? 0 : (frame.x ?? 0)),
+      textureY + (dayKey ? 0 : (frame.y ?? 0)),
+      dayKey || building.texture.key,
     );
     return alpha > 8;
   }

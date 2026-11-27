@@ -283,6 +283,11 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
     sprite.setVisible(visible);
     if (visible) {
       stats.visible++;
+      // a building whose night art waited till it was on screen (day-night-lighting.js)
+      if (sprite.__nightDeferred && sprite.scene) {
+        sprite.__nightDeferred = false;
+        sprite.scene.__blNightTexPending = true;
+      }
       if (sprite.__nightTintDirty && typeof applyDeferredNightTint === 'function') applyDeferredNightTint(sprite);
       if (mainCamera && mainBounds) {
         if (isPointWithinCullBounds(sprite.x, sprite.y, mainBounds)) {

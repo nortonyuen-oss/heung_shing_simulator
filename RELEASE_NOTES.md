@@ -1,8 +1,34 @@
-# Heung Shing Simulator v6.2.0 — 【青馬飛架】
+# Heung Shing Simulator v6.2.1 — 【天橋底下】
 
-- 廣東話／台灣中文：【青馬飛架】
-- English: 【Spanning the Harbour】
-- 日本語：【海峡を結ぶ橋】
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 手機唔再玩一陣就閃退
+
+- **記憶體減一半有多**：大城市入夜會載入晒每款建築嘅四款夜間圖，從來唔釋放；加埋懸索橋每格一張主纜圖，手機瀏覽器頂唔順就閂咗遊戲。太子大城市連一條長懸索橋，喺手機嘅峰值由大約 1.2 GB 降到 477 MB。
+- **夜間建築圖**：瀏覽器版只為畫面入面嘅建築載入夜間圖，超出預算就放走冇用緊嘅；手機用兩款夜間變化，以一半尺寸載入。
+- **懸索橋**：主纜、吊索同纜燈改用三張共用細圖砌成，記憶體由幾十 MB 跌到幾乎零，放大睇仲清楚啲。
+- **發佈前檢查**：新增 `npm run test:memory`，用手機模式行太子大城市同懸索橋幾日幾夜，遊戲自己嘅 texture 同 heap 合計超過 500 MB 就唔准發佈。
+- **改名**：版本名改返【天橋底下】。
+
+**台灣中文：** 修正手機瀏覽器玩一陣子就閃退：大城市入夜會載入每款建築的四種夜間圖且從不釋放，加上懸索橋每格一張纜索圖，記憶體超出手機上限。現在瀏覽器版只為畫面中的建築載入夜間圖並設預算釋放，手機改用兩種夜間變化並以一半尺寸載入，懸索橋纜索改用共用小圖。太子大城市加長懸索橋在手機的峰值由約 1.2 GB 降至 477 MB；新增發佈前記憶體檢查（遊戲本身 500 MB 以內）。版本名改為【天橋底下】。
+
+**English:** Phones no longer close the game after a while of play. A big city at night loaded all four night pictures of every building model and never let them go, and a suspension bridge drew a picture of its cables per tile. Browsers now load night art only for buildings on screen and let it go past a budget; phones use two night variants at half size; cables are built from three small shared pictures. The 太子 showcase with a long suspension bridge peaks at 477 MB on a phone, down from about 1.2 GB. A new release check (`npm run test:memory`) keeps the game's own memory under 500 MB. The release is renamed 【Under the Flyover】.
+
+**日本語:** スマートフォンのブラウザーでしばらく遊ぶと落ちる問題を修正。夜の大都市では全建物モデルの夜景画像4種類を読み込んだまま解放せず、吊り橋もマスごとにケーブル画像を持っていました。ブラウザー版は画面内の建物だけ夜景画像を読み込み、予算を超えると解放。スマートフォンは夜景2種類を半分のサイズで使い、ケーブルは共有の小さな画像3枚で描画。太子の大都市と長い吊り橋でのピークは約1.2 GBから477 MBに。リリース前のメモリーチェック（ゲーム自身500 MB以内）を追加。リリース名を【高架の下で】に変更。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
+# Heung Shing Simulator v6.2.0 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
 
 ## 天橋跨路軌，青馬跨海
 

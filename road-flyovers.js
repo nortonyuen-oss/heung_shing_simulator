@@ -635,74 +635,109 @@ function suspensionGeometry(run) {
   return { n, towers: [t1, t2], towerH, deckZ, cableZ, ends: [sA, sB], anchorTop };
 }
 
-// One tile's cable on one side (`b` the across of its plane), over a0..a1 of the tile: the cable
-// (from an end's anchorage on), its hangers, and the anchorage on an end tile - a concrete block on
-// the ground the cable runs into. The anchor: the deck level over the tile's middle; `groundZ` the
-// ground there, below it.
-function hbCableTexture(scene, key, geo, visAxis, b, sAt, sMid, groundZ, a0 = -0.5, a1 = 0.5, lit = false) {
+// The cables are drawn from three small textures every bridge shares - a length of cable, a hanger,
+// a lamp's glow - laid as many little sprites, rotated and stretched: a per-tile canvas of each cable
+// held ~70 MB for one long bridge (GPU and CPU both) and helped a phone browser over its limit
+// (Norton 2026-11-28: 起埋條橋好似會死多兩錢).
+const HB_SHARED = Object.freeze({ cable: 'hb_line_cable', hanger: 'hb_line_hanger', glow: 'hb_glow' });
+
+function hbSharedTextures(scene) {
+  if (scene.textures.exists(HB_SHARED.glow)) return;
+  const make = (key, w, h, draw) => {
+    if (scene.textures.exists(key)) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    draw(canvas.getContext('2d'));
+    scene.textures.addCanvas(key, canvas);
+  };
+  // a cable, lit side up, its shadow under it: rows 2-5 the cable, 6-7 the shadow
+  make(HB_SHARED.cable, 32, 8, (ctx) => {
+    ctx.fillStyle = HB_COLOUR.cable;
+    ctx.fillRect(0, 2, 32, 4);
+    ctx.fillStyle = HB_COLOUR.cableShadow;
+    ctx.fillRect(0, 6, 32, 2);
+  });
+  make(HB_SHARED.hanger, 32, 4, (ctx) => {
+    ctx.fillStyle = HB_COLOUR.hanger;
+    ctx.fillRect(0, 1, 32, 2);
+  });
+  // a lamp: a hard bright middle in a soft halo (tinted to its colour, drawn added)
+  make(HB_SHARED.glow, 32, 32, (ctx) => {
+    const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.14, 'rgba(255,255,255,1)');
+    g.addColorStop(0.3, 'rgba(255,255,255,0.45)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 32, 32);
+  });
+}
+
+// One tile's cable on one side (`b` the across of its plane), over a0..a1 of the tile: [{ id, key,
+// dx, dy (from the anchor: the deck level over the tile's middle), rot, sx, sy, ox, oy, lit, tint }] -
+// the cable in short straight lengths, its hangers every quarter tile, at night its lamps.
+function hbCablePieces(geo, visAxis, b, sAt, sMid, a0 = -0.5, a1 = 0.5) {
   const frame = hbFrame(visAxis);
+  const P = (a, z) => hbProject(...frame(a, b), z);
   const inSpan = (s) => s >= geo.ends[0] - 1e-6 && s <= geo.ends[1] + 1e-6;
-  const zs = [groundZ];
-  for (let a = a0; a <= a1 + 1e-4; a += 0.125) zs.push(geo.cableZ(sAt(a)), geo.deckZ(sAt(a)));
-  const top = Math.max(...zs) + 14, bottom = Math.min(...zs) - 4;
-  const h = Math.ceil(top - bottom + 64);
-  const ay = Math.ceil(top + 32);
-  return hbTexture(scene, key, 128, h, 64, ay, (ctx) => {
-    const P = (a, z) => { const [u, v] = frame(a, b); return hbProject(u, v, z); };
-    // at night: a string of lamps along the cable, every eighth of a tile (the run's own, so they
-    // carry on across the tiles)
-    if (lit) {
-      const dir = sAt(1) - sAt(0) > 0 ? 1 : -1;
-      // (each lamp drawn once: the end of a tile's stretch belongs to the next)
-      for (let k = Math.ceil((sAt(dir > 0 ? a0 : a1)) * 8 - 1e-6); k / 8 < sAt(dir > 0 ? a1 : a0) - 1e-6; k++) {
-        const sk = k / 8;
-        if (!inSpan(sk)) continue;
-        const [x, y] = P((sk - sMid) * dir, geo.cableZ(sk));
-        hbGlow(ctx, x, y, 5.5, HB_COLOUR.cableLamp, 0.22);
-        hbGlow(ctx, x, y, 2.1, HB_COLOUR.cableLamp, 1);
-      }
-      return;
-    }
+  const dir = sAt(1) - sAt(0) > 0 ? 1 : -1;
+  const aOf = (s) => (s - sMid) * dir;
+  const out = [];
+  const line = (id, key, p0, p1, thick, rows) => {
+    const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+    const len = Math.hypot(dx, dy);
+    if (len < 0.2) return;
+    // (a hair longer at each end, so the lengths meet without a gap where they turn)
+    out.push({ id, key, dx: p0[0] - (dx / len) * 0.4, dy: p0[1] - (dy / len) * 0.4, rot: Math.atan2(dy, dx),
+      sx: (len + 0.8) / 32, sy: thick / rows, ox: 0, oy: 0.5 });
+  };
+  // the cable: from the anchorage on, in quarter-tile lengths
+  const stops = [];
+  for (let k = 0; k <= 4; k++) stops.push(a0 + ((a1 - a0) * k) / 4);
+  geo.ends.forEach((sEnd) => { const a = aOf(sEnd); if (a > a0 && a < a1) stops.push(a); });
+  stops.sort((x, y) => x - y);
+  const inside = stops.filter((a) => inSpan(sAt(a)));
+  for (let i = 0; i + 1 < inside.length; i++) {
+    const p0 = P(inside[i], geo.cableZ(sAt(inside[i]))), p1 = P(inside[i + 1], geo.cableZ(sAt(inside[i + 1])));
+    // (a parabola: a length's middle sags under the chord - two halves follow it)
+    const am = (inside[i] + inside[i + 1]) / 2;
+    const pm = P(am, geo.cableZ(sAt(am)));
+    line(`c${i}a`, HB_SHARED.cable, p0, pm, 2.4 * 8 / 6, 8);
+    line(`c${i}b`, HB_SHARED.cable, pm, p1, 2.4 * 8 / 6, 8);
+  }
+  // the hangers, the cable down to the deck's edge
+  [-0.375, -0.125, 0.125, 0.375].forEach((a, i) => {
+    if (a < a0 || a > a1) return;
+    const s = sAt(a);
+    if (!inSpan(s)) return;
+    const zc = geo.cableZ(s), zd = geo.deckZ(s) + HB.kerbUp;
+    if (zc - zd < 4) return;
+    line(`h${i}`, HB_SHARED.hanger, P(a, zc), P(a, zd), 0.6 * 4 / 2, 4);
+  });
+  // at night, a lamp every eighth of a tile (the run's own eighths: each drawn by one tile only)
+  const lo = sAt(dir > 0 ? a0 : a1), hi = sAt(dir > 0 ? a1 : a0);
+  for (let k = Math.ceil(lo * 8 - 1e-6); k / 8 < hi - 1e-6; k++) {
+    const sk = k / 8;
+    if (!inSpan(sk)) continue;
+    const [x, y] = P(aOf(sk), geo.cableZ(sk));
+    out.push({ id: `l${k}`, key: HB_SHARED.glow, dx: x, dy: y, rot: 0, sx: 11 / 32, sy: 11 / 32, ox: 0.5, oy: 0.5, lit: true,
+      tint: (HB_COLOUR.cableLamp[0] << 16) | (HB_COLOUR.cableLamp[1] << 8) | HB_COLOUR.cableLamp[2] });
+  }
+  return out;
+}
+
+// The anchorage at a bridge's end, on one side: a concrete block on the ground the cable runs into.
+// The anchor: the deck level over its tile's middle.
+function hbAnchorTexture(scene, visAxis, b, zt, groundZ) {
+  const key = `hb_anchor_${visAxis}_${b > 0 ? 'n' : 'f'}_${Math.round(zt)}_${Math.round(groundZ)}`;
+  const frame = hbFrame(visAxis);
+  const h = Math.ceil(zt - groundZ + 64);
+  return hbTexture(scene, key, 128, h, 64, Math.ceil(zt + 32), (ctx) => {
     const outward = b > 0 ? 1 : -1;
-    // the anchorage, where the cable comes down at the bridge's end
-    geo.ends.forEach((sEnd) => {
-      if (Math.abs(sEnd - sMid) > 0.5 || a0 > 0) return;
-      const lo = outward > 0 ? b - 0.03 : b - 0.12, hi = outward > 0 ? b + 0.12 : b + 0.03;
-      const zt = geo.anchorTop(sEnd);
-      hbBox(ctx, frame, visAxis, -0.3, 0.3, lo, hi, groundZ, zt - 3, HB_COLOUR.towerLit, HB_COLOUR.towerShade, HB_COLOUR.towerLit);
-      hbBox(ctx, frame, visAxis, -0.2, 0.2, lo + 0.02, hi - 0.02, zt - 3, zt, HB_COLOUR.towerShade, HB_COLOUR.towerShade, HB_COLOUR.towerLit);
-    });
-    // the hangers, every quarter tile, the cable down to the deck's edge
-    ctx.strokeStyle = HB_COLOUR.hanger;
-    ctx.lineWidth = 0.55;
-    ctx.beginPath();
-    for (let a = -0.375; a <= 0.4; a += 0.25) {
-      if (a < a0 || a > a1) continue;
-      const s = sAt(a);
-      if (!inSpan(s)) continue;
-      const zc = geo.cableZ(s), zd = geo.deckZ(s) + HB.kerbUp;
-      if (zc - zd < 4) continue;
-      const [x0, y0] = P(a, zc); const [x1, y1] = P(a, zd);
-      ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
-    }
-    ctx.stroke();
-    // the cable, from the anchorage on
-    const pts = [];
-    const lo = a0 - (a0 <= -0.5 ? 0.02 : 0), hi = a1 + (a1 >= 0.5 ? 0.02 : 0);
-    for (let a = lo; a <= hi + 1e-4; a += 0.02) if (inSpan(sAt(a))) pts.push(P(a, geo.cableZ(sAt(a))));
-    geo.ends.forEach((sEnd) => {
-      const a = (sEnd - sMid) * (sAt(1) - sAt(0) > 0 ? 1 : -1);
-      if (a >= lo && a <= hi) pts.push(P(a, geo.cableZ(sEnd)));
-    });
-    pts.sort((p, q) => p[0] - q[0]);
-    if (pts.length < 2) return;
-    [[HB_COLOUR.cableShadow, 2.4, 0.6], [HB_COLOUR.cable, 1.6, 0]].forEach(([colour, width, dy]) => {
-      ctx.strokeStyle = colour;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y + dy) : ctx.moveTo(x, y + dy)));
-      ctx.stroke();
-    });
+    const lo = outward > 0 ? b - 0.03 : b - 0.12, hi = outward > 0 ? b + 0.12 : b + 0.03;
+    hbBox(ctx, frame, visAxis, -0.3, 0.3, lo, hi, groundZ, zt - 3, HB_COLOUR.towerLit, HB_COLOUR.towerShade, HB_COLOUR.towerLit);
+    hbBox(ctx, frame, visAxis, -0.2, 0.2, lo + 0.02, hi - 0.02, zt - 3, zt, HB_COLOUR.towerShade, HB_COLOUR.towerShade, HB_COLOUR.towerLit);
   });
 }
 
@@ -815,6 +850,33 @@ function hbPlace(scene, sprite, key, x, y, depth, lit = false) {
   s.setOrigin(anchor.ox, anchor.oy).setScale(1 / HIGH_BRIDGE_RES).setPosition(x, y).setDepth(depth);
   if (lit) s.setAlpha(highBridgeLightStrength(scene));
   else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, s);
+  return s;
+}
+
+// A piece of a cable on a shared texture (hbCablePieces): placed from the anchor, turned and
+// stretched; a lamp tinted its colour and added at night.
+function hbPlacePiece(scene, sprite, piece, x, y, depth) {
+  let s = sprite;
+  if (!s) {
+    s = scene.add.image(0, 0, piece.key);
+    if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, s, 'objectLayer');
+    if (scene.worldMask) s.setMask(scene.worldMask);
+    if (piece.lit) {
+      s.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+      s.__nightNone = true;
+      s.__hbLit = true;
+    } else {
+      s.__nightGround = true;
+    }
+  } else if (s.texture.key !== piece.key) {
+    s.setTexture(piece.key);
+  }
+  s.setOrigin(piece.ox, piece.oy).setPosition(x + piece.dx, y + piece.dy).setRotation(piece.rot || 0)
+    .setScale(piece.sx, piece.sy).setDepth(depth);
+  if (piece.lit) {
+    s.setTint(piece.tint);
+    s.setAlpha(highBridgeLightStrength(scene));
+  } else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, s);
   return s;
 }
 
@@ -960,18 +1022,20 @@ function upsertHighBridgeEntry(scene, row, col, entry) {
       const deckY = flat.y - run.level * step;
       const groundZ = (ground - run.level) * step;
       const tower = geo.towers.includes(index);
-      const tag = `${row}_${col}_${rotation}_${geo.n}_${geo.towers.join('_')}_${run.level}_${ground}`;
+      hbSharedTextures(scene);
       const halves = tower ? [['Back', -0.5, 0], ['Front', 0, 0.5]] : [['', -0.5, 0.5]];
       [['Far', -HB.cableAt], ['Near', HB.cableAt]].forEach(([side, b]) => {
         halves.forEach(([half, a0, a1]) => {
-          const part = `cable${side}${half}`;
-          const key = hbCableTexture(scene, `hb_cable_${tag}_${part}`, geo, visAxis, b, sAt, sMid, groundZ, a0, a1);
-          const litKey = hbCableTexture(scene, `hb_cable_${tag}_${part}_lit`, geo, visAxis, b, sAt, sMid, groundZ, a0, a1, true);
-          own.add(key);
-          own.add(litKey);
           const depthPart = half === 'Front' ? (side === 'Far' ? 'cableFarFront' : 'cableNearFront') : (side === 'Far' ? 'cableFar' : 'cableNear');
-          wanted.push({ part, key, depth: HIGH_BRIDGE_DEPTH[depthPart], y: deckY });
-          wanted.push({ part: `${part}Lit`, key: litKey, depth: HIGH_BRIDGE_DEPTH[depthPart] + 0.004, y: deckY, lit: true });
+          hbCablePieces(geo, visAxis, b, sAt, sMid, a0, a1).forEach((piece) => {
+            wanted.push({ ...piece, part: `cable${side}${half}:${piece.id}`, depth: HIGH_BRIDGE_DEPTH[depthPart] + (piece.lit ? 0.004 : 0), y: deckY });
+          });
+        });
+        // the anchorage, on an end tile
+        geo.ends.forEach((sEnd) => {
+          if (Math.abs(sEnd - sMid) > 0.5) return;
+          const key = hbAnchorTexture(scene, visAxis, b, geo.anchorTop(sEnd), groundZ);
+          wanted.push({ part: `anchor${side}`, key, depth: HIGH_BRIDGE_DEPTH[side === 'Far' ? 'cableFar' : 'cableNear'] - 0.001, y: deckY });
         });
       });
       // the deck's line of gold, its two kerbs
@@ -1013,8 +1077,11 @@ function upsertHighBridgeEntry(scene, row, col, entry) {
   const old = new Map([...(out.extra || []), ...(out.top ? [out.top] : [])].map((sprite) => [sprite.__hbPart, sprite]));
   const extra = [];
   let near = null;
-  wanted.forEach(({ part, key, depth: offset, y, lit }) => {
-    const sprite = hbPlace(scene, old.get(part), key, flat.x, y, depth + offset, lit);
+  wanted.forEach((w) => {
+    const { part, key, depth: offset, y, lit } = w;
+    const sprite = w.sx != null
+      ? hbPlacePiece(scene, old.get(part), w, flat.x, y, depth + offset)
+      : hbPlace(scene, old.get(part), key, flat.x, y, depth + offset, lit);
     old.delete(part);
     sprite.__hbPart = part;
     if (part === 'cableNear') near = sprite;

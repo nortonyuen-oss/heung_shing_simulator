@@ -624,13 +624,15 @@ function evictUnusedZoneTextures(scene) {
     }];
   });
   let totalBytes = loaded.reduce((sum, entry) => sum + entry.bytes, 0);
-  if (totalBytes <= ZONE_TEXTURE_BUDGET_BYTES) return;
+  // (smaller on a phone: memory-budget.js)
+  const budget = typeof getMemoryBudgetBytes === 'function' ? getMemoryBudgetBytes('zoneTextures') : ZONE_TEXTURE_BUDGET_BYTES;
+  if (totalBytes <= budget) return;
   const referenced = new Set(Object.values(buildingData ?? {}).map((record) => record?.spriteKey).filter(Boolean));
   const candidates = loaded
     .filter(({ model }) => !referenced.has(model.key) && !initialZoneTextureKeys.has(model.key))
     .sort((a, b) => (zoneTextureLastUsed.get(a.model.key) ?? 0) - (zoneTextureLastUsed.get(b.model.key) ?? 0));
   for (const entry of candidates) {
-    if (totalBytes <= ZONE_TEXTURE_BUDGET_BYTES) break;
+    if (totalBytes <= budget) break;
     scene.textures.remove(entry.model.key);
     zoneTextureLastUsed.delete(entry.model.key);
     totalBytes -= entry.bytes;

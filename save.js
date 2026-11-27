@@ -1246,6 +1246,9 @@ async function ensureSaveBuildingTextures(scene, save) {
 // before the sprites are built. Daytime saves have nothing to fetch.
 async function ensureSaveNightTextures(scene, save) {
   if (!scene?.load || !save?.buildingData) return;
+  // (in a browser the night art comes for what is on screen only, as it is seen: memory-budget.js -
+  // the whole city's at once was hundreds of MB on a phone)
+  if (typeof getMemoryProfile === 'function' && getMemoryProfile() !== 'desktop') return;
   if (typeof collectBuildingNightTextureKeys !== 'function'
     || typeof preloadBuildingNightTextures !== 'function'
     || typeof getNightOverlayAlpha !== 'function') return;

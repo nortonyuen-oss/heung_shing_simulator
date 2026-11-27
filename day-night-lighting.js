@@ -445,7 +445,7 @@ function collectBuildingNightTextureKeys(records, minute, sunsetMin) {
     let variant = getBuildingNightVariant(
       getBuildingNightKind(record), getBuildingLightSeed(row, col), minute, sunsetMin,
     );
-    variant = getSeasonalBuildingNightVariant(slug, record, variant);
+    variant = getSeasonalBuildingNightVariant(slug, record, resolveBuildingNightVariantForDevice(variant));
     keys.add(BUILDING_NIGHT_TEXTURE_PREFIX + slug + (BUILDING_NIGHT_VARIANT_SUFFIX[variant] ?? ''));
   });
   return keys;
@@ -513,6 +513,9 @@ function applyBuildingNightTexture(scene, sprite, wantNight, variant = 'night') 
       sprite.__nightArtPending = true;
       return false;
     }
+    buildingNightTextureLastUsed.set(key, nightTextureClock());
+    // (a phone wears it at half size: worn the first time here, so nothing holds it yet)
+    shrinkBuildingNightTextureForDevice(scene, key);
     if (sprite.texture.key !== key) {
       sprite.__dayTextureKey = sprite.__dayTextureKey ?? sprite.texture.key;
       fitNightTextureToDay(scene, key, sprite.__dayTextureKey);
@@ -535,6 +538,103 @@ function applyBuildingNightTexture(scene, sprite, wantNight, variant = 'night') 
   return false;
 }
 
+// ── Night art residency (memory-budget.js) ──────────────────────────────────
+// Every model has four night variants, each as big as its day art; a city loaded them all over its
+// first night and kept them for good - 545 MB in the 太子 showcase, which a phone browser could not
+// hold (Norton 2026-11-28: 玩一陣就閃退). In a browser night art now comes only for the buildings on
+// screen (one off it keeps what it wears, and is seen to when the culling shows it: viewport-culling.js),
+// a phone wears two variants, not four, and past the budget the night art nothing on screen wears is
+// let go, least lately worn first.
+const buildingNightTextureLastUsed = new Map();
+
+function nightTextureClock() {
+  return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+}
+
+// A phone's two: the lit windows ('half' wears 'night') and the small hours ('lamps' wears 'deep').
+function resolveBuildingNightVariantForDevice(variant) {
+  if (typeof getMemoryProfile !== 'function' || getMemoryProfile() !== 'low') return variant;
+  if (variant === 'half') return 'night';
+  if (variant === 'lamps') return 'deep';
+  return variant;
+}
+
+// A phone's night art at half its size - a quarter of the memory - drawn at its full size (the
+// texture keeps its size, the picture under it is the smaller one: Phaser maps a frame onto its image
+// by frame / source size, as fitNightTextureToDay does). Night art is only ever drawn - a click on a
+// building tests its day art (main.js isBuildingPixelOpaque).
+function shrinkBuildingNightTextureForDevice(scene, key) {
+  if (typeof getMemoryProfile !== 'function' || getMemoryProfile() !== 'low') return;
+  const texture = scene.textures.get(key);
+  if (!texture || texture.__deviceShrunk || typeof document === 'undefined') return;
+  const source = texture.source?.[0];
+  const image = source?.image;
+  const w = source?.width || 0, h = source?.height || 0;
+  if (!image || w < 128 || h < 128 || source.isRenderTexture) { texture.__deviceShrunk = true; return; }
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(w / 2));
+  canvas.height = Math.max(1, Math.round(h / 2));
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  scene.textures.remove(key);
+  const shrunk = scene.textures.addCanvas(key, canvas);
+  if (!shrunk) return;
+  const small = shrunk.source[0];
+  small.width = w;
+  small.height = h;
+  shrunk.get().setSize(w, h);
+  shrunk.__deviceShrunk = true;
+}
+
+function nightArtOnScreenOnly() {
+  return typeof getMemoryProfile === 'function' && getMemoryProfile() !== 'desktop';
+}
+
+function trimBuildingNightTextures(scene, now = nightTextureClock()) {
+  if (!scene?.textures?.list || typeof getMemoryBudgetBytes !== 'function') return;
+  const budget = getMemoryBudgetBytes('nightTextures');
+  if (!Number.isFinite(budget) || now < (scene.__nightTrimAt || 0)) return;
+  scene.__nightTrimAt = now + 1500;
+  const prefix = BUILDING_NIGHT_TEXTURE_PREFIX;
+  const loaded = Object.keys(scene.textures.list).filter((key) => key.startsWith(prefix) && !pendingNightTextureLoads.has(key));
+  if (!loaded.length) return;
+  const bytes = new Map(loaded.map((key) => [key, estimateTextureBytes(scene.textures.get(key))]));
+  let total = 0;
+  bytes.forEach((b) => { total += b; });
+  if (total <= budget) return;
+  // who wears each: on screen, or off it
+  const wearers = new Map();
+  scene.buildingSprites?.forEach((sprite) => {
+    const key = sprite?.texture?.key;
+    if (typeof key !== 'string' || !key.startsWith(prefix)) return;
+    let w = wearers.get(key);
+    if (!w) wearers.set(key, (w = { shown: 0, hidden: [] }));
+    if (sprite.visible === false) w.hidden.push(sprite); else w.shown++;
+  });
+  const order = (a, b) => (buildingNightTextureLastUsed.get(a) || 0) - (buildingNightTextureLastUsed.get(b) || 0);
+  const drop = (key) => {
+    if (!scene.textures.exists(key)) return;
+    scene.textures.remove(key);
+    buildingNightTextureLastUsed.delete(key);
+    total -= bytes.get(key) || 0;
+  };
+  // first what nothing wears
+  loaded.filter((key) => !wearers.has(key)).sort(order).forEach((key) => { if (total > budget) drop(key); });
+  if (total <= budget) return;
+  // then what only buildings off screen wear: they go back to their day art till they are seen
+  loaded.filter((key) => wearers.get(key)?.shown === 0).sort(order).forEach((key) => {
+    if (total <= budget) return;
+    wearers.get(key).hidden.forEach((sprite) => {
+      applyBuildingNightTexture(scene, sprite, false);
+      sprite.__nightWindowApplied = false;
+      sprite.__nightDeferred = true;
+    });
+    drop(key);
+  });
+}
+
 // A building went up, grew or turned after the last walk: make the next
 // lighting tick look again rather than waiting for the display minute to move.
 function markBuildingNightArtDirty(scene) {
@@ -547,6 +647,7 @@ function markBuildingNightArtDirty(scene) {
 // minute boundary) or a texture was still loading last time.
 function syncBuildingNightTextures(scene, rawNightAlpha) {
   if (!scene?.buildingSprites) return;
+  trimBuildingNightTextures(scene);
   // With the calibrator open, stay on day art: building-lighting.js draws the
   // live glow instead so edits are visible, and the baked art would fight it.
   const calibrating = typeof isBuildingLightCalibrationInputActive === 'function'
@@ -572,6 +673,7 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
   }
   const session = scene.__blNightSession || 0;
   const line = minute < 720 ? minute + 1440 : minute; // the noon-to-noon line the windows use
+  const onScreenOnly = nightArtOnScreenOnly();
   let pending = false;
   const seen = scene.__blNightTexSeen || (scene.__blNightTexSeen = new Set());
   seen.clear();
@@ -582,6 +684,14 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
       && line < sprite.__nightWindowUntil
       // ... as long as nothing else put the day art back on it meanwhile.
       && typeof sprite.texture?.key === 'string' && sprite.texture.key.startsWith(BUILDING_NIGHT_TEXTURE_PREFIX)) return;
+    // (in a browser, night art for what is on screen only: off it, a building keeps what it wears and
+    // is seen to when the culling shows it)
+    if (wantNight && onScreenOnly && sprite.visible === false) {
+      sprite.__nightDeferred = true;
+      sprite.__nightWindowApplied = false;
+      return;
+    }
+    sprite.__nightDeferred = false;
     const record = getBuildingNightRecord(sprite);
     if (!getBuildingNightSlug(sprite, record)) return;
     let variant = 'night';
@@ -590,7 +700,7 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
       const window = getBuildingNightVariantWindow(
         getBuildingNightKind(record), getBuildingLightSeed(sprite.mapRow, sprite.mapCol), minute, sunset,
       );
-      variant = window.variant;
+      variant = resolveBuildingNightVariantForDevice(window.variant);
       until = window.until;
     }
     const applied = applyBuildingNightTexture(scene, sprite, wantNight, variant);

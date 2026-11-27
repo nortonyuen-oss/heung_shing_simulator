@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "6.2.0",
-  "releaseTheme": "【青馬飛架】",
+  "version": "6.2.1",
+  "releaseTheme": "【天橋底下】",
   "description": "Hong Kong city builder for desktop and browsers, with local and portable city saves",
   "author": "The City of Heung Shing",
   "repository": {
@@ -56,6 +56,7 @@
     "verify:web": "node scripts/verify-web-build.js",
     "preview:web": "node scripts/static-web-server.js",
     "test:web": "node scripts/smoke-web.js",
+    "test:memory": "node scripts/check-memory-budget.js",
     "package:mac": "npm run verify:release-assets && electron-builder --mac",
     "package:win": "npm run verify:release-assets && electron-builder --win"
   },
@@ -141,9 +142,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【青馬飛架】",
-    "zh-TW": "【青馬飛架】",
-    "en": "【Spanning the Harbour】",
-    "ja": "【海峡を結ぶ橋】"
+    "zh-HK": "【天橋底下】",
+    "zh-TW": "【天橋底下】",
+    "en": "【Under the Flyover】",
+    "ja": "【高架の下で】"
   }
 }

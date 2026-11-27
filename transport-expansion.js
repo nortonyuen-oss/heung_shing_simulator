@@ -1880,7 +1880,8 @@ function findTransportPath(start, destination, getNeighbours) {
       goalKey = item.key;
       break;
     }
-    const neighbours = Array.from(getNeighbours(current.row, current.col) || [])
+    // (a 天橋's deck over a road is a road of its own on the same tile: its layer travels with it)
+    const neighbours = Array.from(getNeighbours(current.row, current.col, current.layer) || [])
       .filter((next) => next && Number.isFinite(next.row) && Number.isFinite(next.col))
       .sort((a, b) => (
         'nesw'.indexOf(transportDirectionBetween(current, a))
@@ -1891,9 +1892,9 @@ function findTransportPath(start, destination, getNeighbours) {
       if (!direction) continue;
       const turnCost = current.direction && current.direction !== direction ? TRANSPORT_ROUTE_TURN_COST : 0;
       const nextCost = item.cost + 1 + turnCost;
-      const nextKey = `${next.row}:${next.col}:${direction}`;
+      const nextKey = `${next.row}:${next.col}:${direction}${next.layer ? `:${next.layer}` : ''}`;
       if (nextCost >= (costs.get(nextKey) ?? Infinity)) continue;
-      const node = { row: next.row, col: next.col, direction };
+      const node = next.layer ? { row: next.row, col: next.col, direction, layer: next.layer } : { row: next.row, col: next.col, direction };
       costs.set(nextKey, nextCost);
       parents.set(nextKey, item.key);
       nodes.set(nextKey, node);
@@ -1906,7 +1907,7 @@ function findTransportPath(start, destination, getNeighbours) {
   let key = goalKey;
   while (key) {
     const node = nodes.get(key);
-    path.push({ row: node.row, col: node.col });
+    path.push(node.layer ? { row: node.row, col: node.col, layer: node.layer } : { row: node.row, col: node.col });
     key = parents.get(key);
   }
   return path.reverse();

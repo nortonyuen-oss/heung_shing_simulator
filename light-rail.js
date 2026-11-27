@@ -342,6 +342,8 @@ function planLightRailTrackPure(start, end, height, state, env) {
     });
   }
   const railEnv = { ...env.rail, canGround: (r, c) => env.canGround(r, c) || crossings.has(railKey(r, c)), spec: LIGHT_RAIL_SPEC };
+  // (a ramp never under a 天橋: road-flyovers.js)
+  if (env.underBridge) railEnv.canRamp = (r, c) => railEnv.canGround(r, c) && !env.underBridge(r, c);
   const plan = planRailAtHeight(height, path0, bits, elev, railEnv);
   out.path = plan.path;
   if (!plan.ok) {
@@ -633,6 +635,8 @@ function whyNotLightRailStationAt(row, col, state, env) {
     const k = railKey(r, c);
     if (tracks[k] !== mask) return { code: 'notStraight' };
     if (elev[k] || env.isRoad(r, c)) return { code: 'notGround' };
+    // (nor under a 天橋: its canopies would stand through the deck - road-flyovers.js)
+    if (env.underBridge && env.underBridge(r, c)) return { code: 'notGround' };
     // (its platforms level: not on a hillside)
     if (env.rail.openEdges(r, c).length) return { code: 'notFlat' };
   }
@@ -678,9 +682,10 @@ function lightRailBandAt(row, col) {
 }
 
 // Street track goes where tram track may - a road, not a bridge, a slope or a tunnel's mouth - and not
-// on the tram's own (two systems, never one tile).
-function canLayLightRailStreetAt(row, col) {
-  if (!lightRailIsRoad(row, col)) return false;
+// on the tram's own (two systems, never one tile). (`isRoad`: the map's, or with a road about to be
+// laid: whyNotRoadAcrossLightRail)
+function canLayLightRailStreetAt(row, col, isRoad = lightRailIsRoad) {
+  if (!isRoad(row, col)) return false;
   if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return false;
   if (typeof isSlopeTile === 'function' && isSlopeTile(row, col)) return false;
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
@@ -689,10 +694,85 @@ function canLayLightRailStreetAt(row, col) {
 }
 
 // ... and a level crossing, not at a bus stop either.
-function canCrossLightRailAt(row, col) {
-  if (!canLayLightRailStreetAt(row, col)) return false;
+function canCrossLightRailAt(row, col, isRoad = lightRailIsRoad) {
+  if (!canLayLightRailStreetAt(row, col, isRoad)) return false;
   if (typeof getBusStopAtTile === 'function' && getBusStopAtTile(row, col)) return false;
   return true;
+}
+
+// ── A road laid across the track (Norton 2026-11-27: 起路橫跨輕鐵) ─────────────────────────────────
+// Track laid across a road made a level crossing, but a road laid over the track was refused. Now a
+// road may go over ground track where that tile becomes a level crossing: the track straight there and
+// the road across it (not along it, nor a junction on it), not on a ramp, a slope or a station - and
+// every crossing already there stays one (a road on along the track from a crossing would turn it
+// into a junction). Under a viaduct a road always could. `roads`: the new road's tiles ('row:col');
+// `env`: the map with them laid; `wasCrossing`: the crossings before ('row:col'). { reason, bad } or
+// null. Pure.
+function lightRailRoadCrossingProblem(roads, state, env, wasCrossing = [], isStation = () => false) {
+  const tracks = state.tracks || {};
+  const elev = state.trackElev || {};
+  for (const k of roads) {
+    const mask = tracks[k];
+    if (!mask) continue;
+    const code = elev[k];
+    if (code && railDeckLevel(code) != null) continue;
+    const [r, c] = k.split(':').map(Number);
+    if (code) return { reason: 'ramp', bad: k };
+    if (isStation(r, c)) return { reason: 'station', bad: k };
+    if (mask !== 1 && mask !== 2) return { reason: 'straight', bad: k };
+    if (lightRailTileKind(r, c, mask, null, env) !== 'crossing') return { reason: 'across', bad: k };
+    if (!env.canCross(r, c)) return { reason: 'site', bad: k };
+  }
+  for (const k of wasCrossing) {
+    const mask = tracks[k];
+    if (!mask || elev[k]) continue;
+    const [r, c] = k.split(':').map(Number);
+    if (lightRailTileKind(r, c, mask, null, env) !== 'crossing') return { reason: 'spoils', bad: k };
+  }
+  return null;
+}
+
+const LIGHT_RAIL_ROAD_REFUSALS = Object.freeze({
+  ramp: ['lightRail.road.ramp', '輕鐵上落橋嗰度起唔到路：喺高架下面或者地面路軌嗰度過。'],
+  station: ['lightRail.road.station', '輕鐵站嘅路軌上面唔可以起路。'],
+  straight: ['lightRail.road.straight', '平交路要起喺直路軌上面：唔可以喺彎位或者道岔。'],
+  across: ['lightRail.road.across', '馬路要打橫直過輕鐵路軌（平交路）：唔可以沿住路軌起，亦唔可以喺路軌上面整路口。'],
+  site: ['lightRail.road.site', '平交路唔可以喺斜路、橋、隧道口或者電車路軌上面。'],
+  spoils: ['lightRail.road.spoils', '咁起會令隔籬個平交路變成路口：平交路兩邊沿住路軌唔可以有路。'],
+});
+
+// The road tool's check on the tiles it would lay (main.js buildRoadPath, the touch plan, one tile):
+// a message, or null when no light rail track is spoilt. canPlaceRoad lets ground track through only
+// for this to decide.
+function whyNotRoadAcrossLightRail(tiles) {
+  if (typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.lightRail) return null;
+  const state = getLightRailState();
+  if (!Object.keys(state.tracks).length) return null;
+  const fresh = new Set(tiles.filter(({ row, col }) => !lightRailIsRoad(row, col)).map(({ row, col }) => railKey(row, col)));
+  if (!fresh.size) return null;
+  // (the map as it would be with the road down: a dual carriageway's band read with the new lanes)
+  const isRoad = (r, c) => fresh.has(railKey(r, c)) || lightRailIsRoad(r, c);
+  const isRoadLike = (r, c) => fresh.has(railKey(r, c)) || (typeof isRoadLikeTile === 'function' ? isRoadLikeTile(r, c) : lightRailIsRoad(r, c));
+  const env = {
+    ...lightRailMapEnv(),
+    isRoad,
+    bandAt: (r, c) => (isRoad(r, c) && typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand(r, c, isRoadLike) : null),
+    canCross: (r, c) => canCrossLightRailAt(r, c, isRoad),
+  };
+  const was = getLightRailCrossings().map((x) => railKey(x.row, x.col));
+  const isStation = typeof isLightRailStationTile === 'function' ? isLightRailStationTile : () => false;
+  const problem = lightRailRoadCrossingProblem([...fresh], state, env, was, isStation);
+  if (!problem) return null;
+  const [key, fallback] = LIGHT_RAIL_ROAD_REFUSALS[problem.reason];
+  return lightRailT(key, fallback);
+}
+
+// Is a road laid across light rail track (a level crossing made, the crossings' lights and the kerbs
+// to redraw)? For the road tool, after it lays `tiles`.
+function roadTilesTouchLightRail(tiles) {
+  if (typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.lightRail) return false;
+  const tracks = getLightRailState().tracks;
+  return tiles.some(({ row, col }) => [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => tracks[railKey(row + dr, col + dc)]));
 }
 
 // Open ground: not water, a road, a bridge, a building, a metro station, an undersea tunnel's mouth or
@@ -701,7 +781,9 @@ function canCrossLightRailAt(row, col) {
 function canLayLightRailGroundAt(row, col) {
   if (!isInsideMap(row, col)) return false;
   if (mapData[row][col] === WATER || mapData[row][col] === ROAD) return false;
-  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return false;
+  // (under a 天橋's deck the ground is free: road-flyovers.js)
+  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)
+    && !(typeof highBridgeLetsTrackUnder === 'function' && highBridgeLetsTrackUnder(row, col))) return false;
   const id = getTileId(row, col);
   if (buildingData[id] || activeScene?.buildingSprites?.has(id)) return false;
   if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
@@ -744,6 +826,7 @@ function lightRailMapEnv() {
     canStreet: canLayLightRailStreetAt,
     canCross: canCrossLightRailAt,
     canGround: canLayLightRailGroundAt,
+    underBridge: (row, col) => typeof isBridgeTile === 'function' && isBridgeTile(row, col),
     rail: {
       level: (row, col) => (isInsideMap(row, col) ? getTileHeight(row, col) : 0),
       openEdges: metroOpenEdges,
@@ -1027,7 +1110,15 @@ function syncLightRailTracks(scene = typeof activeScene !== 'undefined' ? active
     if (!road) {
       roadsMissing.push([cell.row, cell.col]);
       const had = scene.lightRailTrackSprites.get(key);
-      if (had) { wanted.add(key); pictures.add(had.texture.key); }
+      // (only a picture of its own is kept: a tile of ground track a road has just been laid across
+      // still shows the shared track art, which must never be counted as the light rail's to drop -
+      // removed, every ground track sprite lost its texture and the frame threw. Hidden till its road
+      // is drawn.)
+      if (had) {
+        wanted.add(key);
+        if (String(had.texture.key).startsWith('lrt_')) pictures.add(had.texture.key);
+        else had.setVisible(false);
+      }
       return;
     }
     const picture = tramTilePicture(geo, cell, turn);
@@ -1314,7 +1405,7 @@ function getLightRailTrackMonthlyUpkeep() {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     LIGHT_RAIL, LIGHT_RAIL_SPEC, normalizeLightRailState, lightRailRoadAxis, lightRailCrossesRoad, lightRailTileKind,
-    planLightRailTrackPure, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt, lightRailStationTiles,
+    planLightRailTrackPure, lightRailRoadCrossingProblem, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt, lightRailStationTiles,
     lightRailCornersFrom, lightRailSurfaceLevel, lightRailGroundMetres, lightRailVisualCornerLifts, lightRailTrackCorners, lightRailVisualFold,
     isLightRailUnlocked, grantLightRailFunding, spendLightRailFunds,
   };

@@ -786,6 +786,14 @@ function applyNightObjectTint(scene, ground) {
   // night look all the next day)
   scene.lightRailTrackSprites?.forEach(apply);
   scene.lightRailPierSprites?.forEach(apply);
+  // the 天橋 / 懸索橋's decks, ramps, piers, cables and towers (road-flyovers.js), in the object band
+  scene.bridgeSprites?.forEach((entry) => {
+    if (!entry?.high) return;
+    // (not their night lights and sea streaks: added light with a colour of its own)
+    [entry.body, entry.side, entry.top, ...(entry.extra || [])].forEach((sprite) => {
+      if (sprite && !sprite.__hbLit && !sprite.__hbReflection) apply(sprite);
+    });
+  });
   scene.tramTrackSprites?.forEach(apply);
   // (each car with the slices it is drawn in - else one car's slices differ as the night deepens)
   scene.metroTrainSprites?.forEach((cars) => cars.forEach((car) => { apply(car); (car.__pieces || []).forEach(apply); }));
@@ -898,6 +906,7 @@ function updateDynamicLighting(scene) {
     applyNightDarkness(scene, 0);
     scene.trafficLightStrength = 0;
     scene.buildingLightStrength = 0;
+    if (typeof updateHighBridgeLights === 'function') updateHighBridgeLights(scene);
     scene.starField?.setAlpha(0);
     scene.moonSprite?.setAlpha(0);
     camera?.setBackgroundColor?.(
@@ -931,6 +940,8 @@ function updateDynamicLighting(scene) {
   if (typeof computeRuntimeBuildingLightStrength === 'function') {
     scene.buildingLightStrength = computeRuntimeBuildingLightStrength(scene);
   }
+  // the 懸索橋's cable lamps and floodlit towers (road-flyovers.js)
+  if (typeof updateHighBridgeLights === 'function') updateHighBridgeLights(scene);
   const stars = typeof getStarFieldVisualState === 'function'
     ? getStarFieldVisualState(timeMinutes)
     : { active: false, alpha: 0 };

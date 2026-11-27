@@ -158,7 +158,8 @@ function streetLampScale() {
 // post's foot meets the deck where the wheels do. Flat roads come out at 0.
 function streetLampSurfaceLift(placement) {
   if (typeof getTrafficRoadSurface !== 'function' || typeof getTrafficRuntimeLayers !== 'function') return 0;
-  const surface = getTrafficRoadSurface(placement.row, placement.col, getTrafficRuntimeLayers());
+  // (placement.layer 'deck': a 天橋's deck over a road, not the road under it - road-flyovers.js)
+  const surface = getTrafficRoadSurface(placement.row, placement.col, getTrafficRuntimeLayers(), placement.layer ?? null);
   if (!surface) return 0;
   // The surface end the lamp is displaced towards (if any): interpolate centre -> that end.
   let lift = surface.centerLift;
@@ -187,10 +188,13 @@ function streetLampAnchor(scene, placement, facing) {
   const shifted = isoToScreen(placement.col + placement.offsetCol, placement.row + placement.offsetRow);
   const offset = streetLampOffsetFor(facing);
   const lift = streetLampSurfaceLift(placement);
+  // up on a 天橋 / 懸索橋: over its tile's deck, a post on the far kerb behind the traffic, on the
+  // near one in front (road-flyovers.js highBridgeItemDepth)
+  const raisedDepth = typeof highBridgePostDepth === 'function' ? highBridgePostDepth(placement) : null;
   return {
     x: geo.center.x + (shifted.x - centre.x) + offset.dx,
     y: geo.center.y + (shifted.y - centre.y) + offset.dy - lift,
-    depth: getWorldDepth('object', shifted.y + TILE_HEIGHT - lift),
+    depth: raisedDepth ?? getWorldDepth('object', shifted.y + TILE_HEIGHT - lift),
   };
 }
 
@@ -286,7 +290,11 @@ function rebuildStreetLampSprites(scene) {
     skipSideAt: (row, col, side) => (typeof isTramReservationSide === 'function' && isTramReservationSide(row, col, side))
       || (typeof lightRailCrossesKerbAt === 'function' && lightRailCrossesKerbAt(row, col, side)),
   });
-  const wanted = new Map(placements.map((placement) => [streetLampId(placement), placement]));
+  // (none under a 天橋 crossing the road: its posts would stand up into the deck - road-flyovers.js)
+  const wanted = new Map(placements
+    .filter((placement) => !(typeof isHighBridgeInterchangeTile === 'function' && isInsideMap(placement.row, placement.col)
+      && isHighBridgeInterchangeTile(placement.row, placement.col)))
+    .map((placement) => [streetLampId(placement), placement]));
   sprites.forEach((sprite, id) => {
     if (wanted.has(id)) return;
     sprite.destroy();

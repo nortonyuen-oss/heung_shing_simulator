@@ -331,6 +331,18 @@ function refreshBridgeSprite(scene, row, col) {
     return;
   }
 
+  // a 天橋 / 懸索橋 tile: its own pieces (road-flyovers.js)
+  if (isHighBridgeTile(row, col) && typeof upsertHighBridgeEntry === 'function') {
+    if (existing && !existing.high) destroyBridgeSpriteEntry(existing);
+    scene.bridgeSprites.set(id, upsertHighBridgeEntry(scene, row, col, existing?.high ? existing : null));
+    return;
+  }
+  if (existing?.high) {
+    destroyBridgeSpriteEntry(existing);
+    scene.bridgeSprites.delete(id);
+    existing = null;
+  }
+
   const key = getBridgeSpriteKey(row, col);
   const pos = isoToScreen(col, row);
   const x = pos.x + scene.offsetX;
@@ -382,11 +394,25 @@ function refreshAllBridgeSprites(scene) {
 
 function repositionBridgeSprites(scene) {
   if (!scene?.bridgeSprites) return;
+  const redo = [];
   scene.bridgeSprites.forEach((entry, id) => {
     const [row, col] = id.split(':').map(Number);
     if (!isInsideMap(row, col) || !isBridgeTile(row, col)) {
       destroyBridgeSpriteEntry(entry);
       scene.bridgeSprites.delete(id);
+      return;
+    }
+    // (a 天橋 / 懸索橋 tile's pieces placed again where they are, road-flyovers.js; set on a key the map
+    // already holds, so this walk never comes round to it twice)
+    if (isHighBridgeTile(row, col) && typeof upsertHighBridgeEntry === 'function') {
+      if (!entry?.high) destroyBridgeSpriteEntry(entry);
+      scene.bridgeSprites.set(id, upsertHighBridgeEntry(scene, row, col, entry?.high ? entry : null));
+      return;
+    }
+    if (entry?.high) {
+      destroyBridgeSpriteEntry(entry);
+      scene.bridgeSprites.set(id, null);
+      redo.push([row, col]);
       return;
     }
     const key = getBridgeSpriteKey(row, col);
@@ -407,6 +433,10 @@ function repositionBridgeSprites(scene) {
     applyTileTextureDisplayScale(entry);
     entry.setPosition(x, y);
     entry.setDepth(depth);
+  });
+  redo.forEach(([row, col]) => {
+    scene.bridgeSprites.delete(getTileId(row, col));
+    refreshBridgeSprite(scene, row, col);
   });
   sortRenderLayer(scene, 'roadLayer');
 }
@@ -471,7 +501,8 @@ function getBridgeSpriteKey(row, col) {
 }
 
 function getBridgeRampDirection(row, col) {
-  return normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)))?.match(/^ramp:([nesw])$/)?.[1] ?? null;
+  const info = getBridgeInfo(row, col);
+  return info?.kind === 'ramp' ? info.dir : null;
 }
 
 function getBridgeRampVisualDirection(row, col) {
@@ -516,18 +547,52 @@ function destroyBridgeSpriteEntry(entry) {
     entry.destroy();
     return;
   }
+  const scene = entry.body?.scene;
   entry.body?.destroy();
   entry.side?.destroy();
   entry.top?.destroy();
+  entry.extra?.forEach((part) => part.destroy());
+  // (a 天橋 / 懸索橋 tile's own canvases, its cables': road-flyovers.js)
+  if (entry.high && typeof releaseHighBridgeEntry === 'function') releaseHighBridgeEntry(scene, entry);
 }
+
+// A bridge tile's value: the low bridge's 'deck:row' | 'deck:col' | 'ramp:n'..'ramp:w' (the way the
+// ramp climbs), and the high bridges' (天橋 / 懸索橋, road-flyovers.js) 'deck:<axis>:<level>' and
+// 'ramp:<dir>:<level>' - the deck's terrain level, a ramp's at its foot - with ':s' on a suspension
+// bridge's tiles.
+const BRIDGE_VALUE_PATTERN = /^(?:deck:(row|col)|ramp:([nesw]))(?::(\d)(:s)?)?$/;
 
 // Runs per tile on hot paths, so it only accepts canonical values; older save
 // spellings are folded in once at load by normalizeSavedBridgeMapValue (save.js).
 function normalizeBridgeMapValue(value) {
   if (value === 'row' || value === 'col') return `deck:${value}`;
   if (value === 'deck:row' || value === 'deck:col') return value;
-  if (typeof value === 'string' && /^ramp:[nesw]$/.test(value)) return value;
+  if (typeof value === 'string' && BRIDGE_VALUE_PATTERN.test(value)) return value;
   return null;
+}
+
+// { kind: 'deck' | 'ramp', axis: 'row' | 'col', dir (a ramp's way up), level (a high bridge's, else
+// null), high, suspension } or null.
+function parseBridgeValue(value) {
+  const m = typeof value === 'string' ? BRIDGE_VALUE_PATTERN.exec(value) : null;
+  if (!m) return null;
+  const high = m[3] !== undefined;
+  return {
+    kind: m[1] ? 'deck' : 'ramp',
+    axis: m[1] || (m[2] === 'e' || m[2] === 'w' ? 'row' : 'col'),
+    dir: m[2] || null,
+    level: high ? Number(m[3]) : null,
+    high,
+    suspension: Boolean(m[4]),
+  };
+}
+
+function getBridgeInfo(row, col) {
+  return parseBridgeValue(bridgeMap.get(getTileId(row, col)));
+}
+
+function isHighBridgeTile(row, col) {
+  return Boolean(getBridgeInfo(row, col)?.high);
 }
 
 function getBridgeErrorMessage(reason) {

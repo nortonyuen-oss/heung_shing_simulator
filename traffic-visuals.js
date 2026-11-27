@@ -926,6 +926,8 @@ function normalizeTrafficBridgeValue(value) {
   if (value === 'row' || value === 'col') return `deck:${value}`;
   if (value === 'deck:row' || value === 'deck:col') return value;
   if (typeof value === 'string' && /^ramp:[nesw]$/.test(value)) return value;
+  // a 天橋 / 懸索橋 tile: its level after it (road-flyovers.js)
+  if (typeof value === 'string' && /^(?:deck:(?:row|col)|ramp:[nesw]):\d(?::s)?$/.test(value)) return value;
   return null;
 }
 
@@ -1106,7 +1108,10 @@ function createTrafficRoadSurface({
   };
 }
 
-function getTrafficRoadSurface(row, col, layers) {
+// `layer`: 'deck' for the road up on a 天橋 that crosses a road (立交, road-flyovers.js) - the one tile
+// then has two roads, the ground's (the default) and the deck's. Anywhere else a tile has one road
+// and the layer is not asked.
+function getTrafficRoadSurface(row, col, layers, layer = null) {
   const roadValue = layers?.roadValue ?? 2;
   const heightStep = Math.max(0, Number(layers?.heightStepPixels) || 12);
   const bridgeDeckLift = Math.max(0, Number(layers?.bridgeDeckLiftPixels) || 15);
@@ -1124,6 +1129,36 @@ function getTrafficRoadSurface(row, col, layers) {
       directions,
       centerLift: 0,
       endpointLifts: Object.fromEntries(directions.map((direction) => [direction, 0])),
+    });
+  }
+
+  // a 天橋 / 懸索橋 (road-flyovers.js): the deck at its level, each ramp a level a tile - in terrain
+  // levels, as the roads up the hills are
+  const highBridge = bridge?.match(/^(?:deck:(row|col)|ramp:([nesw])):(\d)/);
+  // (a deck over a road: its own road only when the deck layer is asked for, else the road under it)
+  const interchange = Boolean(highBridge?.[1]) && layers?.mapData?.[row]?.[col] === roadValue;
+  if (highBridge && (!interchange || layer === 'deck')) {
+    const level = Number(highBridge[3]);
+    if (highBridge[1]) {
+      const directions = highBridge[1] === 'row' ? ['e', 'w'] : ['n', 's'];
+      return createTrafficRoadSurface({
+        row,
+        col,
+        kind: 'bridge-deck',
+        directions,
+        centerLift: level * heightStep,
+        endpointLifts: Object.fromEntries(directions.map((direction) => [direction, level * heightStep])),
+      });
+    }
+    const highDirection = highBridge[2];
+    const lowDirection = TRAFFIC_OPPOSITE_DIRECTION[highDirection];
+    return createTrafficRoadSurface({
+      row,
+      col,
+      kind: 'bridge-ramp',
+      directions: [highDirection, lowDirection],
+      centerLift: (level + 0.5) * heightStep,
+      endpointLifts: { [highDirection]: (level + 1) * heightStep, [lowDirection]: level * heightStep },
     });
   }
 
@@ -1286,24 +1321,50 @@ function trafficTunnelAllowsMove(row, col, direction) {
   return !tunnel || tunnel.oneWay === direction;
 }
 
-function trafficCarriagewayAllowsMove(fromRow, fromCol, toRow, toCol, direction) {
+function trafficCarriagewayAllowsMove(fromRow, fromCol, toRow, toCol, direction, fromLayer = null, toLayer = null) {
   if (!trafficTunnelAllowsMove(fromRow, fromCol, direction) || !trafficTunnelAllowsMove(toRow, toCol, direction)) return false;
   if (typeof getRoadCarriagewayBand !== 'function') return true;
-  return trafficCarriagewayBandAllows(getRoadCarriagewayBand(fromRow, fromCol), direction)
-    && trafficCarriagewayBandAllows(getRoadCarriagewayBand(toRow, toCol), direction);
+  // (a band is the ground road's: up on a 天橋's deck over it, the deck's own way goes)
+  return (fromLayer === 'deck' || trafficCarriagewayBandAllows(getRoadCarriagewayBand(fromRow, fromCol), direction))
+    && (toLayer === 'deck' || trafficCarriagewayBandAllows(getRoadCarriagewayBand(toRow, toCol), direction));
 }
 
-function getTrafficRoadNeighbours(row, col) {
+// Every road on a tile: [{ layer, surface }] - the ground's (layer null) and, under a 天橋 crossing
+// it, the deck's ('deck').
+function getTrafficRoadSurfaces(row, col, layers) {
+  const out = [];
+  const ground = getTrafficRoadSurface(row, col, layers);
+  if (ground) out.push({ layer: null, surface: ground });
+  if (isTrafficInterchangeTile(row, col, layers)) {
+    const deck = getTrafficRoadSurface(row, col, layers, 'deck');
+    if (deck) out.push({ layer: 'deck', surface: deck });
+  }
+  return out;
+}
+
+function isTrafficInterchangeTile(row, col, layers) {
+  const value = layers?.bridgeMap?.get(`${row}:${col}`);
+  return typeof value === 'string' && /^deck:(?:row|col):\d/.test(value)
+    && layers?.mapData?.[row]?.[col] === (layers?.roadValue ?? 2);
+}
+
+// A tile with its layer when it has one: what the traffic's tiles are ({ row, col, layer? }).
+function trafficLayeredTile(row, col, layer) {
+  return layer ? { row, col, layer } : { row, col };
+}
+
+function getTrafficRoadNeighbours(row, col, layer = null) {
   const layers = getTrafficRuntimeLayers();
-  const surface = getTrafficRoadSurface(row, col, layers);
+  const surface = getTrafficRoadSurface(row, col, layers, layer);
   if (!surface) return [];
   return Object.entries(TRAFFIC_LOGICAL_DIRECTIONS).flatMap(([direction, delta]) => {
-    const tile = { row: row + delta.row, col: col + delta.col };
-    if (!isInsideMap(tile.row, tile.col)) return [];
-    const nextSurface = getTrafficRoadSurface(tile.row, tile.col, layers);
-    return trafficRoadSurfacesConnect(surface, nextSurface, direction)
-      && trafficCarriagewayAllowsMove(row, col, tile.row, tile.col, direction)
-      ? [tile]
+    const r = row + delta.row, c = col + delta.col;
+    if (!isInsideMap(r, c)) return [];
+    // (the road on it that meets this one at its height: under a 天橋 or up on it)
+    const match = getTrafficRoadSurfaces(r, c, layers).find(({ surface: nextSurface }) => (
+      trafficRoadSurfacesConnect(surface, nextSurface, direction)));
+    return match && trafficCarriagewayAllowsMove(row, col, r, c, direction, layer, match.layer)
+      ? [trafficLayeredTile(r, c, match.layer)]
       : [];
   });
 }
@@ -1312,18 +1373,18 @@ function getTrafficRoadNeighbours(row, col) {
 // getTrafficRoadNeighbours. Needed wherever a route is searched backwards from its
 // destination and then reversed (an ice cream truck's arrival), because one-way band
 // tiles mean "B is reachable from A" no longer implies "A is reachable from B".
-function getTrafficRoadIncomingNeighbours(row, col) {
+function getTrafficRoadIncomingNeighbours(row, col, layer = null) {
   const layers = getTrafficRuntimeLayers();
-  const surface = getTrafficRoadSurface(row, col, layers);
+  const surface = getTrafficRoadSurface(row, col, layers, layer);
   if (!surface) return [];
   return Object.entries(TRAFFIC_LOGICAL_DIRECTIONS).flatMap(([direction, delta]) => {
-    const tile = { row: row + delta.row, col: col + delta.col };
-    if (!isInsideMap(tile.row, tile.col)) return [];
+    const r = row + delta.row, c = col + delta.col;
+    if (!isInsideMap(r, c)) return [];
     const inbound = TRAFFIC_OPPOSITE_DIRECTION[direction];
-    const fromSurface = getTrafficRoadSurface(tile.row, tile.col, layers);
-    return trafficRoadSurfacesConnect(fromSurface, surface, inbound)
-      && trafficCarriagewayAllowsMove(tile.row, tile.col, row, col, inbound)
-      ? [tile]
+    const match = getTrafficRoadSurfaces(r, c, layers).find(({ surface: fromSurface }) => (
+      trafficRoadSurfacesConnect(fromSurface, surface, inbound)));
+    return match && trafficCarriagewayAllowsMove(r, c, row, col, inbound, match.layer, layer)
+      ? [trafficLayeredTile(r, c, match.layer)]
       : [];
   });
 }
@@ -1336,10 +1397,10 @@ function runtimeTrafficTilesConnect(current, next, layers = getTrafficRuntimeLay
   );
   if (!direction) return false;
   return trafficRoadSurfacesConnect(
-    getTrafficRoadSurface(current.row, current.col, layers),
-    getTrafficRoadSurface(next.row, next.col, layers),
+    getTrafficRoadSurface(current.row, current.col, layers, current.layer),
+    getTrafficRoadSurface(next.row, next.col, layers, next.layer),
     direction,
-  ) && trafficCarriagewayAllowsMove(current.row, current.col, next.row, next.col, direction);
+  ) && trafficCarriagewayAllowsMove(current.row, current.col, next.row, next.col, direction, current.layer, next.layer);
 }
 
 function getTrafficState(scene) {
@@ -1794,11 +1855,14 @@ function collectVisibleTrafficRoads(scene, rect) {
         ? applyTrafficTimeOfDayMultiplier(baseLoad, timeMultiplier)
         : Math.max(0, Math.min(1, baseLoad * timeMultiplier));
       if (load <= TRAFFIC_VISUAL_CONFIG.minimumLoad) continue;
-      const neighbours = getTrafficRoadNeighbours(row, col);
-      if (neighbours.length === 0) continue;
       const point = getTrafficSurfacePoint(scene, row, col);
       if (!trafficPointInRect(point, rect)) continue;
-      roads.push({ row, col, baseLoad, load, neighbours });
+      // (under a 天橋 crossing it, its deck's road too)
+      [null, ...(isTrafficInterchangeTile(row, col, getTrafficRuntimeLayers()) ? ['deck'] : [])].forEach((layer) => {
+        const neighbours = getTrafficRoadNeighbours(row, col, layer);
+        if (neighbours.length === 0) return;
+        roads.push(layer ? { row, col, layer, baseLoad, load, neighbours } : { row, col, baseLoad, load, neighbours });
+      });
     }
   }
   return roads;
@@ -1820,8 +1884,8 @@ function getTrafficLegSurfaceLifts(current, next, layers = getTrafficRuntimeLaye
     next.row - current.row,
     next.col - current.col,
   );
-  const currentSurface = getTrafficRoadSurface(current.row, current.col, layers);
-  const nextSurface = getTrafficRoadSurface(next.row, next.col, layers);
+  const currentSurface = getTrafficRoadSurface(current.row, current.col, layers, current.layer);
+  const nextSurface = getTrafficRoadSurface(next.row, next.col, layers, next.layer);
   if (!trafficRoadSurfacesConnect(currentSurface, nextSurface, direction)) {
     return { start: 0, boundary: 0, end: 0 };
   }
@@ -2474,6 +2538,9 @@ function isTrafficVehicleUnderSea(vehicle) {
 
 // A vehicle's depth in the object band; on a 海底隧道 portal, between the portal's layers.
 function getTrafficVehicleDepth(vehicle, position) {
+  // up on a 天橋 / 懸索橋, or running onto one: over its deck (road-flyovers.js)
+  const raised = typeof highBridgeVehicleDepth === 'function' ? highBridgeVehicleDepth(vehicle, position) : null;
+  if (raised != null) return raised;
   const portalDepth = typeof getUnderseaTunnelVehicleDepth === 'function' ? getUnderseaTunnelVehicleDepth(vehicle) : null;
   const depth = portalDepth ?? getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
   // under a 地鐵 viaduct: below its deck, and its lamps too (they sort up to 0.14 after it)
@@ -2511,10 +2578,14 @@ function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false
     && metroDeckDepthOver(activeScene, position.x, position.y) != null;
   const deckEdge = underDeck || vehicle.__underDeck;
   vehicle.__underDeck = underDeck;
-  if (forceDepth || onPortal || deckEdge) {
+  // on a 天橋 / 懸索橋 (and the frame it leaves one): sorted every frame, a tile at a time
+  const raised = typeof highBridgeVehicleDepth === 'function' && highBridgeVehicleDepth(vehicle, position) != null;
+  const raisedEdge = raised || vehicle.__onHighBridge;
+  vehicle.__onHighBridge = raised;
+  if (forceDepth || onPortal || deckEdge || raisedEdge) {
     vehicle.sprite.setDepth(getTrafficVehicleDepth(vehicle, position));
   }
-  if (!underSea) updateTrafficVehicleLights(vehicle, position, forceDepth || onPortal || deckEdge);
+  if (!underSea) updateTrafficVehicleLights(vehicle, position, forceDepth || onPortal || deckEdge || raisedEdge);
 }
 
 function refreshTrafficVehicleDepths(state, time) {
@@ -2590,10 +2661,8 @@ function hasTrafficSpawnConflict(state, current, next, scene = null) {
   return vehicles.some((vehicle) => (
     vehicle.current
     && vehicle.next
-    && vehicle.current.row === current.row
-    && vehicle.current.col === current.col
-    && vehicle.next.row === next.row
-    && vehicle.next.col === next.col
+    && trafficTileBucketKey(vehicle.current) === trafficTileBucketKey(current)
+    && trafficTileBucketKey(vehicle.next) === trafficTileBucketKey(next)
   ));
 }
 
@@ -2611,7 +2680,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       row: road.row - (next.row - road.row),
       col: road.col - (next.col - road.col),
     };
-    const current = { row: road.row, col: road.col };
+    const current = trafficLayeredTile(road.row, road.col, road.layer);
     const sprite = scene.add.image(0, 0, model.directions.ne.key);
     addToRenderLayer(scene, sprite, 'objectLayer');
     sprite.setOrigin(model.originX, model.originY);
@@ -2624,7 +2693,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       sprite,
       previous,
       current,
-      next: { row: next.row, col: next.col },
+      next: trafficLayeredTile(next.row, next.col, next.layer),
       progress: random() * 0.8,
       textureDirection: 'ne',
       leg: null,
@@ -2723,11 +2792,12 @@ function getTrafficLeaderEffectiveProgress(leader) {
 // leaders) into O(vehicles + leaders), same-leg group sizes staying tiny even
 // as citywide vehicle counts grow.
 function trafficLegBucketKey(current, next) {
-  return `${current.row},${current.col}|${next.row},${next.col}`;
+  return `${trafficTileBucketKey(current)}|${trafficTileBucketKey(next)}`;
 }
 
+// (a 天橋's deck over a road is a road of its own: its traffic never queues behind the road's)
 function trafficTileBucketKey(tile) {
-  return `${tile.row},${tile.col}`;
+  return tile.layer ? `${tile.row},${tile.col},${tile.layer}` : `${tile.row},${tile.col}`;
 }
 
 // Two indexes over the same pass: leaders by leg (same-leg following) and leaders by the tile
@@ -2782,7 +2852,7 @@ function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
   if (!ahead) return false;
   return ahead.some((leader) => {
     if (leader === vehicle || !leader.next) return false;
-    if (leader.next.row === vehicle.current.row && leader.next.col === vehicle.current.col) return false;
+    if (trafficTileBucketKey(leader.next) === trafficTileBucketKey(vehicle.current)) return false;
     if (trafficVehiclesInSeparateBandLanes(vehicle, leader, vehicle.next)) return false;
     const gap = (1 - vehicle.progress) + getTrafficLeaderEffectiveProgress(leader);
     return gap < trafficHeadwayFor(vehicle, leader);
@@ -2801,7 +2871,7 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
     const previous = vehicle.current;
     const current = vehicle.next;
     // no turning back in front of a 海底隧道 (undersea-tunnel.js)
-    const neighbours = getTrafficRoadNeighbours(current.row, current.col).filter((tile) => (
+    const neighbours = getTrafficRoadNeighbours(current.row, current.col, current.layer).filter((tile) => (
       typeof isUnderseaTunnelUTurn !== 'function' || !isUnderseaTunnelUTurn(previous, current, tile)
     ));
     const next = chooseNextTrafficTile(previous, current, neighbours);
@@ -2809,7 +2879,7 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
 
     vehicle.previous = previous;
     vehicle.current = current;
-    vehicle.next = { row: next.row, col: next.col };
+    vehicle.next = trafficLayeredTile(next.row, next.col, next.layer);
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next, vehicle.bandLane);
     vehicle.busDwellHandledForLeg = false;
     vehicle.busDwellMatchedSide = undefined;
@@ -3027,6 +3097,8 @@ const trafficVisualTestApi = {
   getIceCreamArrivalDirectionForBuildingSide,
   collectIceCreamParkingCandidates,
   getTrafficRoadSurface,
+  getTrafficRoadSurfaces,
+  isTrafficInterchangeTile,
   trafficRoadSurfacesConnect,
   getTrafficLegSurfaceLifts,
   evaluateTrafficLeg,

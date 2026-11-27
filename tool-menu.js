@@ -242,6 +242,21 @@ function setupToolMenu() {
     // 地鐵路軌's height (metro-surface.js): picked, and the track tool taken up - the flyout left
     // open (taking a tool up closes it), to try another height
     // 輕鐵路軌's height (light-rail.js): picked, and the track tool taken up, the flyout left open
+    // the road's 橋款 (road-flyovers.js): picked, and the road tool taken up, the flyout left open
+    const bridgeStyleButton = event.target.closest('[data-bridge-style]');
+    if (bridgeStyleButton) {
+      if (typeof setRoadBridgeStyle === 'function') setRoadBridgeStyle(bridgeStyleButton.dataset.bridgeStyle);
+      if (selectedTool !== 'road') {
+        const panel = bridgeStyleButton.closest('.tool-flyout');
+        const category = panel && menu.querySelector(`[data-tool-category="${panel.dataset.toolPanel}"]`);
+        menu.querySelector('[data-tool="road"]')?.click();
+        if (panel && category) {
+          category.classList.add('is-open');
+          panel.classList.add('is-open');
+        }
+      }
+      return;
+    }
     const lrtHeightButton = event.target.closest('[data-lrt-height]');
     if (lrtHeightButton) {
       if (typeof setLightRailHeight === 'function') setLightRailHeight(lrtHeightButton.dataset.lrtHeight);

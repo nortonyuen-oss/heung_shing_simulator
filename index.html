@@ -7454,6 +7454,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
 
     <section class="tool-flyout" data-tool-panel="roads">
       <div class="tool-flyout-title" data-i18n="toolCategory.roads">Roads</div>
+      <div class="metro-height-picker" role="radiogroup" title="Bridge type" data-i18n-title="bridgeStyle.label">
+        <button type="button" role="radio" aria-checked="true" class="is-active" data-bridge-style="ground"><span aria-hidden="true">🛣️</span><span data-i18n="bridgeStyle.ground">Ground</span></button>
+        <button type="button" role="radio" aria-checked="false" data-bridge-style="flyover"><span aria-hidden="true">🌉</span><span data-i18n="bridgeStyle.flyover">Flyover</span></button>
+        <button type="button" role="radio" aria-checked="false" data-bridge-style="suspension"><span aria-hidden="true">🌁</span><span data-i18n="bridgeStyle.suspension">Suspension</span></button>
+      </div>
       <button class="tool-row is-active" type="button" data-tool="road" title="Build road ($10)">
         <span class="tool-row-icon">🛣</span><span class="tool-row-text" data-i18n="toolRow.road">Road</span><span class="tool-row-cost">$10</span>
       </button>
@@ -8682,6 +8687,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="bus-stops.js"></script>
   <script src="harbor.js"></script>
   <script src="bridges.js"></script>
+  <script src="road-flyovers.js"></script>
   <script src="terrain-generation.js"></script>
   <script src="terrain-original.js"></script>
   <script src="tile-keys.js"></script>

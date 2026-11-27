@@ -86,7 +86,7 @@ test('the edge a barrier stands on turns with the map, and picks the matching ar
   assert.equal(textureKey('ne', 'n'), 'bridge_parapet_h');
   const files = toPlain(run('BRIDGE_PARAPET_TEXTURE_FILES'));
   Object.values(files).forEach((file) => assert.ok(fs.existsSync(path.join(ROOT, file)), `${file} is baked`));
-  assert.equal(Object.keys(files).length, 6);
+  assert.equal(Object.keys(files).length, 10);
 });
 
 test('a barrier anchors on the edge midpoint of the lifted deck and sorts like a vehicle there', () => {

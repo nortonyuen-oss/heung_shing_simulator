@@ -38,6 +38,7 @@ function getTouchToolOptions(tool) {
   if (tool === 'district-sign') return { name: '', englishName: '' };
   if (tool === 'metro-track') return { height: typeof metroRailHeight !== 'undefined' ? metroRailHeight : 'ground' };
   if (tool === 'light-rail-track') return { height: typeof lightRailHeight !== 'undefined' ? lightRailHeight : 'ground' };
+  if (tool === 'road') return { bridge: typeof roadBridgeStyle !== 'undefined' ? roadBridgeStyle : 'ground' };
   if (tool === 'typhoon-shelter') return { subtract: false };
   if (tool === 'terrain') return { terrainType: typeof selectedTerrainType !== 'undefined' ? selectedTerrainType : 'grass' };
   if (tool === 'floating-restaurant') {
@@ -118,6 +119,12 @@ function getTouchDemolitionPlan(scene, tiles, options = {}) {
     if (isPromenadeTile(row, col)) { add('promenade', id, getPromenadeState().tiles[`${row}:${col}`], { cost: COST_BULLDOZE }); continue; }
     const tunnel = getUnderseaTunnelTile(row, col);
     if (tunnel && !tunnel.under) { add('tunnel', tunnel.tunnel.id, tunnel.tunnel); continue; }
+    // a 天橋 / 懸索橋 tile comes down before any track under it (main.js applyToolAt does the same)
+    if (typeof isHighBridgeTile === 'function' && isHighBridgeTile(row, col)) {
+      summary.roads++;
+      operations.push({ kind: 'tile', row, col, cost: COST_BULLDOZE });
+      continue;
+    }
     const station = getMetroStationAt(row, col);
     if (station) {
       if (getMetroStationLine(station, getMetroState())) reason = t('metro.station.onLine', { name: station.name });
@@ -367,17 +374,28 @@ function previewTouchToolAction(scene, draft) {
   } else if (draft.tool === 'road') {
     const pathInfo = getStraightDragPath(draft.start, draft.end);
     const bridge = analyzeBridgePath(scene, pathInfo);
+    const style = draft.options?.bridge || 'ground';
     plan.tiles = pathInfo.path;
-    if (bridge.crossesWater) {
+    if (style !== 'ground' && typeof planHighBridge === 'function') {
+      // 天橋 / 懸索橋 (road-flyovers.js)
+      const high = planHighBridge(scene, pathInfo, style);
+      plan.ok = high.ok;
+      plan.reason = high.ok ? '' : highBridgeRefusal(high.reason);
+      plan.cost = high.cost || 0;
+      plan.bridge = true;
+    } else if (bridge.crossesWater) {
       const shelter = pathInfo.path.some((tile) => findTyphoonShelterAt(tile.row, tile.col));
       plan.ok = bridge.valid && !shelter;
       plan.reason = shelter ? t('toast.bridgeOverTyphoonShelter') : !bridge.valid ? getBridgeErrorMessage(bridge.reason) : '';
       plan.cost = bridge.cost || 0;
       plan.bridge = true;
     } else {
-      plan.tiles = dedupePath(pathInfo.path).filter((tile) => mapData[tile.row][tile.col] !== ROAD && mapData[tile.row][tile.col] !== WATER && canPlaceRoad(scene, tile.row, tile.col));
+      plan.tiles = dedupePath(pathInfo.path).filter((tile) => mapData[tile.row][tile.col] !== ROAD && mapData[tile.row][tile.col] !== WATER && canPlaceRoad(scene, tile.row, tile.col, { acrossLightRail: true }));
       plan.cost = plan.tiles.length * COST_ROAD;
       plan.ok = plan.tiles.length > 0;
+      // (over 輕鐵 track only as level crossings: light-rail.js)
+      const lightRailWhy = plan.ok && typeof whyNotRoadAcrossLightRail === 'function' ? whyNotRoadAcrossLightRail(plan.tiles) : null;
+      if (lightRailWhy) { plan.ok = false; plan.reason = lightRailWhy; }
     }
     identity = pathInfo.path.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
   } else if (draft.tool.startsWith('zone-')) {
@@ -495,7 +513,7 @@ function commitTouchToolAction(scene, draft, plan) {
     ok = draft.tool === 'harbor' ? placeHarborBuilding(scene, row, col)
       : placeInfraBuilding(scene, row, col, TOUCH_BUILDING_TYPES[draft.tool], draft.options.model);
   } else if (draft.tool === 'road') {
-    commitRoadDrag(scene, draft.start, draft.end);
+    commitRoadDrag(scene, draft.start, draft.end, draft.options?.bridge || 'ground');
   } else if (draft.tool.startsWith('zone-')) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
     for (const { row, col } of plan.tiles) ok = placeZone(scene, row, col, zone, draft.options.density, draft.options.housingType, draft.options.industrialType) && ok;

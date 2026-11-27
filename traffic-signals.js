@@ -336,6 +336,8 @@ function trafficSignalStopProgressFor(headwayFactor = 1) {
 function getTrafficSignalHoldProgress(scene, current, next, progress, headwayFactor) {
   const junctions = scene?.trafficSignalJunctions;
   if (!junctions?.size || !current || !next) return null;
+  // (up on a 天橋 over the junction: its lights are the road's below - road-flyovers.js)
+  if (current.layer === 'deck' || next.layer === 'deck') return null;
   const junction = junctions.get(trafficSignalJunctionKey(next.row, next.col));
   if (!junction) return null;
   // Already inside the same junction block: it was let in at the stop line, never hold it again.
@@ -373,10 +375,14 @@ function trafficSignalAnchor(scene, placement, facing) {
   const centre = isoToScreen(placement.col, placement.row);
   const shifted = isoToScreen(point.col, point.row);
   const offset = trafficSignalOffsetFor(facing);
+  const depth = getWorldDepth('object', shifted.y + TILE_HEIGHT);
+  // (a pole under a 天橋 crossing the junction: under its deck - road-flyovers.js)
+  const deck = typeof isHighBridgeInterchangeTile === 'function' && isInsideMap(placement.row, placement.col)
+    && isHighBridgeInterchangeTile(placement.row, placement.col) ? highBridgeTileDepth(placement.row, placement.col) - 0.3 : null;
   return {
     x: geo.center.x + (shifted.x - centre.x) + offset.dx,
     y: geo.center.y + (shifted.y - centre.y) + offset.dy,
-    depth: getWorldDepth('object', shifted.y + TILE_HEIGHT),
+    depth: deck != null ? Math.min(depth, deck) : depth,
   };
 }
 

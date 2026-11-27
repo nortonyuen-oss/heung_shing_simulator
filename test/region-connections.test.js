@@ -111,6 +111,7 @@ test('a road at the map edge draws straight on into the neighbouring district, n
     const isRoadLikeTile = (r, c) => roads.has(r + ',' + c);
     ${source.slice(start, end)}
     ${pickFunction(source, 'getRoadEdgeExitSide')}
+    ${pickFunction(source, 'roadTilesJoin')}
     return getRoadKey;
   `)(roads);
   assert.equal(getRoadKey(0, 10), 'road_straight_v', 'north edge: carries on off the map');
@@ -135,6 +136,7 @@ test('a carriageway reaching the edge goes straight out on every lane, not round
     const isRoadLikeTile = (r, c) => roads.has(r + ',' + c);
     ${source.slice(start, end)}
     ${pickFunction(source, 'getRoadEdgeExitSide')}
+    ${pickFunction(source, 'roadTilesJoin')}
     return getRoadKey;
   `)(roads);
   assert.equal(getRoadKey(0, 100), 'road_straight_v', 'each lane carries straight on north');

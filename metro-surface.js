@@ -331,7 +331,9 @@ function planRailAtHeight(height, path0, bits, elev, env) {
         const away = nextP ? railSideTowards(p, nextP) : RAIL_OPPOSITE[railSideTowards(p, prevP)];
         const back = RAIL_OPPOSITE[away];
         if (nextP && prevP && railSideTowards(p, prevP) !== back) return { reason: ramp ? 'rampStraight' : 'portalStraight', p };
-        if (!flatAt(i) || topAt(i) !== groundLevel || !env.canGround(p.row, p.col)) return { reason: ramp ? 'rampGround' : 'portalGround', p };
+        // (env.canRamp: where a ramp or a portal may go, if narrower than the ground track's - not under
+        // a 天橋, road-flyovers.js)
+        if (!flatAt(i) || topAt(i) !== groundLevel || !(env.canRamp || env.canGround)(p.row, p.col)) return { reason: ramp ? 'rampGround' : 'portalGround', p };
         taken.add(i);
         assign[keyOf(p)] = piece === 'rampUp' ? `${s + 1}${away}` : piece === 'rampDown' ? `${N - s}${back}`
           : piece === 'portalDown' ? `p${s + 1}${away}` : `p${N - s}${back}`;
@@ -490,7 +492,8 @@ function metroTrackRevisionKey() {
 function canLayMetroTrackAt(row, col) {
   if (!isInsideMap(row, col)) return false;
   if (mapData[row][col] === WATER || mapData[row][col] === ROAD) return false;
-  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return false;
+  // (under a 天橋's deck the ground is free: road-flyovers.js)
+  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col) && !highBridgeLetsTrackUnder(row, col)) return false;
   if (typeof isSlopeTile === 'function' && isSlopeTile(row, col) && getHillOpenEdges(row, col).length !== 1) return false;
   const id = getTileId(row, col);
   if (buildingData[id] || activeScene?.buildingSprites?.has(id)) return false;
@@ -541,6 +544,13 @@ function isMetroTrackTile(row, col) {
 function railGroundUse(code) {
   if (code === 'u' || (code && code[0] === 't')) return 'none';
   return railDeckLevel(code) != null ? 'deck' : 'ground';
+}
+
+// A 天橋 / 懸索橋's deck over the ground (road-flyovers.js): railway track may run on the ground under it.
+function highBridgeLetsTrackUnder(row, col) {
+  if (typeof getBridgeInfo !== 'function') return false;
+  const info = getBridgeInfo(row, col);
+  return Boolean(info?.high && info.kind === 'deck' && mapData[row][col] !== WATER);
 }
 
 // ... on the map: null where there is no track.
@@ -630,6 +640,7 @@ function metroRailEnv() {
     openEdges: metroOpenEdges,
     inside: isInsideMap,
     canGround: canLayMetroTrackAt,
+    canRamp: (r, c) => canLayMetroTrackAt(r, c) && !(typeof isBridgeTile === 'function' && isBridgeTile(r, c)),
     canDeck: canDeckMetroTrackAt,
     groundAt: metroGroundMetresAt,
   };
@@ -961,6 +972,13 @@ function syncMetroTracks(scene) {
 // diamond, raised anywhere up to its deck, covers the point. The traffic keeps under it
 // (traffic-visuals.js getTrafficVehicleDepth).
 function metroDeckDepthOver(scene, x, y) {
+  // (and a 天橋 / 懸索橋's deck: road-flyovers.js)
+  const road = typeof highBridgeDeckDepthOver === 'function' ? highBridgeDeckDepthOver(scene, x, y) : null;
+  const rail = metroRailDeckDepthOver(scene, x, y);
+  return road == null ? rail : rail == null ? road : Math.min(road, rail);
+}
+
+function metroRailDeckDepthOver(scene, x, y) {
   // (the 輕鐵's viaducts too: light-rail.js keeps its deck sprites the same way)
   const metroDecks = scene?.metroTrackSprites, lightDecks = scene?.lightRailTrackSprites;
   if ((!metroDecks?.size && !lightDecks?.size) || typeof screenToIso !== 'function') return null;

@@ -16,8 +16,9 @@
 // parapet is ~1.3 m). Deck segments lose both end faces; a ramp segment keeps the face at the
 // ramp's foot, where the run ends, and is vertically sheared so its base follows the ramp -
 // the 15 px deck lift (BRIDGE_DECK_VISUAL_LIFT) over the edge's 50 px changes the base slope
-// by 0.3, up at the high end. Posts stay vertical under a vertical shear. Six textures:
-// parapet_h (NW-SE) with high_se / high_nw, parapet_v (SW-NE) with high_ne / high_sw.
+// by 0.3, up at the high end. Posts stay vertical under a vertical shear. Ten textures:
+// parapet_h (NW-SE) with high_se / high_nw, parapet_v (SW-NE) with high_ne / high_sw, and the
+// 天橋 ramps' rise_* (13 px a tile, no end faces) for each.
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -47,6 +48,9 @@ const HEIGHT_SCALE = Number(argValue('--height') || 0.5);
 const SUPERSAMPLE = 4;
 // Ramp shear: the 15 px deck lift over a 50 px edge, in canvas terms (slope change).
 const RAMP_SHEAR = 15 / 50;
+// A 天橋 / 懸索橋's ramps (road-flyovers.js) climb a terrain level (13 px) a tile, and run on into the
+// next ramp or the deck at both ends: no end faces kept.
+const RISE_SHEAR = 13 / 50;
 // Pixels this faint are the renderer's dark halo, not the parapet.
 const FRINGE_ALPHA = 128;
 
@@ -59,6 +63,8 @@ const SOURCES = [
       { name: 'parapet_h', shear: 0, keep: {} },
       { name: 'parapet_h_high_se', shear: -RAMP_SHEAR, keep: { left: true } },  // foot at NW
       { name: 'parapet_h_high_nw', shear: RAMP_SHEAR, keep: { right: true } },  // foot at SE
+      { name: 'parapet_h_rise_se', shear: -RISE_SHEAR, keep: {} },
+      { name: 'parapet_h_rise_nw', shear: RISE_SHEAR, keep: {} },
     ],
   },
   {
@@ -68,6 +74,8 @@ const SOURCES = [
       { name: 'parapet_v', shear: 0, keep: {} },
       { name: 'parapet_v_high_ne', shear: -RAMP_SHEAR, keep: { left: true } },  // foot at SW
       { name: 'parapet_v_high_sw', shear: RAMP_SHEAR, keep: { right: true } },  // foot at NE
+      { name: 'parapet_v_rise_ne', shear: -RISE_SHEAR, keep: {} },
+      { name: 'parapet_v_rise_sw', shear: RISE_SHEAR, keep: {} },
     ],
   },
 ];

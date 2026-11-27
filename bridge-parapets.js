@@ -23,6 +23,11 @@ const BRIDGE_PARAPET_TEXTURE_FILES = Object.freeze({
   bridge_parapet_v: 'Models/roadAssessories/parapet_v.png',
   bridge_parapet_v_high_ne: 'Models/roadAssessories/parapet_v_high_ne.png',
   bridge_parapet_v_high_sw: 'Models/roadAssessories/parapet_v_high_sw.png',
+  // a 天橋 / 懸索橋's ramps: a terrain level (13 px) a tile, no end faces (road-flyovers.js)
+  bridge_parapet_h_rise_se: 'Models/roadAssessories/parapet_h_rise_se.png',
+  bridge_parapet_h_rise_nw: 'Models/roadAssessories/parapet_h_rise_nw.png',
+  bridge_parapet_v_rise_ne: 'Models/roadAssessories/parapet_v_rise_ne.png',
+  bridge_parapet_v_rise_sw: 'Models/roadAssessories/parapet_v_rise_sw.png',
 });
 // The baked canvases are 512x512 (a power of two, so Phaser mipmaps them and the ~9x
 // downscale to the screen stays smooth) with the base-line midpoint at (256, 280).
@@ -49,16 +54,19 @@ function computeBridgeParapetPlacements({ mapWidth, mapHeight, bridgeValueAt, ro
       if (!value) continue;
       let axis = null;
       let high = null;
-      if (value === 'deck:row') axis = 'row';
-      else if (value === 'deck:col') axis = 'col';
+      // (a 天橋 / 懸索橋's tiles carry their level after: 'deck:row:3', 'ramp:e:1' - road-flyovers.js)
+      const raised = /:\d(?::s)?$/.test(value);
+      const base = raised ? value.replace(/:\d(?::s)?$/, '') : value;
+      if (base === 'deck:row') axis = 'row';
+      else if (base === 'deck:col') axis = 'col';
       else {
-        const ramp = /^ramp:([nesw])$/.exec(value);
+        const ramp = /^ramp:([nesw])$/.exec(base);
         if (!ramp) continue;
         high = ramp[1];
         axis = high === 'e' || high === 'w' ? 'row' : 'col';
       }
       for (const side of BRIDGE_PARAPET_SIDES_FOR_AXIS[axis]) {
-        placements.push({ row, col, side, high });
+        placements.push(raised ? { row, col, side, high, raised } : { row, col, side, high });
       }
     }
   }
@@ -76,11 +84,11 @@ function bridgeParapetFacing(placement, rotation = typeof mapRotation !== 'undef
 
 // The texture for a segment on `facing`; a ramp's segment climbs towards `visualHigh` (the
 // ramp's high end as a map direction after rotation).
-function bridgeParapetTextureKey(facing, visualHigh = null) {
+function bridgeParapetTextureKey(facing, visualHigh = null, raised = false) {
   const axis = facing === 'ne' || facing === 'sw' ? 'h' : 'v';
   if (!visualHigh) return `${BRIDGE_PARAPET_TEXTURE_PREFIX}${axis}`;
   const highEdge = BRIDGE_PARAPET_SCREEN_EDGE[visualHigh];
-  const key = `${BRIDGE_PARAPET_TEXTURE_PREFIX}${axis}_high_${highEdge}`;
+  const key = `${BRIDGE_PARAPET_TEXTURE_PREFIX}${axis}_${raised ? 'rise' : 'high'}_${highEdge}`;
   return BRIDGE_PARAPET_TEXTURE_FILES[key] ? key : `${BRIDGE_PARAPET_TEXTURE_PREFIX}${axis}`;
 }
 
@@ -99,7 +107,8 @@ function bridgeParapetScale() {
 // the lamps' surface model so the barrier's base meets the deck where the posts' feet do.
 function bridgeParapetSurfaceLift(placement) {
   if (typeof streetLampSurfaceLift !== 'function') return 0;
-  return streetLampSurfaceLift({ row: placement.row, col: placement.col, offsetRow: 0, offsetCol: 0 });
+  // (on a 天橋 the deck's surface, a road under it or not)
+  return streetLampSurfaceLift({ row: placement.row, col: placement.col, offsetRow: 0, offsetCol: 0, layer: placement.raised ? 'deck' : null });
 }
 
 // The two ends of a segment's edge: screen y and surface lift at each, in the lamps' terms
@@ -110,7 +119,7 @@ function bridgeParapetEdgeEnds(placement) {
   // The edge runs along the road axis: perpendicular to the side's own direction.
   const axis = delta.row === 0 ? { row: 0.5, col: 0 } : { row: 0, col: 0.5 };
   const surface = typeof getTrafficRoadSurface === 'function' && typeof getTrafficRuntimeLayers === 'function'
-    ? getTrafficRoadSurface(placement.row, placement.col, getTrafficRuntimeLayers())
+    ? getTrafficRoadSurface(placement.row, placement.col, getTrafficRuntimeLayers(), placement.raised ? 'deck' : null)
     : null;
   return [1, -1].map((sign) => {
     const row = placement.row + delta.row + axis.row * sign;
@@ -140,10 +149,14 @@ function bridgeParapetAnchor(scene, placement, facing) {
   const lift = bridgeParapetSurfaceLift(placement);
   const near = facing === 'se' || facing === 'sw';
   const endDepths = bridgeParapetEdgeEnds(placement).map((end) => end.y + TILE_HEIGHT - end.lift);
+  // up on a 天橋 / 懸索橋: over its tile's deck, the far side under the traffic, the near over it
+  // (road-flyovers.js highBridgeItemDepth)
+  const raisedDepth = placement.raised && typeof highBridgeItemDepth === 'function'
+    ? highBridgeItemDepth(placement.row, placement.col, near ? 'near' : 'far') : null;
   return {
     x: geo.center.x + (edge.x - centre.x) + offset.dx,
     y: geo.center.y + (edge.y - centre.y) + offset.dy - lift,
-    depth: getWorldDepth('object', near ? Math.max(...endDepths) : Math.min(...endDepths)),
+    depth: raisedDepth ?? getWorldDepth('object', near ? Math.max(...endDepths) : Math.min(...endDepths)),
   };
 }
 
@@ -168,14 +181,14 @@ function positionBridgeParapetSprite(scene, sprite) {
   const visualHigh = placement.high && typeof rotateDirection === 'function'
     ? rotateDirection(placement.high, typeof mapRotation !== 'undefined' ? mapRotation : 0)
     : placement.high;
-  applyBridgeParapetSpriteTexture(scene, sprite, bridgeParapetTextureKey(facing, visualHigh));
+  applyBridgeParapetSpriteTexture(scene, sprite, bridgeParapetTextureKey(facing, visualHigh, placement.raised));
   const anchor = bridgeParapetAnchor(scene, placement, facing);
   sprite.setPosition(anchor.x, anchor.y);
   sprite.setDepth(anchor.depth);
 }
 
 function createBridgeParapetSprite(scene, placement) {
-  const textureKey = bridgeParapetTextureKey(bridgeParapetFacing(placement), placement.high);
+  const textureKey = bridgeParapetTextureKey(bridgeParapetFacing(placement), placement.high, placement.raised);
   if (!scene.textures.exists(textureKey)) return null;
   const sprite = scene.add.image(0, 0, textureKey);
   if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite, 'objectLayer');

@@ -218,6 +218,13 @@ function mobileRenderDraft(draft) {
   document.getElementById('mobile-district-options').hidden = draft.tool !== 'district-sign';
   document.getElementById('mobile-metro-height-options').hidden = draft.tool !== 'metro-track';
   document.getElementById('mobile-lrt-height-options').hidden = draft.tool !== 'light-rail-track';
+  // the road's 橋款 (road-flyovers.js)
+  document.getElementById('mobile-bridge-style-options').hidden = draft.tool !== 'road';
+  if (draft.tool === 'road') {
+    document.querySelectorAll('[data-mobile-bridge-style]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.mobileBridgeStyle === (draft.options.bridge || 'ground')));
+    });
+  }
   if (draft.tool === 'light-rail-track') {
     document.querySelectorAll('[data-mobile-lrt-height]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.mobileLrtHeight === draft.options.height));
@@ -617,6 +624,7 @@ function setupMobileUi() {
         <span id="mobile-depot-options" hidden><button type="button" id="mobile-depot-rotate" data-mobile-aria="rotateEntrance"></button></span>
         <span id="mobile-metro-height-options" hidden role="group" data-mobile-aria="metroHeight">${METRO_RAIL_HEIGHTS.map((height) => `<button type="button" data-mobile-metro-height="${height}" aria-pressed="false" data-i18n="metroHeight.${height}"></button>`).join('')}</span>
         <span id="mobile-lrt-height-options" hidden role="group" data-mobile-aria="metroHeight">${LIGHT_RAIL_HEIGHTS.map((height) => `<button type="button" data-mobile-lrt-height="${height}" aria-pressed="false" data-i18n="lightRailHeight.${height}"></button>`).join('')}</span>
+        <span id="mobile-bridge-style-options" hidden role="group" data-i18n-aria="bridgeStyle.label">${(typeof ROAD_BRIDGE_STYLES !== 'undefined' ? ROAD_BRIDGE_STYLES : ['ground', 'flyover', 'suspension']).map((style) => `<button type="button" data-mobile-bridge-style="${style}" aria-pressed="false" data-i18n="bridgeStyle.${style}"></button>`).join('')}</span>
         <span id="mobile-shelter-options" hidden>
           <span role="group" data-mobile-aria="shelterMode"><button type="button" data-mobile-shelter-mode="basin" aria-pressed="false" data-i18n="typhoonShelter.mode.basin"></button><button type="button" data-mobile-shelter-mode="entrance" aria-pressed="false" data-i18n="typhoonShelter.mode.entrance"></button></span>
           <span id="mobile-shelter-subtract-options" role="group" data-mobile-aria="shelterRange"><button type="button" data-mobile-shelter-subtract="false" aria-pressed="false" data-mobile-text="shelterAdd"></button><button type="button" data-mobile-shelter-subtract="true" aria-pressed="false" data-mobile-text="shelterSubtract"></button></span>
@@ -690,6 +698,9 @@ function setupMobileUi() {
       mobileBuildSession.setOptions({ height: button.dataset.mobileMetroHeight });
     } else if (button.dataset.mobileLrtHeight) {
       mobileBuildSession.setOptions({ height: button.dataset.mobileLrtHeight });
+    } else if (button.dataset.mobileBridgeStyle) {
+      if (typeof setRoadBridgeStyle === 'function') setRoadBridgeStyle(button.dataset.mobileBridgeStyle);
+      mobileBuildSession.setOptions({ bridge: button.dataset.mobileBridgeStyle });
     } else if (button.dataset.mobileShelterMode) {
       typhoonShelterMode = button.dataset.mobileShelterMode;
       if (typhoonShelterMode === 'entrance') mobileCancelBuild();

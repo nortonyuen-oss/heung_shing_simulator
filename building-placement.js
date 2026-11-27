@@ -662,6 +662,8 @@ function positionBuilding(scene, building) {
 
 function canPlaceBuilding(row, col) {
   return [GROUND, DIRT, HILL].includes(mapData[row][col]) && !isSlopeTile(row, col)
+    // nor under a 天橋 (road-flyovers.js: its deck keeps the ground under it)
+    && !(typeof isBridgeTile === 'function' && isBridgeTile(row, col))
     // nor on a 海濱步道 (promenade.js): the bulldozer takes it up first
     && !(typeof isPromenadeTile === 'function' && isPromenadeTile(row, col))
     // nor on a 海底隧道 portal (undersea-tunnel.js)

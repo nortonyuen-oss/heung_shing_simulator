@@ -525,6 +525,8 @@ function buildShoreReflections(scene, state, signature, now) {
 // view, as bright as their windows; by day nothing runs past the first check.
 function updateShoreReflections(scene, time) {
   if (!scene) return;
+  // (and the 天橋 / 懸索橋's lights in the sea: road-flyovers.js)
+  if (typeof updateHighBridgeReflections === 'function') updateHighBridgeReflections(scene, time);
   const state = scene.shoreReflections || (scene.shoreReflections = { sites: [], sprites: [], signature: '', builtAt: -Infinity, nextAt: 0, shown: false, tick: 0 });
   if (time < state.nextAt) return;
   state.nextAt = time + SHORE_REFLECTION.tickMs;

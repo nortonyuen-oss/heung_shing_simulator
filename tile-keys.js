@@ -96,7 +96,35 @@ function isTyphoonShelterPavedTileSafe(row, col) {
 
 function getBaseTileType(row, col) {
   if (!isBridgeTile(row, col)) return mapData[row][col];
+  // a 天橋's deck keeps the ground under it as it is - grass, the sea, a road passing under (立交):
+  // road-flyovers.js
+  const info = typeof getBridgeInfo === 'function' ? getBridgeInfo(row, col) : null;
+  if (info?.high && info.kind === 'deck') return mapData[row][col];
   return getBridgeUnderlayTileType(row, col);
+}
+
+// Does the road on (row, col) run on into the road on (r2, c2)? Both roads, meeting at one height:
+// a 天橋's deck or ramp joins only its own run, along it, and the road under a deck (立交) and the
+// deck over it are not joined (road-flyovers.js). Everything else as it always was.
+function roadTilesJoin(row, col, r2, c2) {
+  if (!isRoadLikeTile(r2, c2)) return false;
+  if (typeof getBridgeInfo !== 'function') return true;
+  return roadEdgeLevel(row, col, r2, c2) === roadEdgeLevel(r2, c2, row, col);
+}
+
+// The height a tile's road meets its side toward (r2, c2) at: 'g' the ground's (any road, a low
+// bridge, the road under a 天橋), a terrain level on a 天橋's deck or ramp, or null where it has no
+// road that way (a deck's or a ramp's sides across it).
+function roadEdgeLevel(row, col, r2, c2) {
+  const info = getBridgeInfo(row, col);
+  if (!info?.high) return 'g';
+  if (info.kind === 'deck' && mapData[row][col] === ROAD) return 'g';
+  const way = r2 < row ? 'n' : r2 > row ? 's' : c2 > col ? 'e' : 'w';
+  const along = info.axis === 'row' ? way === 'e' || way === 'w' : way === 'n' || way === 's';
+  if (!along) return null;
+  if (info.kind === 'deck') return info.level;
+  if (way === info.dir) return info.level + 1;
+  return info.level === getTileHeight(row, col) ? 'g' : info.level;
 }
 
 // ── Carriageway widening (parallel roads placed side-by-side) ───────────────
@@ -115,54 +143,54 @@ const CARRIAGEWAY_MAX_BAND_WIDTH = 12; // generous — real HK roads rarely exce
 
 // Status of a width range at one row/column: 'full' (every cell road), 'none' (none),
 // or 'partial' (a mix). Used by getRoadCarriagewayBand's run-length tie-break.
-function roadRowWidthStatus(row, colStart, colEnd) {
+function roadRowWidthStatus(row, colStart, colEnd, isRoad = isRoadLikeTile) {
   let any = false, all = true;
   for (let c = colStart; c <= colEnd; c++) {
-    if (isRoadLikeTile(row, c)) any = true; else all = false;
+    if (isRoad(row, c)) any = true; else all = false;
   }
   return all ? 'full' : any ? 'partial' : 'none';
 }
 
-function roadColWidthStatus(col, rowStart, rowEnd) {
+function roadColWidthStatus(col, rowStart, rowEnd, isRoad = isRoadLikeTile) {
   let any = false, all = true;
   for (let r = rowStart; r <= rowEnd; r++) {
-    if (isRoadLikeTile(r, col)) any = true; else all = false;
+    if (isRoad(r, col)) any = true; else all = false;
   }
   return all ? 'full' : any ? 'partial' : 'none';
 }
 
-function getVerticalCarriagewayCandidate(row, col) {
+function getVerticalCarriagewayCandidate(row, col, isRoad = isRoadLikeTile) {
   // Strict through required (both sides) — a road's own end must fall through to the
   // plain bitmask below, so only cells unambiguously mid-run reach the width scan.
-  if (!isRoadLikeTile(row - 1, col) || !isRoadLikeTile(row + 1, col)) return null;
+  if (!isRoad(row - 1, col) || !isRoad(row + 1, col)) return null;
   // Only widen into a neighbour that is itself a parallel lane (road directly above AND
   // below it too). A plain "is it road" scan picks up a crossing band's whole row at a
   // loop corner (width 6 instead of the true 2), which then needed fragile look-ahead
   // heuristics to undo — and those in turn misfired on a legitimate 1→2 lane widening.
   let start = col, end = col;
-  while (start > col - CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(row, start - 1)
-    && isRoadLikeTile(row - 1, start - 1) && isRoadLikeTile(row + 1, start - 1)) start--;
-  while (end < col + CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(row, end + 1)
-    && isRoadLikeTile(row - 1, end + 1) && isRoadLikeTile(row + 1, end + 1)) end++;
+  while (start > col - CARRIAGEWAY_MAX_BAND_WIDTH && isRoad(row, start - 1)
+    && isRoad(row - 1, start - 1) && isRoad(row + 1, start - 1)) start--;
+  while (end < col + CARRIAGEWAY_MAX_BAND_WIDTH && isRoad(row, end + 1)
+    && isRoad(row - 1, end + 1) && isRoad(row + 1, end + 1)) end++;
   const width = end - start + 1;
   if (width < 2 || width > CARRIAGEWAY_MAX_BAND_WIDTH) return null;
   // Road right beyond the matched lanes is a real branch at this row (a crossing band's
   // row, a side street) — a genuine junction, so keep the original bitmask here.
-  if (isRoadLikeTile(row, start - 1) || isRoadLikeTile(row, end + 1)) return null;
+  if (isRoad(row, start - 1) || isRoad(row, end + 1)) return null;
   return { start, end, width, index: col - start };
 }
 
-function getHorizontalCarriagewayCandidate(row, col) {
+function getHorizontalCarriagewayCandidate(row, col, isRoad = isRoadLikeTile) {
   // Mirror of getVerticalCarriagewayCandidate onto the other axis.
-  if (!isRoadLikeTile(row, col - 1) || !isRoadLikeTile(row, col + 1)) return null;
+  if (!isRoad(row, col - 1) || !isRoad(row, col + 1)) return null;
   let start = row, end = row;
-  while (start > row - CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(start - 1, col)
-    && isRoadLikeTile(start - 1, col - 1) && isRoadLikeTile(start - 1, col + 1)) start--;
-  while (end < row + CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(end + 1, col)
-    && isRoadLikeTile(end + 1, col - 1) && isRoadLikeTile(end + 1, col + 1)) end++;
+  while (start > row - CARRIAGEWAY_MAX_BAND_WIDTH && isRoad(start - 1, col)
+    && isRoad(start - 1, col - 1) && isRoad(start - 1, col + 1)) start--;
+  while (end < row + CARRIAGEWAY_MAX_BAND_WIDTH && isRoad(end + 1, col)
+    && isRoad(end + 1, col - 1) && isRoad(end + 1, col + 1)) end++;
   const height = end - start + 1;
   if (height < 2 || height > CARRIAGEWAY_MAX_BAND_WIDTH) return null;
-  if (isRoadLikeTile(start - 1, col) || isRoadLikeTile(end + 1, col)) return null;
+  if (isRoad(start - 1, col) || isRoad(end + 1, col)) return null;
   return { start, end, width: height, index: row - start };
 }
 
@@ -176,9 +204,9 @@ function getHorizontalCarriagewayCandidate(row, col) {
 // horizontal band the north half is eastbound and the south half westbound. An
 // odd-width band's exact middle lane is a shared/reversible lane, not a fixed
 // direction — see docs/road-widening-plan.md section 3.
-function getRoadCarriagewayBand(row, col) {
-  const v = getVerticalCarriagewayCandidate(row, col);
-  const h = getHorizontalCarriagewayCandidate(row, col);
+function getRoadCarriagewayBand(row, col, isRoad = isRoadLikeTile) {
+  const v = getVerticalCarriagewayCandidate(row, col, isRoad);
+  const h = getHorizontalCarriagewayCandidate(row, col, isRoad);
 
   let orientation = null, band = null;
   if (v && h) {
@@ -187,11 +215,11 @@ function getRoadCarriagewayBand(row, col) {
     // using the band's actual run length along its OWN travel axis, not its lane
     // count: whichever elongation is longer is the real orientation.
     let vRun = 1;
-    for (let r = row - 1; roadRowWidthStatus(r, v.start, v.end) === 'full'; r--) vRun++;
-    for (let r = row + 1; roadRowWidthStatus(r, v.start, v.end) === 'full'; r++) vRun++;
+    for (let r = row - 1; roadRowWidthStatus(r, v.start, v.end, isRoad) === 'full'; r--) vRun++;
+    for (let r = row + 1; roadRowWidthStatus(r, v.start, v.end, isRoad) === 'full'; r++) vRun++;
     let hRun = 1;
-    for (let c = col - 1; roadColWidthStatus(c, h.start, h.end) === 'full'; c--) hRun++;
-    for (let c = col + 1; roadColWidthStatus(c, h.start, h.end) === 'full'; c++) hRun++;
+    for (let c = col - 1; roadColWidthStatus(c, h.start, h.end, isRoad) === 'full'; c--) hRun++;
+    for (let c = col + 1; roadColWidthStatus(c, h.start, h.end, isRoad) === 'full'; c++) hRun++;
     if (vRun !== hRun) { orientation = vRun > hRun ? 'v' : 'h'; band = vRun > hRun ? v : h; }
   } else if (v) { orientation = 'v'; band = v; }
   else if (h) { orientation = 'h'; band = h; }
@@ -246,10 +274,10 @@ function getRoadKey(row, col) {
 
   // Determine adjacency on diagonal edges (NE, SE, SW, NW).  The 'north' tile in mapData corresponds
   // to the NE edge of the isometric tile, 'east' corresponds to SE, 'south' to SW and 'west' to NW.
-  const ne = row > 0 && isRoadLikeTile(row - 1, col);
-  const se = col < MAP_WIDTH - 1 && isRoadLikeTile(row, col + 1);
-  const sw = row < MAP_HEIGHT - 1 && isRoadLikeTile(row + 1, col);
-  const nw = col > 0 && isRoadLikeTile(row, col - 1);
+  const ne = row > 0 && roadTilesJoin(row, col, row - 1, col);
+  const se = col < MAP_WIDTH - 1 && roadTilesJoin(row, col, row, col + 1);
+  const sw = row < MAP_HEIGHT - 1 && roadTilesJoin(row, col, row + 1, col);
+  const nw = col > 0 && roadTilesJoin(row, col, row, col - 1);
   // Cross intersection (all four sides connect)
   if (ne && se && sw && nw) return 'road_cross';
   // Straight roads (two opposite sides connect)

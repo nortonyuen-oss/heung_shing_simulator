@@ -391,6 +391,13 @@ function whyNotMetroSurfaceStation(row, col) {
   if (levels.size !== 1 || !(levels.has('g') || levels.has('d') || levels.has('u'))) {
     return metroT('metro.surfaceStation.level', '月台五格要全部喺地面、全部喺高架橋面，或者全部喺隧道入面（唔可以喺斜坡或者隧道口）。');
   }
+  // (nor under a 天橋 / 懸索橋: the canopies and the concourse would stand through its deck -
+  // road-flyovers.js)
+  if (!levels.has('u') && typeof isBridgeTile === 'function'
+    && [...surfaceStationTiles({ row, col, axis: res.axis }), ...metroGroundStationSideTiles({ surface: true, row, col, axis: res.axis })]
+      .some(([r, c]) => isInsideMap(r, c) && isBridgeTile(r, c))) {
+    return metroT('metro.surfaceStation.bridge', '車站唔可以起喺天橋下面。');
+  }
   // (not up a hillside: a platform lies level)
   if (levels.has('g') && typeof metroOpenEdges === 'function'
     && surfaceStationTiles({ row, col, axis: res.axis }).some(([r, c]) => metroOpenEdges(r, c).length)) {
@@ -1317,6 +1324,13 @@ function updateMetroSurfaceTrains(scene) {
             // front of one beside it on the far, wherever along the line their middles are)
             if (!pieces) pieces = metroSlicedCarPieces(car, sprite, car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0);
           }
+        }
+        // on the ground under a 天橋 / 懸索橋's deck: under it (road-flyovers.js)
+        const roadDeck = Math.abs(car.z || 0) <= 0.05 && typeof highBridgeDeckDepthOver === 'function'
+          ? highBridgeDeckDepthOver(scene, sprite.x, sprite.y) : null;
+        if (roadDeck != null) {
+          if (sprite.depth > roadDeck - 0.2) sprite.setDepth(roadDeck - 0.2);
+          if (pieces) pieces = pieces.map((piece) => (piece.depth > roadDeck - 0.2 ? { ...piece, depth: roadDeck - 0.2 } : piece));
         }
         const extra = sprite.__pieces || (sprite.__pieces = []);
         if (!pieces) {

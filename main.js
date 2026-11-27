@@ -1987,7 +1987,9 @@ function positionAllTiles(scene) {
 }
 
 
-function canPlaceRoad(scene, row, col) {
+// `options.acrossLightRail`: the caller checks light rail track for the whole drag itself
+// (whyNotRoadAcrossLightRail over its tiles), so ground track is let through here.
+function canPlaceRoad(scene, row, col, options = {}) {
   if (!isInsideMap(row, col)) return false;
   if (typeof isWorldGameActive === 'function' && isWorldGameActive() && (!shouldRenderWorldTile(row,col) || !globalThis.__worldGameHost.hasTerrainTile(row,col))) return false;
   if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
@@ -1998,8 +2000,10 @@ function canPlaceRoad(scene, row, col) {
   // nor across 地鐵路軌 (metro-surface.js): the MTR has no level crossings (over a tunnel and
   // under a viaduct are fine)
   if (typeof metroTrackGroundUse === 'function' && metroTrackGroundUse(row, col) === 'ground') return false;
-  // nor across 輕鐵路軌 (light-rail.js): its level crossings are laid with the track, across a road
-  if (typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col) === 'ground') return false;
+  // across 輕鐵路軌 (light-rail.js) only as a level crossing: straight over straight track, as the
+  // track laid across a road makes one (Norton 2026-11-27: 起路橫跨輕鐵 was refused)
+  if (typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col) === 'ground' && !options.acrossLightRail
+    && (typeof whyNotRoadAcrossLightRail !== 'function' || whyNotRoadAcrossLightRail([{ row, col }]))) return false;
   if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
 }
@@ -2244,17 +2248,19 @@ function applyToolAtLegacy(scene, row, col, pointer = null) {
     if (typeof demolishPromenadeAt === 'function' && demolishPromenadeAt(scene, row, col)) return;
     // and a 海底隧道 filled in whole (undersea-tunnel.js)
     if (typeof demolishUnderseaTunnelAt === 'function' && demolishUnderseaTunnelAt(scene, row, col)) return;
+    // a 天橋 / 懸索橋 tile comes down before the track under it (road-flyovers.js)
+    const highBridgeHere = typeof isHighBridgeTile === 'function' && isHighBridgeTile(row, col);
     // and a 地鐵站 (metro.js), refused while a line calls at it
-    if (typeof demolishMetroStationAt === 'function' && demolishMetroStationAt(scene, row, col)) return;
+    if (!highBridgeHere && typeof demolishMetroStationAt === 'function' && demolishMetroStationAt(scene, row, col)) return;
     // and 地鐵路軌 taken up (metro-surface.js)
-    if (typeof demolishMetroTrackAt === 'function' && demolishMetroTrackAt(scene, row, col)) return;
+    if (!highBridgeHere && typeof demolishMetroTrackAt === 'function' && demolishMetroTrackAt(scene, row, col)) return;
     // and 電車路軌 taken up, the road left (tram.js)
     // (a tram stop first, then its track: tram-lines.js, tram.js)
-    if (typeof demolishTramStopAt === 'function' && demolishTramStopAt(scene, row, col)) return;
-    if (typeof demolishTramTrackAt === 'function' && demolishTramTrackAt(scene, row, col)) return;
+    if (!highBridgeHere && typeof demolishTramStopAt === 'function' && demolishTramStopAt(scene, row, col)) return;
+    if (!highBridgeHere && typeof demolishTramTrackAt === 'function' && demolishTramTrackAt(scene, row, col)) return;
     // and 輕鐵: a station first, then its track, a road under it left (light-rail-lines.js, light-rail.js)
-    if (typeof demolishLightRailStationAt === 'function' && demolishLightRailStationAt(scene, row, col)) return;
-    if (typeof demolishLightRailTrackAt === 'function' && demolishLightRailTrackAt(scene, row, col)) return;
+    if (!highBridgeHere && typeof demolishLightRailStationAt === 'function' && demolishLightRailStationAt(scene, row, col)) return;
+    if (!highBridgeHere && typeof demolishLightRailTrackAt === 'function' && demolishLightRailTrackAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);
@@ -2271,8 +2277,10 @@ function applyToolAtLegacy(scene, row, col, pointer = null) {
       mapData[row][col] = underlay;
       bridgeMap.delete(id);
       roadUnderlayMap.delete(id);
-      heightMap[row][col] = 0;
+      // (a low bridge stands at sea level; a high one's ground keeps its height)
+      if (!highBridgeHere) heightMap[row][col] = 0;
       refreshBridgeSprite(scene, row, col);
+      if (highBridgeHere && typeof onHighBridgeChanged === 'function') onHighBridgeChanged(scene, [{ row, col }]);
     } else if (clearedDebris && mapData[row][col] === DIRT) {
       // Hauling away a dumped car/container is tidying up, not redeveloping
       // the lot - unlike a real demolition, leave the bare-land dirt patch
@@ -2292,6 +2300,10 @@ function applyToolAtLegacy(scene, row, col, pointer = null) {
   }
 
   if (selectedTool === 'road' && mapData[row][col] !== ROAD) {
+    // (over 輕鐵 track only as a level crossing: say why not, light-rail.js)
+    const lightRailWhy = typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col) === 'ground'
+      && typeof whyNotRoadAcrossLightRail === 'function' ? whyNotRoadAcrossLightRail([{ row, col }]) : null;
+    if (lightRailWhy) { showToast(lightRailWhy, 'warning'); return; }
     if (!canPlaceRoad(scene, row, col)) return;
     if (!spendBudget(COST_ROAD)) { showToast(t('toast.notEnoughFunds'), 'warning'); return; }
   }
@@ -2445,8 +2457,18 @@ function isRoadLikeTile(row, col) {
   return isInsideMap(row, col) && (mapData[row][col] === ROAD || isBridgeDeckTile(row, col));
 }
 
-function commitRoadDrag(scene, start, end) {
+function commitRoadDrag(scene, start, end, bridgeStyle = typeof getRoadBridgeStyle === 'function' ? getRoadBridgeStyle() : 'ground') {
   const pathInfo = getStraightDragPath(start, end);
+  // 天橋 / 懸索橋 picked: the drag is a high bridge, ramps and all (road-flyovers.js)
+  if (bridgeStyle && bridgeStyle !== 'ground' && typeof planHighBridge === 'function') {
+    const plan = planHighBridge(scene, pathInfo, bridgeStyle);
+    if (!plan.ok) {
+      showToast(highBridgeRefusal(plan.reason), 'warning');
+      return;
+    }
+    buildHighBridge(scene, plan);
+    return;
+  }
   const bridge = analyzeBridgePath(scene, pathInfo);
   if (bridge.crossesWater) {
     // A planned 避風塘's water and breakwater line are kept clear (boats cannot pass under bridges).
@@ -2469,9 +2491,21 @@ function commitRoadDrag(scene, start, end) {
 function buildRoadPath(scene, path) {
   const uniqueTiles = dedupePath(path).filter(({ row, col }) => (
     mapData[row][col] !== ROAD && mapData[row][col] !== WATER
-    && canPlaceRoad(scene, row, col)
+    && canPlaceRoad(scene, row, col, { acrossLightRail: true })
   ));
+  // 地鐵 track has no level crossings: say how to get over it (the road is laid up to it)
+  if (typeof metroTrackGroundUse === 'function' && path.some(({ row, col }) => metroTrackGroundUse(row, col) === 'ground')) {
+    showToast(typeof highBridgeT === 'function'
+      ? highBridgeT('highBridge.metroHint', '地鐵路軌冇平交路：喺馬路工具揀「天橋」跨過去。')
+      : '地鐵路軌冇平交路：喺馬路工具揀「天橋」跨過去。', 'info');
+  }
   if (uniqueTiles.length === 0) return;
+  // over 輕鐵 track only as level crossings, the whole drag at once (light-rail.js)
+  const lightRailWhy = typeof whyNotRoadAcrossLightRail === 'function' ? whyNotRoadAcrossLightRail(uniqueTiles) : null;
+  if (lightRailWhy) {
+    showToast(lightRailWhy, 'warning');
+    return;
+  }
 
   const cost = uniqueTiles.length * COST_ROAD;
   if (!spendBudget(cost)) {
@@ -2725,6 +2759,12 @@ function setTileType(scene, row, col, tileType) {
 
   if (oldType === ROAD) roadTileCount = Math.max(0, roadTileCount - 1);
   if (tileType === ROAD) roadTileCount++;
+  // a road laid under a 天橋's deck (立交, road-flyovers.js): the tile was counted with the deck, and
+  // its ground is a road now - left so when the deck comes down
+  if (tileType === ROAD && typeof isHighBridgeTile === 'function' && isHighBridgeTile(row, col)) {
+    roadTileCount = Math.max(0, roadTileCount - 1);
+    roadUnderlayMap.set(getTileId(row, col), ROAD);
+  }
 
   mapData[row][col] = tileType;
   if (tileType !== GROUND && tileType !== HILL) {

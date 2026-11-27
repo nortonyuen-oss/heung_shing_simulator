@@ -310,6 +310,8 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
       apply(value.body);
       apply(value.side);
       apply(value.top);
+      // (a 天橋 / 懸索橋 tile's far cable and tower legs: road-flyovers.js)
+      if (Array.isArray(value.extra)) value.extra.forEach(apply);
     }
   }
   return stats;

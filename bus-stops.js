@@ -24,6 +24,8 @@ const BUS_STOP_ROAD_ORIENTATIONS = {
 function getBusStopEligibleSides(row, col) {
   // a 海底隧道 portal is drawn as straight road but has no kerb for a stop (undersea-tunnel.js)
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return null;
+  // nor any bridge: a 天橋 or its ramps, or the road under one (road-flyovers.js)
+  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return null;
   return BUS_STOP_ROAD_ORIENTATIONS[getBaseTileKey(row, col)] ?? null;
 }
 

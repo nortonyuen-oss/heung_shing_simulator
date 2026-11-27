@@ -319,9 +319,38 @@ function drawRoadDragPreview(scene, start, end) {
   const path = pathInfo.path ?? [];
   if (path.length === 0) return;
 
+  // 天橋 / 懸索橋 picked (road-flyovers.js): its ramps a paler blue than its deck, red where refused
+  const style = typeof getRoadBridgeStyle === 'function' ? getRoadBridgeStyle() : 'ground';
+  if (style !== 'ground' && typeof planHighBridge === 'function') {
+    const plan = planHighBridge(scene, pathInfo, style);
+    const kinds = new Map(plan.tiles.map((tile) => [`${tile.row}:${tile.col}`, tile.kind]));
+    path.forEach(({ row, col }) => {
+      if (!isInsideMap(row, col)) return;
+      const bad = !plan.ok || plan.bad === `${row}:${col}`;
+      const colour = bad ? 0xff4444 : kinds.get(`${row}:${col}`) === 'ramp' ? 0x9fdcff : 0x55ccff;
+      const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+      g.fillStyle(colour, bad ? 0.22 : 0.3);
+      g.lineStyle(2, colour, 0.92);
+      g.beginPath();
+      g.moveTo(geom.top.x, geom.top.y);
+      g.lineTo(geom.right.x, geom.right.y);
+      g.lineTo(geom.bottom.x, geom.bottom.y);
+      g.lineTo(geom.left.x, geom.left.y);
+      g.closePath();
+      g.fillPath();
+      g.strokePath();
+    });
+    return;
+  }
+
   const bridge = analyzeBridgePath(scene, pathInfo);
   const invalidWaterPath = bridge.crossesWater && !bridge.valid;
-  const color = invalidWaterPath ? 0xff4444 : bridge.valid ? 0x55ccff : 0xd0d0d0;
+  // over 輕鐵 track only as level crossings (light-rail.js): red when this drag would not make them
+  const overLightRail = !bridge.crossesWater && typeof whyNotRoadAcrossLightRail === 'function'
+    && typeof lightRailGroundUse === 'function' && path.some(({ row, col }) => lightRailGroundUse(row, col) === 'ground');
+  const invalidLightRail = overLightRail && !!whyNotRoadAcrossLightRail(dedupePath(path).filter(({ row, col }) => (
+    mapData[row][col] !== ROAD && mapData[row][col] !== WATER && canPlaceRoad(scene, row, col, { acrossLightRail: true }))));
+  const color = invalidWaterPath || invalidLightRail ? 0xff4444 : bridge.valid ? 0x55ccff : 0xd0d0d0;
 
   g.fillStyle(color, bridge.valid ? 0.26 : 0.18);
   g.lineStyle(2, color, 0.92);

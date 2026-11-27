@@ -15,7 +15,8 @@ const COMPACT_DEBRIS_ENCODING = 'sparse-row-major-v1';
 const COMPACT_BUS_STOP_ENCODING = 'sparse-row-major-v1';
 const COMPACT_TERRAIN_HEIGHT_MAX = 8;
 const COMPACT_TREE_AGE_MAX = 6;
-const COMPACT_BRIDGE_VALUE_PATTERN = /^(?:deck:(?:row|col)|ramp:[nesw])$/;
+// (the low bridge's values, and the 天橋 / 懸索橋's with a level and maybe ':s': bridges.js)
+const COMPACT_BRIDGE_VALUE_PATTERN = /^(?:deck:(?:row|col)|ramp:[nesw])(?::\d(?::s)?)?$/;
 let terrainApiAvailable = null;
 let currentSaveId = null;   // tracks which DB row we are editing
 let saveOperationQueue = Promise.resolve();
@@ -1403,6 +1404,8 @@ function normalizeSavedBridgeMapValue(value) {
 
   if (raw === 'deck:row' || raw === 'deck:col') return raw;
   if (/^ramp:[nesw]$/.test(raw)) return raw;
+  // a 天橋 / 懸索橋 tile (road-flyovers.js)
+  if (/^(?:deck:(?:row|col)|ramp:[nesw]):\d(?::s)?$/.test(raw)) return raw;
 
   // Backward-compatible aliases from older save formats.
   if (raw === 'deck-row' || raw === 'deck_row' || raw === 'row') return 'deck:row';
@@ -1590,7 +1593,8 @@ function applySaveData(scene, save) {
     if (normalizedUnderlay !== null) roadUnderlayMap.set(id, normalizedUnderlay);
     if (normalizedBridge?.startsWith('deck:') && normalizedUnderlay !== null && normalizedUnderlay !== ROAD) {
       mapData[r][c] = normalizedUnderlay;
-      heightMap[r][c] = 0;
+      // (a low bridge's deck is at sea level; a 天橋's ground under it keeps its own)
+      if (!/:\d/.test(normalizedBridge)) heightMap[r][c] = 0;
     }
   };
   if (save.bridgeMap instanceof Map || save.roadUnderlayMap instanceof Map) {

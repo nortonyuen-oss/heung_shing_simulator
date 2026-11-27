@@ -310,3 +310,33 @@ test('a slope corner\'s corners, and as drawn when the map is turned', () => {
   assert.deepEqual(lr.lightRailVisualCornerLifts(k, 0), { top: 1, right: 0, bottom: 0, left: 0 }, 'map north-west is the top corner');
   assert.deepEqual(lr.lightRailVisualCornerLifts(k, 1), { top: 0, right: 1, bottom: 0, left: 0 }, 'turned once it is on the right');
 });
+
+test('a road laid over straight ground track makes a level crossing (Norton 2026-11-27: 起路橫跨輕鐵)', () => {
+  // track north-south down column 4
+  const state = { tracks: {}, trackElev: {} };
+  for (let r = 0; r <= 9; r++) state.tracks[`${r}:4`] = X;
+  const problem = (roads, opts = {}, s = state, was = [], isStation) => lr.lightRailRoadCrossingProblem(
+    [...roads], s, env({ roads: new Set([...(opts.old || []), ...roads]), ...opts }), was, isStation);
+  // an east-west road straight across: a crossing
+  assert.equal(problem(row(5, 0, 9)), null);
+  assert.equal(lr.lightRailTileKind(5, 4, X, null, env({ roads: row(5, 0, 9) })), 'crossing');
+  // a dual carriageway across (its band runs east-west): two crossing tiles
+  const dual = new Set([...row(5, 0, 9), ...row(6, 0, 9)]);
+  assert.equal(problem(dual, { bands: { '5:4': { orientation: 'h' }, '6:4': { orientation: 'h' } } }), null);
+  // along the track, or a junction on it, is not a crossing
+  assert.equal(problem(col(4, 2, 6))?.reason, 'across');
+  assert.equal(problem(new Set([...row(5, 0, 9), '6:4']))?.reason, 'across', 'a road on south along the track: a junction');
+  // a curve or points; a ramp; a station; a slope (the crossing's own site rules)
+  assert.equal(problem(row(5, 0, 9), {}, { tracks: { ...state.tracks, '5:4': X | 4 }, trackElev: {} })?.reason, 'straight');
+  assert.equal(problem(row(5, 0, 9), {}, { tracks: state.tracks, trackElev: { '5:4': '1s' } })?.reason, 'ramp');
+  assert.equal(problem(row(5, 0, 9), {}, state, [], (r, c) => r === 5 && c === 4)?.reason, 'station');
+  const slope = env({ roads: row(5, 0, 9) });
+  slope.canCross = (r, c) => !(r === 5 && c === 4);
+  assert.equal(lr.lightRailRoadCrossingProblem([...row(5, 0, 9)], state, slope)?.reason, 'site');
+  // under a viaduct a road always could
+  assert.equal(problem(col(4, 2, 6), {}, { tracks: state.tracks, trackElev: { '2:4': 'd2', '3:4': 'd2', '4:4': 'd2', '5:4': 'd2', '6:4': 'd2' } }), null);
+  // a crossing already there is not spoilt: track ending at a crossing, a road laid on beyond its end
+  const short = { tracks: Object.fromEntries([0, 1, 2, 3, 4, 5].map((r) => [`${r}:4`, X])), trackElev: {} };
+  assert.equal(problem(new Set(['6:4']), { old: row(5, 0, 9) }, short, ['5:4'])?.reason, 'spoils');
+  assert.equal(problem(new Set(['5:10']), { old: row(5, 0, 9) }, short, ['5:4']), null, 'the crossing road lengthened');
+});

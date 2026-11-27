@@ -1,3 +1,29 @@
+# Heung Shing Simulator v6.2.0 — 【青馬飛架】
+
+- 廣東話／台灣中文：【青馬飛架】
+- English: 【Spanning the Harbour】
+- 日本語：【海峡を結ぶ橋】
+
+## 天橋跨路軌，青馬跨海
+
+- **三款馬路**：電腦同手機嘅馬路工具可以揀地面、天橋或者懸索橋。天橋兩頭各四格斜路，橋面升高四級，跨過馬路、地面地鐵、輕鐵同海面。
+- **立交分層行車**：橋面同橋底馬路各行各路，車同巴士唔會跳層；橋底路形同交通燈照常運作。先起路後起橋，或者先起橋後喺下面鋪路都得。
+- **青馬式懸索橋**：最少跨十格海，配 H 形橋塔、主纜、吊索同鋼桁架。入夜有白色纜燈、金黃橋面燈帶、塔身投射燈、紅色航空燈同海面倒影。
+- **輕鐵平交路**：地面馬路依家可以打橫跨輕鐵路軌。天橋下面亦可以補鋪地面路軌；斜路、車站同高架設施仍受淨空限制。
+- **保留橋底設施**：拆橋面會保留下面嘅馬路同路軌；存檔支援新橋面高度同懸索橋資料，舊橋存檔繼續讀到。
+
+**台灣中文：** 電腦與手機的道路工具新增天橋和懸索橋。天橋兩端各用四格引道，橋面升高四級，可跨越道路、地面地鐵、輕鐵及水面；橋上、橋下車流分層通行。青馬式懸索橋至少跨越十格水面，配橋塔、纜索、夜間燈光與海面倒影。地面道路可橫跨輕鐵形成平交道，拆除橋面保留橋下道路及軌道，舊存檔仍可讀取。
+
+**English:** The road tool on a computer or phone now offers flyovers and suspension bridges. Flyovers climb four ramp tiles at each end and cross roads, ground-level metro and light rail, or water. Cars and buses stay on their own level above and below the bridge. Tsing Ma-style suspension bridges span at least ten water tiles, with towers, cables, night lighting and sea reflections. Ground roads can cross light rail at level crossings. Demolishing a deck preserves the road and track below; existing bridge saves remain readable.
+
+**日本語:** パソコンとスマートフォンの道路ツールに高架道路と吊り橋を追加。両端4マスの坂道で4段上がり、道路・地上の地下鉄・軽鉄・水面を越えます。橋上と橋下の車やバスはそれぞれの高さを走行。青馬大橋風の吊り橋は水面10マス以上に架けられ、主塔・ケーブル・夜間照明・水面の反射を備えます。地上道路は軽鉄と踏切で交差でき、橋面の撤去後も下の道路や線路は残ります。従来のセーブも読み込めます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.1.3 — 【屋邨仔】
 
 - 廣東話／台灣中文：【屋邨仔】

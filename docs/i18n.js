@@ -290,6 +290,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.2.0","date":"2026-11-28","dateLabel":"2026年11月28日","title":"青馬飛架","items":["馬路工具新增天橋同懸索橋，電腦手機都用得。兩頭各四格斜路，橋面升高四級，可以跨馬路、地面地鐵、輕鐵同海面。","立交橋面同橋底車流分層，車同巴士各行各路；拆橋面保留下面嘅馬路同路軌。","青馬式懸索橋最少跨十格海，有橋塔、纜索、夜間燈光同海面倒影。","地面馬路可以打橫跨輕鐵，形成平交路；新橋資料可存讀，舊橋存檔繼續支援。"]},
     {"version":"v6.1.3","date":"2026-11-26","dateLabel":"2026年11月26日","title":"屋邨仔","items":["修正屯門一星跨區巴士 KPI 漏計：乘客喺區外站已上車、但未返圖內落車，現時亦會計入載客路線，唔會因為巴士仍喺圖外而少計。","同步修正實時區外客量統計；空線同停駛線照舊唔計，同一條路線唔會重複計數。","已驗證 5 條載客線、其中 3 條跨區時正常月底授星，以及存檔重載後保留路線判定。"]},
     {"version":"v6.1.2","date":"2026-11-26","dateLabel":"2026年11月26日","title":"屋邨仔","items":["工業選單新增「一般工業區／科學園區」，電腦同手機都可以直接劃科學園，只起科研建築，最少 2×2 格。","一般工業需求加入居民消費、商業供應鏈同就業需要；科研需求隨教育同科研政策增加，未有第一座科學園都會計算，供應過多則回落。","保留高等教育 80% 後一般工業自然轉型；科學園升降級保留科研建築。","第二關二星巴士目標由每月 3,000 降至 1,500 人次；直接劃地起嘅科學園會計入科研樓同 300 職位目標，達標後月底正常授星。"]},
     {"version":"v6.1.1","date":"2026-11-26","dateLabel":"2026年11月26日","title":"屋邨仔","items":["修正手機玩一陣就閃退、退返主畫面：瀏覽器版以前會將每首播過嘅歌留喺記憶體（每首 65–104 MB），而家只保留播緊嗰首。","修正新城市出現 UFO 時每格畫面出錯。"]},
@@ -686,6 +687,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.2.0": {"title":"青馬飛架","items":["電腦與手機的道路工具新增天橋和懸索橋。兩端各用四格引道，橋面升高四級，可跨越道路、地面地鐵、輕鐵及水面。","橋上與橋下的車輛及巴士分層通行；拆除橋面保留橋下道路及軌道。","青馬式懸索橋至少跨越十格水面，配橋塔、纜索、夜間燈光與海面倒影。","地面道路可橫跨輕鐵形成平交道；新橋資料可儲存及讀取，舊橋存檔仍可使用。"]},
     "v6.1.3": {"title":"屋邨仔","items":["修正屯門一星跨區巴士 KPI 漏算：乘客已在區外站上車、尚未回到圖內下車，現在也會計入載客路線，不會因為巴士仍在圖外而少算。","同步修正即時區外客量統計；空路線與停駛路線仍不計入，同一路線不會重複計數。","已驗證 5 條載客路線、其中 3 條跨區時正常於月底授星，以及存檔重載後保留路線判定。"]},
     "v6.1.2": {"title":"屋邨仔","items":["工業選單新增「一般工業區／科學園區」，電腦與手機都可直接劃設科學園，只會興建科研建築，至少 2×2 格。","一般工業需求加入居民消費、商業供應鏈與就業需求；科研需求隨教育與科研政策增加，第一座科學園出現前也會計算，供給過多則回落。","保留高等教育達 80% 後一般工業自然轉型的機制；科學園升降級保留科研建築。","第二關二星巴士目標由每月 3,000 降至 1,500 人次；直接劃地興建的科學園會計入科研建築與 300 職位目標，達標後於月底授星。"]},
     "v6.1.1": {"title":"屋邨仔","items":["修正手機玩一陣子就閃退、回到主畫面：瀏覽器版以前會把每首播過的歌留在記憶體（每首 65–104 MB），現在只保留正在播的那首。","修正新城市出現 UFO 時每格畫面出錯。"]},
@@ -1075,6 +1077,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.2.0": {"title":"Spanning the Harbour","items":["The road tool on a computer or phone now offers flyovers and suspension bridges. Four ramp tiles at each end raise the deck four levels over roads, ground-level metro and light rail, or water.","Cars and buses stay on their own level above and below a flyover. Demolishing a deck preserves the road and track below.","Tsing Ma-style suspension bridges span at least ten water tiles, with towers, cables, night lighting and sea reflections.","Ground roads can cross light rail at level crossings. New bridge data can be saved and loaded, and existing bridge saves remain readable."]},
     "v6.1.3": {"title":"Estate Kids","items":["Fixed Tuen Mun star one missing cross-district buses: passengers who have boarded at the off-map stop count as evidence of service even before they return to alight in town.","Live off-map ridership statistics are now populated. Empty and suspended routes remain excluded, and each route is counted once.","Verified month-end star awards with five carrying routes, three of them cross-district, and route recognition after save reload."]},
     "v6.1.2": {"title":"Estate Kids","items":["The industrial tool now offers General Industry and Science Park on computers and phones. Dedicated science land grows only research buildings on lots of at least 2×2 tiles.","General industry responds to residents, commercial supply chains and employment needs. Research demand rises with education and research policies, even before the first park, and eases when supply is high.","Ordinary industry still converts naturally at 80% higher education. Science parks keep their research buildings when they level up or down.","Chapter 2 star two now needs 1,500 bus riders a month, down from 3,000. Directly zoned parks count toward its research-building and 300-job goals, with stars awarded at month end."]},
     "v6.1.1": {"title":"Estate Kids","items":["Fixed phones closing the game after a while: the browser version kept every song played in memory (65-104 MB each); now only the song playing is kept.","Fixed a UFO over a new city throwing an error on every frame."]},
@@ -1464,6 +1467,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.2.0": {"title":"海峡を結ぶ橋","items":["パソコンとスマートフォンの道路ツールに高架道路と吊り橋を追加。両端4マスの坂道で4段上がり、道路・地上の地下鉄・軽鉄・水面を越えます。","橋上と橋下の車やバスはそれぞれの高さを走行。橋面の撤去後も下の道路や線路は残ります。","青馬大橋風の吊り橋は水面10マス以上に架けられ、主塔・ケーブル・夜間照明・水面の反射を備えます。","地上道路は軽鉄と踏切で交差できます。新しい橋の保存・読込に対応し、従来の橋のセーブも引き続き使えます。"]},
     "v6.1.3": {"title":"団地っ子","items":["屯門の一つ目の星で区外バスを数え漏らす問題を修正。区外停留所で乗車し、まだ街へ戻って降車していない乗客も載客の実績として数えます。","リアルタイムの区外乗客数も正しく反映。空の路線と運休路線は引き続き対象外で、同一路線を重複して数えません。","載客路線5本・うち区外3本で月末に星を獲得し、セーブ再読込後も路線を認識することを確認。"]},
     "v6.1.2": {"title":"団地っ子","items":["工業ツールに「一般工業区／サイエンスパーク区」を追加。パソコン・スマートフォンから直接指定でき、2×2マス以上の敷地に研究施設だけが建ちます。","一般工業の需要に住民の消費・商業の供給網・雇用を反映。研究需要は教育と研究政策で増え、最初のパークがなくても計算し、供給過剰で下がります。","高等教育80%で一般工業が自然に転換する仕組みを維持。サイエンスパークはレベルが上下しても研究施設を保ちます。","第2章の二つ目の星に必要なバス月間乗客を3,000人から1,500人へ。直接指定して建てたパークも研究施設と雇用300人の目標に数え、月末に星を獲得できます。"]},
     "v6.1.1": {"title":"団地っ子","items":["スマートフォンで遊んでいるうちに落ちる問題を修正：ブラウザー版は再生した曲をすべてメモリに残していました（1曲65〜104 MB）。今は再生中の曲だけを残します。","新しい都市にUFOが現れると毎フレームエラーが出る問題を修正。"]},
@@ -1878,8 +1882,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.1.3 — 【屋邨仔】",
-      versionDesc: "6.1.3【屋邨仔】：修正屯門跨區巴士 KPI 漏計，巴士喺圖外載客亦會計入，並補回實時區外客量統計。",
+      versionBadge: "v6.2.0 — 【青馬飛架】",
+      versionDesc: "6.2.0【青馬飛架】：天橋跨馬路同路軌，青馬式懸索橋跨海，橋面橋底分層行車，入夜燈光映住海面。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1992,8 +1996,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.1.3 — 【屋邨仔】",
-      versionDesc: "6.1.3【屋邨仔】：修正屯門跨區巴士 KPI 漏算，巴士在圖外載客也會計入，並補上即時區外客量統計。",
+      versionBadge: "v6.2.0 — 【青馬飛架】",
+      versionDesc: "6.2.0【青馬飛架】：天橋跨越道路及軌道，青馬式懸索橋跨海，橋上橋下分層行車，夜間燈光映照海面。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2106,8 +2110,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "Heung Shing Simulator",
       title: "Heung Shing Simulator",
-      versionBadge: "v6.1.3 — 【Estate Kids】",
-      versionDesc: "6.1.3 【Estate Kids】: Tuen Mun counts carrying bus routes while their buses are off the map, with live off-map ridership reported correctly.",
+      versionBadge: "v6.2.0 — 【Spanning the Harbour】",
+      versionDesc: "6.2.0 【Spanning the Harbour】: flyovers cross roads and railways; Tsing Ma-style suspension bridges light up the sea, with traffic kept on each level.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2221,8 +2225,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城シミュレーター",
       title: "香城シミュレーター",
-      versionBadge: "v6.1.3 — 【団地っ子】",
-      versionDesc: "6.1.3【団地っ子】：屯門の区外バスKPIの数え漏れを修正。地図外での乗車も数え、リアルタイム区外乗客数を反映。",
+      versionBadge: "v6.2.0 — 【海峡を結ぶ橋】",
+      versionDesc: "6.2.0【海峡を結ぶ橋】：道路や線路を越える高架道路と、夜の海を照らす青馬大橋風の吊り橋。橋上と橋下の車流を分離。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

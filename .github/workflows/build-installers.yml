@@ -355,8 +355,25 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: release/site
+      # Pages can list artifacts before a newly finalized upload becomes visible:
+      # https://github.com/actions/deploy-pages/issues/451
+      - name: Wait for the Pages artifact to become discoverable
+        env:
+          PAGES_ARTIFACT: github-pages-${{ github.run_attempt }}
+        run: |
+          for attempt in {1..12}; do
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$PAGES_ARTIFACT" --jq '.artifacts | map(select(.expired == false)) | length' | grep -qx 1; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The Pages artifact is not discoverable after 60 seconds."
+          exit 1
       - uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
       - name: Record verified release locations
         run: |
           gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json url,tagName

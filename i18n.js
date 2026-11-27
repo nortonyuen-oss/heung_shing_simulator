@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '6.1.3';
-let appReleaseTheme = '【屋邨仔】';
-const APP_RELEASE_THEMES = {"en":"【Estate Kids】","zhHant":"【屋邨仔】","ja":"【団地っ子】"};
+let appVersion = '6.2.0';
+let appReleaseTheme = '【青馬飛架】';
+const APP_RELEASE_THEMES = {"en":"【Spanning the Harbour】","zhHant":"【青馬飛架】","ja":"【海峡を結ぶ橋】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;

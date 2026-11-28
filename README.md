@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.6 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.7 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.6 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.7 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.7
+
+Dual roads on a phone now work as on a computer: any length (one tap lays two tiles), both lines shown in the preview, and up and down slopes as an ordinary road goes. Before, a phone treated a dual road as a flyover, with its nine-tile minimum and no slopes. A central reservation on raised ground now stands on the road; it was drawn at sea level, below it.
 
 ## New in v6.2.6
 

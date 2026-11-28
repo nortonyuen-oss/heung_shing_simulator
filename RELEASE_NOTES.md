@@ -1,3 +1,28 @@
+# Heung Shing Simulator v6.2.7 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 手機雙線來回
+
+- **冇最短限制**：手機起雙線來回路，以前會被當成天橋，要最少九格；依家同電腦一樣，撳一格都起到兩格。
+- **預覽兩條線**：手機預覽會顯示埋旁邊嗰條線，過海或者撞到輕鐵路軌就變紅。
+- **斜坡**：雙線來回路好似普通馬路咁上落斜坡，兩條線一齊斜。
+- **高地分隔帶**：喺高地上，中央分隔帶嘅花槽、欄杆同樹以前畫咗喺海平面高度、陷咗落路面下；依家企返喺路面上。
+
+**台灣中文：** 手機建造雙線來回道路，過去被當成天橋，最少要九格；現在與電腦相同，點一格即建兩格。手機預覽會顯示旁邊那條線，跨海或遇輕鐵軌道會變紅。雙線來回道路可像一般道路上下斜坡。修正高地上的中央分隔帶：花槽、欄杆與樹過去畫在海平面高度、陷入路面下，現在立於路面上。
+
+**English:** Dual roads on a phone now work as on a computer: any length (one tap lays two tiles), both lines shown in the preview (red over water or light rail track), and up and down slopes as an ordinary road goes. Before, a phone treated a dual road as a flyover, with its nine-tile minimum and no slopes. A central reservation on raised ground now stands on the road; its beds, railings and trees were drawn at sea level, below it.
+
+**日本語:** スマートフォンでの往復4車線道路がパソコンと同じに：長さの制限なし（1マスで2マス分）、プレビューに隣の線も表示（海や軽鉄の線路に掛かると赤）、普通の道路と同じく坂も上り下り。以前は高架道路として扱われ、最低9マスで坂は不可でした。高台の中央分離帯が路面の上に立つよう修正（花壇・柵・木が海面の高さに描かれ、路面の下に沈んでいました）。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.6 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

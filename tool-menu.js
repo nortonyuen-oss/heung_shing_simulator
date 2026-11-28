@@ -1104,7 +1104,7 @@ function openParkPicker(triggerButton = document.querySelector('[data-tool="park
   cancelParkPickerClose();
 
   picker.innerHTML = '';
-  PARK_OPTIONS.filter((opt) => opt.id !== 'swimming_pool').forEach((opt) => {
+  PARK_OPTIONS.filter((opt) => opt.id !== 'swimming_pool' && !opt.estateOnly).forEach((opt) => {
     const btn = document.createElement('button');
     btn.className = 'popup-button';
     btn.type = 'button';

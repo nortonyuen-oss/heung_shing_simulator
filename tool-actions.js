@@ -60,7 +60,7 @@ function getTouchToolOptions(tool) {
 }
 
 function getTouchRecreationOptions(tool) {
-  return tool === 'park' ? PARK_OPTIONS : tool === 'sports-ground' ? SPORT_GROUND_OPTIONS : [];
+  return tool === 'park' ? PARK_OPTIONS.filter((opt) => !opt.estateOnly) : tool === 'sports-ground' ? SPORT_GROUND_OPTIONS : [];
 }
 
 function touchRectTiles(start, end) {

@@ -222,3 +222,33 @@ test('the design\'s tables are the planner\'s own', () => {
     assert.ok(doc.includes(preview.table(type, density)), `${type} ${density}`);
   }
 });
+
+test('a 公屋邨 of three blocks or more has one 冬菇亭, at the front, its lamps lit at night (Norton, 2026-11-28)', () => {
+  let withPavilion = 0;
+  for (let W = 3; W <= 14; W++) for (let D = 3; D <= 14; D++) {
+    const plan = planHousingEstate(W, D, 'public', 2);
+    const pavilions = plan.items.filter((it) => it.variant === 'food_pavilion');
+    assert.ok(pavilions.length <= 1, `${W}x${D}: one at most`);
+    if (plan.planned < 3) assert.equal(pavilions.length, 0, `${W}x${D}: none under three blocks`);
+    if (!pavilions.length) continue;
+    withPavilion += 1;
+    const [p] = pavilions;
+    assert.equal(p.kind, 'park1');
+    // the 1x1 open space nearest the front's middle
+    const score = (it) => it.row * 10 + Math.abs(it.col + 0.5 - (W - 1) / 2);
+    const best = Math.min(...plan.items.filter((it) => it.kind === 'park1').map(score));
+    assert.equal(score(p), best, `${W}x${D}`);
+    assert.ok(!planHousingEstate(W, D, 'hos', 2).items.some((it) => it.variant === 'food_pavilion'), `${W}x${D}: not 居屋`);
+  }
+  assert.ok(withPavilion > 20, `most public estates have one (${withPavilion})`);
+  // its art: a power of two, 512 square; an estate option, kept out of the park menus; three lamps
+  const png = fs.readFileSync(path.join(ROOT, 'Models/parks/park1x1/foodPavilion1-01.png'));
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [512, 512]);
+  assert.match(source('constants.js'), /park_small_food_pavilion: \{[\s\S]*?path: 'Models\/parks\/park1x1\/foodPavilion1-01\.png'/);
+  assert.match(source('main.js'), /id: 'food_pavilion',[\s\S]*?estateOnly: true/);
+  assert.match(source('tool-actions.js'), /PARK_OPTIONS\.filter\(\(opt\) => !opt\.estateOnly\)/);
+  const lighting = source('building-lighting.js');
+  const profile = lighting.slice(lighting.indexOf('park_small_food_pavilion:'), lighting.indexOf('park_small_playground:'));
+  assert.equal((profile.match(/\{ x: /g) || []).length, 3);
+  assert.match(profile, /sourcePixels: true/);
+});

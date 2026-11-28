@@ -178,6 +178,12 @@ function planHousingEstateWith(W, D, type, density, t, options = {}) {
     const variant = r === 0 ? 'plaza_square' : byHome ? ((r + c) % 2 ? 'garden_plaza' : 'playground') : 'open_ground';
     items.push({ kind: 'park1', row: r, col: c, size: 1, variant });
   }
+  // 冬菇亭 (Norton, 2026-11-28: 做屋村設施): a 公屋邨 of three blocks or more has one, on the 1x1 open
+  // space nearest the front's middle - by the road, as the estates' cooked food stalls stand
+  if (type === 'public' && planned >= 3) {
+    const spot = items.filter((it) => it.kind === 'park1').sort((a, b) => frontScore(a) - frontScore(b))[0];
+    if (spot) spot.variant = 'food_pavilion';
+  }
   stamp();
   const parks = items.filter((it) => HOUSING_ESTATE_PARK_KINDS.includes(it.kind)).reduce((sum, it) => sum + it.size * it.size, 0);
   return { W, D, type, density, blockSize: t, planned, items, population: people(), parks };

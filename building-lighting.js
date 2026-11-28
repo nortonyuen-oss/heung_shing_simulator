@@ -1709,6 +1709,16 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.496, y: 0.477, r: 0.03 }, { x: 0.364, y: 0.535, r: 0.03 }],
   }),
+  // 冬菇亭: its three globe lamps (Norton, 2026-11-28: 夜晚麻煩點著啲街燈) in the source PNG's pixels,
+  // where scripts/bake-food-pavilion-texture.js puts their heads (the bake maps them onto the packaged
+  // texture). The two at the plaza's sides stand against the sky: a pool wider than the globe would
+  // spill off the art and not be baked, so theirs are small.
+  park_small_food_pavilion: makeBuildingLightProfile({
+    class: 'off',
+    sourcePixels: true,
+    panels: [],
+    lamps: [{ x: 75.3, y: 349.7, r: 6.5 }, { x: 402.6, y: 283.9, r: 6 }, { x: 237.9, y: 411.6, r: 14 }],
+  }),
   park_small_playground: makeBuildingLightProfile({
     class: 'off',
     panels: [

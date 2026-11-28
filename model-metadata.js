@@ -201,6 +201,7 @@ function prepareParkModelMetadata(scene) {
     park_small_playground: getParkModelMetadata(scene, 'park_small_playground', 1, 1),
     park_small_garden:     getParkModelMetadata(scene, 'park_small_garden',     1, 1),
     park_small_plaza:      getParkModelMetadata(scene, 'park_small_plaza',      1, 1),
+    park_small_food_pavilion: getParkModelMetadata(scene, 'park_small_food_pavilion', 1, 1),
     park_small_palm:       getParkModelMetadata(scene, 'park_small_palm',       2, 2),
     park_large_highscore:  getParkModelMetadata(scene, 'park_large_highscore',  2, 2),
     park_small:            getParkModelMetadata(scene, 'park_small_open',       1, 1),

@@ -1439,6 +1439,14 @@ const PARK_MODELS = {
     footprintCols: 1,
     footprintRows: 1,
   },
+  // 冬菇亭: a 公屋邨's cooked food pavilion, planned by the estate (housing-estates.js) - not in the
+  // park menu (scripts/bake-food-pavilion-texture.js)
+  park_small_food_pavilion: {
+    spriteKey: 'park_small_food_pavilion',
+    path: 'Models/parks/park1x1/foodPavilion1-01.png',
+    footprintCols: 1,
+    footprintRows: 1,
+  },
   park_small_palm: {
     spriteKey: 'park_small_palm',
     path: 'Models/parks/park2x2/park2-02.png',

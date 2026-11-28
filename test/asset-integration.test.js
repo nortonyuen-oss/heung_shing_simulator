@@ -509,7 +509,8 @@ test('civic, leisure and landmark menus are grouped by building purpose', () => 
 
   assert.match(menuScript, /tool === 'heritage-temple'[\s\S]*?return 'parks'/);
 
-  assert.match(menuScript, /PARK_OPTIONS\.filter\(\(opt\) => opt\.id !== 'swimming_pool'\)/);
+  // (the 冬菇亭 is the estates' own, estateOnly: not in the menu)
+  assert.match(menuScript, /PARK_OPTIONS\.filter\(\(opt\) => opt\.id !== 'swimming_pool' && !opt\.estateOnly\)/);
   assert.match(menuScript, /function toggleToolGroup\(/);
   assert.match(html, /\.tool-flyout\s*\{[\s\S]*?max-height:\s*calc\(100vh - 16px\)[\s\S]*?overflow-y:\s*auto/);
 });

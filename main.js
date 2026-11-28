@@ -524,6 +524,20 @@ const PARK_OPTIONS = [
     footprintRows: 1,
   },
   {
+    // 冬菇亭 (Norton, 2026-11-28: 做屋村設施): one to a 公屋邨, planned with it (housing-estates.js);
+    // estateOnly keeps it out of the park menus
+    id: 'food_pavilion',
+    type: 'park_small',
+    spriteKey: 'park_small_food_pavilion',
+    titleKey: 'park.foodPavilion',
+    badge: '1x1',
+    icon: '🍜',
+    cost: COST_PARK_SMALL,
+    footprintCols: 1,
+    footprintRows: 1,
+    estateOnly: true,
+  },
+  {
     id: 'event_ground',
     type: 'event_ground',
     spriteKey: 'event_ground',

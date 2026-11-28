@@ -565,6 +565,25 @@ function updateLightRailCrossings(about) {
   if (typeof setLightRailCrossingLights === 'function') setLightRailCrossingLights(lights);
 }
 
+// The crossing a road vehicle is on, past its stop line, or null (Norton, 2026-11-28: 有陣時路口比較
+// 複雜，啲車會卡住). One waiting at the red had its middle a hair into the crossing's tile, and was
+// counted as on it: the set waited for it, the light stayed red for the set, the car waited for the
+// light - every set and the roads round its crossings stood still for good. Now: on it when its nose
+// (going in) or its tail (leaving) is over the track - one at the stop line never is.
+const LRT_TRACK_ZONE = 0.3;   // tiles from a crossing's middle a road vehicle is on its track
+function lrtVehicleOnCrossing(o, crossings) {
+  if (!o?.current || !o?.next || o.current.layer === 'deck' || o.next.layer === 'deck') return null;
+  const p = Number.isFinite(o.renderedProgress) ? o.renderedProgress : Number(o.progress) || 0;
+  const length = Number(o.model?.lengthTiles) || 0.4;
+  const current = `${o.current.row}:${o.current.col}`;
+  const next = `${o.next.row}:${o.next.col}`;
+  // (by its ends, within LRT_TRACK_ZONE of the crossing's middle where the track runs: a bus waits
+  // at its stop line by the backend's reckoning and drawn by its own, a little apart)
+  if (crossings.has(current) && p - length / 2 < LRT_TRACK_ZONE) return current;
+  if (crossings.has(next) && p + length / 2 > 1 - LRT_TRACK_ZONE) return next;
+  return null;
+}
+
 function advanceLightRailFleet(scene, delta, amount = null) {
   const state = lrtState();
   if (!state.cars.length) { if (typeof setLightRailCrossingLights === 'function') setLightRailCrossingLights(new Map()); return; }
@@ -601,7 +620,12 @@ function advanceLightRailFleet(scene, delta, amount = null) {
   const about = lrtCrossingsAbout(placed, plans, crossings);
   updateLightRailCrossings(about);
   const occupied = new Set();
-  if (crossings.size) traffic.forEach((o) => { const k = `${Math.floor(o.pos[1])}:${Math.floor(o.pos[0])}`; if (crossings.has(k)) occupied.add(k); });
+  if (crossings.size && scene) {
+    [...(scene.trafficVisualState?.vehicles || []), ...(scene.transportVisualState?.vehicles || [])].forEach((o) => {
+      const k = lrtVehicleOnCrossing(o, crossings);
+      if (k) occupied.add(k);
+    });
+  }
   placed.forEach((t) => {
     const plan = plans.get(t.line.id);
     const gap = t.traffic ? LIGHT_RAIL_SERVICE.streetGapTiles : LIGHT_RAIL_SERVICE.reservedGapTiles;
@@ -922,5 +946,5 @@ function updateLightRailService(scene, delta = 16) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCarPointAt, lrtCrossingsAbout, lightRailCall };
+  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCarPointAt, lrtCrossingsAbout, lrtVehicleOnCrossing, lightRailCall };
 }

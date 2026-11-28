@@ -2905,6 +2905,34 @@ function trafficVehiclesInSeparateBandLanes(vehicle, leader, tile) {
   return !!band && band.direction !== 'shared';
 }
 
+// A 輕鐵 level crossing kept clear (Norton, 2026-11-28: 啲車會卡住): a vehicle about to go over a
+// crossing's stop line holds there unless there is room for the whole of it beyond the track -
+// otherwise it stood on the track, queued behind the traffic past it, and the light rail waited for
+// it. The stop line (progress) to hold at, or null.
+function getTrafficCrossingKeepClearHold(scene, vehicle, leaderBuckets) {
+  const { current, next } = vehicle;
+  const junctions = scene?.trafficSignalJunctions;
+  if (!junctions?.size || !current || !next || current.layer === 'deck' || next.layer === 'deck') return null;
+  if (typeof trafficSignalJunctionKey !== 'function' || !junctions.get(trafficSignalJunctionKey(next.row, next.col))?.lightRail) return null;
+  const stop = typeof lightRailCrossingStopProgress === 'function' ? lightRailCrossingStopProgress(vehicle.model?.headwayFactor) : 0.52;
+  if (vehicle.progress > stop + 1e-6) return null;   // over the line: it carries on
+  const dr = next.row - current.row, dc = next.col - current.col;
+  const beyondKey = trafficTileBucketKey({ row: next.row + dr, col: next.col + dc });
+  const nextKey = trafficTileBucketKey(next);
+  const mine = trafficVehicleLengthTiles(vehicle);
+  // its front past the crossing's far edge: 0.5 + its length from the crossing's middle
+  const needed = 0.5 + mine;
+  const blocks = (o, base) => {
+    const rear = base + getTrafficLeaderEffectiveProgress(o) - trafficVehicleLengthTiles(o) / 2;
+    return rear - TRAFFIC_FOLLOW_GAP_TILES < needed;
+  };
+  const leaving = (leaderBuckets.byTile?.get(nextKey) ?? []).some((o) => o !== vehicle && o.next
+    && trafficTileBucketKey(o.next) === beyondKey && blocks(o, 0));
+  const past = (leaderBuckets.byTile?.get(beyondKey) ?? []).some((o) => o !== vehicle && o.next
+    && trafficTileBucketKey(o.next) !== nextKey && blocks(o, 1));
+  return leaving || past ? stop : null;
+}
+
 function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
   if (!vehicle.current || !vehicle.next) return false;
   if (trafficJunctionOccupiedAcross(vehicle, vehicle.progress, leaderBuckets)) {
@@ -3084,6 +3112,11 @@ function updateTrafficVisuals(time, delta) {
       if (hold !== null && vehicle.progress + progressAmount > hold) {
         progressAmount = Math.max(0, hold - vehicle.progress);
       }
+    }
+    // and keep a 輕鐵 crossing clear: no going over the stop line without room beyond the track
+    {
+      const hold = getTrafficCrossingKeepClearHold(scene, vehicle, leaderBuckets);
+      if (hold !== null && vehicle.progress + progressAmount > hold) progressAmount = Math.max(0, hold - vehicle.progress);
     }
 
     if (vehicle.model.category === 'bus' && vehicle.current && vehicle.next) {

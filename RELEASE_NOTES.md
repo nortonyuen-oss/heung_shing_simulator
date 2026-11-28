@@ -1,3 +1,34 @@
+# Heung Shing Simulator v6.2.5 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 雙線來回道路，中央分隔帶同 T 型街燈
+
+- **雙線來回**：馬路工具多咗第四款「雙線來回」（電腦同手機都有），拉一下就起好每邊兩線嘅路；第二條線擺喺有位嗰邊。
+- **中央分隔帶**：所有兩格闊嘅路（舊存檔都有）直路段中間自動加分隔帶，按附近環境揀款：
+  - 高樓商廈多：棕櫚樹花槽
+  - 高樓住宅密：路邊款行人欄杆
+  - 綠化、空曠：矮樹籬加樹
+  - 其他地方：矮樹籬
+- **唔阻車**：分隔帶喺路尾、路口、斑馬線同橋前一格停，掉頭同轉彎唔會被擋；路上有電車或者輕鐵路軌就冇分隔帶，拆咗路軌會自動加返。
+- **T 型街燈**：分隔帶上每 30 米一支雙頭街燈，晚上照住兩邊行車線；嗰段路邊街燈就唔再擺。
+- **美術**：T 型街燈同棕櫚樹花槽用你畀嘅美術，已經轉成遊戲嘅等角視角。
+- **修正平交道卡死**：車喺輕鐵平交道紅燈前停低時，會被當成停咗喺路軌上，輕鐵等車、車等燈，附近成片路永遠塞死。依家停車線前嘅車唔再算喺路軌上，冇位亦唔會駛上路軌。
+
+**台灣中文：** 道路工具新增「雙線來回」，拉一下即建成每邊兩線的道路。所有兩格寬的道路（舊存檔亦然）直路段中央自動加設分隔帶，依周邊環境選款：高樓商廈多用棕櫚樹花槽、密集高樓住宅用行人欄杆、綠化空曠用矮樹籬加樹、其他用矮樹籬；分隔帶在路尾、路口、斑馬線與橋前一格停止，不阻迴轉與轉彎，有電車或輕鐵軌道則不設。分隔帶上每 30 米一支雙頭 T 型路燈，夜間照亮兩邊車道。修正輕鐵平交道卡死：紅燈前停車的車輛被當成在軌道上，輕鐵等車、車等燈，附近道路永久塞住。
+
+**English:** The road tool's fourth kind, Dual road, lays a road two lanes each way in one drag. Every road two tiles wide (old saves too) gets a central reservation where it runs straight, chosen by what stands along it: palm planters by high-rise shops and offices, pavement railings along busy high-rise homes, hedge and trees in green open areas, a hedge elsewhere. It stops a tile short of ends, junctions, zebras and bridges so traffic can turn and turn back, and gives way to tram or light rail track. Double-headed T lamps stand on it every 30 m, lighting both carriageways at night. Fixed a level-crossing deadlock: a car waiting at a light rail crossing's red light counted as on the track, so the train waited for the car, the car for the light, and the roads around stopped for good.
+
+**日本語:** 道路ツールに「往復4車線」を追加、1回のドラッグで片側2車線の道路に。2マス幅の道路（旧セーブも）の直線区間には中央分離帯を自動で設置し、沿道に合わせて種類を選択：高層の商業地はヤシの植え込み、高層住宅の密集地は歩道柵、緑の多い所は生け垣と並木、それ以外は生け垣。道路の端・交差点・横断歩道・橋の1マス手前で止まり、Uターンや右左折を妨げません。路面電車・軽鉄の線路がある所には設けません。分離帯には30 mごとに双頭のT字街灯、夜は両側の車線を照らします。軽鉄の踏切で、赤信号で止まった車が線路上にいると判定され、電車と車が互いを待って周辺の道路が止まったままになる不具合を修正。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.4 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.4 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.5 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.4 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.5 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.5
+
+The road tool has a fourth kind, 雙線來回 (Dual road): one drag lays a road two lanes each way. Every road two tiles wide (old saves too) now gets a central reservation where it runs straight, chosen by what stands along it: palm planters by high-rise shops and offices, pavement railings on a kerb along busy high-rise homes, a hedge with trees in green open areas, a hedge elsewhere. It stops a tile short of every end and junction so traffic can turn and turn back, and gives way to tram or light rail track. Double-headed T lamps stand on it every 30 m and light both carriageways at night. The lamps and planters are Norton's art, squared to the game's isometric view. Fixed a level-crossing deadlock: a car waiting at a light rail crossing's red light was counted as on the track, so the train waited for the car and the car for the light, and the roads around stopped for good.
 
 ## New in v6.2.4
 

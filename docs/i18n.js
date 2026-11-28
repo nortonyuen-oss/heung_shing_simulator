@@ -306,6 +306,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.2.5","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["馬路工具新增「雙線來回」：拉一下就起好每邊兩線嘅路。","兩格闊嘅路（舊存檔都有）直路段自動加中央分隔帶，按附近揀款：棕櫚樹花槽、行人欄杆、矮樹籬加樹或者矮樹籬；路尾、路口前一格停，唔阻掉頭轉彎，有電車輕鐵路軌就冇。","分隔帶上每 30 米一支雙頭 T 型街燈，晚上照住兩邊行車線。","修正輕鐵平交道卡死：紅燈前停低嘅車被當成喺路軌上，輕鐵同車互相等，附近成片路塞死。"]},
     {"version":"v6.2.4","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["車唔再疊埋一齊：每款車按車身長度跟車、留少少空隙，路口有車打橫或轉彎就喺路口外等；同線巴士至少隔 1.25 格，唔再黐埋。","總站：巴士同電車平行停站，停完向前行少少再掉頭；兩卡輕鐵喺同一條路軌停站，成列倒返轉頭。","橋同海底隧道載住兩頭之間嘅車流，長懸索橋中間唔再冇車；修正懸索橋錨碇座穿模同橋底浮起嘅路牌。","新增高架路牌：參考運輸署《運輸策劃及設計手冊》，喺天橋、懸索橋、海底隧道同區外連線引道搭龍門架，每條線一塊中英對照牌，入夜有燈。"]},
     {"version":"v6.2.3","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["修正公屋、居屋屋邨冇交通：以前樓宇要喺左上角兩步內有路先計交通，屋邨嘅樓喺邨中間，全部計唔到；全城大約兩成人口一樣漏計。","交通改由地段最近嘅路出入，同起樓一樣 5 格內都計；屋邨嘅樓經邨內行人路出屋邨四周嘅路。太子展示城屋邨門口條路由 0.05 升到 0.51。","全城交通指數維持原本水平（0.266 → 0.268），《玩轉18區》各章開局市鎮持平或略低，交通目標唔會變難。"]},
     {"version": "v6.2.2", "date": "2026-11-28", "dateLabel": "2026年11月28日", "title": "天橋底下", "items": ["手機改用 GPU 壓縮建築圖（ASTC 6x6），記憶體得原本九分一：太子大城市連長懸索橋，手機峰值由 483 MB 降到 284 MB。", "手機要下載嘅建築圖由 136 MB 減到 43.5 MB，入城快啲、慳數據。", "冇 ASTC 嘅手機、電腦同桌面版照用原本嘅圖；壓縮圖載唔到會即刻改載原圖。發佈前記憶體檢查兩條路都要過。", "官網畫廊新增公屋屋邨、行車天橋同懸索橋黃昏、夜景截圖。"]},
@@ -707,6 +708,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.2.5": {"title":"天橋底下","items":["道路工具新增「雙線來回」：拉一下即建成每邊兩線的道路。","兩格寬的道路（舊存檔亦然）直路段自動設中央分隔帶，依周邊選款：棕櫚樹花槽、行人欄杆、矮樹籬加樹或矮樹籬；路尾、路口前一格停止，不阻迴轉轉彎，有電車輕鐵軌道則不設。","分隔帶上每 30 米一支雙頭 T 型路燈，夜間照亮兩邊車道。","修正輕鐵平交道卡死：紅燈前停車被當成在軌道上，輕鐵與車輛互相等待，附近道路塞死。"]},
     "v6.2.4": {"title":"天橋底下","items":["車輛不再互相重疊：每款車依車身長度跟車並留空隙，路口有車橫越或轉彎即在路口外等候；同線公車至少相隔 1.25 格。","總站：公車與電車平行停站，停完前行一點再迴轉；兩節輕鐵在同一軌道停站，整列倒退折返。","橋與海底隧道承載兩端之間的車流，長懸索橋中段不再無車；修正懸索橋錨碇穿模與橋下浮起的路牌。","新增門架式方向標誌：參考運輸署《運輸策劃及設計手冊》，設於天橋、懸索橋、海底隧道與區外連線引道，每條車道一塊中英對照標誌，夜間照明。"]},
     "v6.2.3": {"title":"天橋底下","items":["修正公屋、居屋屋邨沒有交通：過去樓宇要在左上角兩步內有路才計算交通，屋邨的樓位於邨中央，全部漏算；全城約兩成人口也同樣漏算。","交通改由地段最近的道路出入，與興建規則一樣 5 格內都計；屋邨的樓經邨內步道由屋邨四周道路出入。太子展示城屋邨門前道路由 0.05 升至 0.51。","全城交通指數維持原本水準（0.266 → 0.268），《玩轉18區》各章開局市鎮持平或略低，交通目標不會變難。"]},
     "v6.2.2": {"title": "天橋底下", "items": ["手機改用 GPU 壓縮建築圖（ASTC 6x6），記憶體只需原本九分之一：太子大城市加長懸索橋，手機峰值由 483 MB 降至 284 MB。", "手機需下載的建築圖由 136 MB 減至 43.5 MB，進城更快、更省流量。", "不支援 ASTC 的手機、電腦與桌面版照用原本的圖；壓縮圖載入失敗會立即改載原圖。發佈前記憶體檢查兩種情況都須通過。", "官網畫廊新增公屋屋邨、高架道路與懸索橋黃昏、夜景截圖。"]},
@@ -1101,6 +1103,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.2.5": {"title":"Under the Flyover","items":["New in the road tool: Dual road, two lanes each way in one drag.","Every road two tiles wide (old saves too) gets a central reservation where it runs straight, by what stands along it: palm planters, pavement railings, hedge and trees, or a hedge; it stops a tile short of ends and junctions so traffic can turn, and gives way to tram or light rail track.","Double-headed T lamps on it every 30 m light both carriageways at night.","Fixed a level-crossing deadlock: a car waiting at a light rail crossing's red light counted as on the track, and the train and the traffic waited on each other for good."]},
     "v6.2.4": {"title":"Under the Flyover","items":["Vehicles no longer overlap: each keeps its own length and a gap behind the one in front, and waits outside a junction while another crosses or turns in it; buses of one route keep 1.25 tiles apart.","At a terminus buses and trams stand parallel to the stop, then pull forward and turn; a two-car light rail set stands on one track and reverses as a whole.","Bridges and undersea tunnels carry the traffic between their ends, so a long suspension bridge is no longer empty; fixed an anchorage showing through the deck and signs floating under bridges.","New overhead gantry signs after the Transport Department's design manual, on the approaches to flyovers, suspension bridges, undersea tunnels and roads out of the district: a bilingual panel per lane, lit at night."]},
     "v6.2.3": {"title":"Under the Flyover","items":["Fixed public and HOS housing estates generating no traffic: a building counted only with a road within two steps of its first tile, so every estate block, set inside its estate, and about a fifth of a city's people were left out.","Traffic now leaves each lot by its nearest road, within the same five tiles a lot develops by; estate blocks use the roads around their estate. The road in front of the 太子 showcase's estates goes from 0.05 to 0.51.","A city's overall traffic stays where it was (0.266 → 0.268); no campaign chapter's starting town gets busier, so traffic goals are no harder."]},
     "v6.2.2": {"title": "Under the Flyover", "items": ["Phones keep building art GPU-compressed (ASTC 6x6), a ninth of the memory: the 太子 showcase with a long suspension bridge now peaks at 284 MB on a phone, down from 483 MB.", "Phones download 43.5 MB of building art instead of 136 MB, so cities open faster on less data.", "Phones without ASTC, computers and the desktop app keep the usual pictures; if a compressed picture fails to load, the usual one loads instead. The pre-release memory check covers both.", "The gallery adds screenshots of public housing estates, a flyover and the suspension bridge at dusk and at night."]},
@@ -1495,6 +1498,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.2.5": {"title":"高架の下で","items":["道路ツールに「往復4車線」を追加：1回のドラッグで片側2車線の道路に。","2マス幅の道路（旧セーブも）の直線区間に中央分離帯を自動設置。沿道に合わせてヤシの植え込み・歩道柵・生け垣と並木・生け垣を選択し、端や交差点の1マス手前で止まるのでUターンも可能。路面電車・軽鉄の線路がある所には設けません。","分離帯には30 mごとに双頭のT字街灯、夜は両側の車線を照らします。","軽鉄の踏切で赤信号待ちの車が線路上と判定され、電車と車が互いを待って止まる不具合を修正。"]},
     "v6.2.4": {"title":"高架の下で","items":["車両が重ならなくなりました。車長と車間を保ち、交差点で横切る・曲がる車がいれば手前で待機。同じ路線のバスは1.25マス以上離れます。","終点ではバスと路面電車が停留所と平行に停まり、少し前に出て折り返し。2両の軽鉄は同じ線路に停まり編成ごと折り返します。","橋と海底トンネルが両端の間の交通を運ぶようになり、長い吊り橋の中央も車が通行。アンカレイジの突き抜けと橋下に浮く標識を修正。","運輸署の設計手冊に沿った門型方向標識を追加：高架道路・吊り橋・海底トンネル・区外連絡道路の手前に、車線ごとの中英併記パネル、夜間照明付き。"]},
     "v6.2.3": {"title":"高架の下で","items":["公営・居屋団地に交通が発生しない問題を修正。建物は左上のマスから2歩以内に道路がある場合だけ計算されていたため、団地の棟はすべて、街の人口の約2割も漏れていました。","交通は区画に最も近い道路から出入り（建設と同じ5マス以内）。団地の棟は団地周囲の道路を使用。太子の団地前の道路は0.05から0.51に。","街全体の交通指数は従来どおり（0.266 → 0.268）。「18区をめぐる」各章の初期の街は同じか少し低く、交通目標は難しくなりません。"]},
     "v6.2.2": {"title": "高架の下で", "items": ["スマートフォンは建物の画像をGPU圧縮（ASTC 6x6）のまま保持し、メモリーは9分の1に。太子の大都市と長い吊り橋でのピークは483 MBから284 MBに。", "スマートフォンがダウンロードする建物画像は136 MBから43.5 MBに。街がより速く開き、通信量も節約。", "ASTC非対応のスマートフォン、パソコン、デスクトップ版は従来の画像を使用。圧縮画像の読み込みに失敗した場合はすぐ従来の画像に切り替え。リリース前のメモリーチェックは両方を確認。", "ギャラリーに公営団地、高架道路、夕暮れと夜の吊り橋のスクリーンショットを追加。"]},
@@ -1914,8 +1918,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.2.4 — 【天橋底下】",
-      versionDesc: "6.2.4【天橋底下】：天橋、青馬式懸索橋同高架路牌；車唔再疊埋，巴士電車輕鐵喺總站平行停站再掉頭，手機改用 GPU 壓縮建築圖唔再閃退。",
+      versionBadge: "v6.2.5 — 【天橋底下】",
+      versionDesc: "6.2.5【天橋底下】：天橋、青馬式懸索橋、高架路牌，新增雙線來回道路：中央分隔帶、棕櫚樹花槽同雙頭 T 型街燈。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2028,8 +2032,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.2.4 — 【天橋底下】",
-      versionDesc: "6.2.4【天橋底下】：天橋、青馬式懸索橋與門架方向標誌；車輛不再重疊，公車電車輕鐵在總站平行停站再折返，手機改用 GPU 壓縮建築圖不再閃退。",
+      versionBadge: "v6.2.5 — 【天橋底下】",
+      versionDesc: "6.2.5【天橋底下】：天橋、青馬式懸索橋、門架方向標誌，新增雙線來回道路：中央分隔帶、棕櫚樹花槽與雙頭 T 型路燈。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2142,8 +2146,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "Heung Shing Simulator",
       title: "Heung Shing Simulator",
-      versionBadge: "v6.2.4 — 【Under the Flyover】",
-      versionDesc: "6.2.4 【Under the Flyover】: flyovers, Tsing Ma-style suspension bridges and overhead gantry signs; vehicles no longer overlap, buses, trams and light rail turn round properly at a terminus, and phones keep building art GPU-compressed.",
+      versionBadge: "v6.2.5 — 【Under the Flyover】",
+      versionDesc: "6.2.5 【Under the Flyover】: flyovers, Tsing Ma-style suspension bridges and overhead gantry signs, and now dual roads with a central reservation, palm planters and double-headed T lamps.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2257,8 +2261,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城シミュレーター",
       title: "香城シミュレーター",
-      versionBadge: "v6.2.4 — 【高架の下で】",
-      versionDesc: "6.2.4【高架の下で】：高架道路・青馬大橋風の吊り橋・門型方向標識。車両が重ならず、バス・路面電車・軽鉄は終点で平行に停まって折り返し、スマートフォンは建物画像をGPU圧縮で保持。",
+      versionBadge: "v6.2.5 — 【高架の下で】",
+      versionDesc: "6.2.5【高架の下で】：高架道路・青馬大橋風の吊り橋・門型方向標識に加え、中央分離帯・ヤシの植え込み・双頭T字街灯の往復4車線道路を追加。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

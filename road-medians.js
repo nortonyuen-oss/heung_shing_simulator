@@ -11,10 +11,12 @@
 // is taken up).
 //
 // Its kind is picked by what stands along it (roadMedianStyleFor):
-//   'palms'  - hedge and palms: offices and shops, high-rise (金鐘道)
+//   'palms'  - Norton's palm planters: offices and shops (金鐘道)
 //   'rail'   - a narrow kerb with the pavements' 行人路欄杆: a busy high-rise residential street
-//   'trees'  - hedge and broadleaf trees: green, open, low-rise
-//   'hedge'  - a hedge only: anywhere else
+//   'trees'  - Norton's flower beds with broadleaf trees in them: green, open, low-rise
+//   'hedge'  - the flower beds only: anywhere else
+// (the beds and planters from road-median-art.js, scripts/bake-median-planter-textures.js; a drawn
+// hedge strip until their art has loaded)
 // and its lamps are double-headed T posts on it (street-lamps.js), the kerbside ones on those tiles
 // standing down.
 
@@ -27,6 +29,16 @@ const ROAD_MEDIAN = Object.freeze({
   treeScale: 0.17,
   minRunTiles: 2,
   window: 3,               // tiles either side looked at for the street's character
+  palmsShare: 0.1,         // of the lots along it shops and offices (medium or high density): palms
+  // The planter sets (road-median-art.js) and how a run is laid with them: `first` at one end, `last`
+  // at the other, `bodies` (longest first) between, `single` alone on a run too short for both ends.
+  // palms: their nose at the run's lower end on screen; flowers: laid from the run's map start (a turn
+  // of the map keeps the same beds in the same places), the bodies a mix of lengths by the run.
+  planterSets: Object.freeze({
+    palms: Object.freeze({ first: 'nose', last: 'island', single: 'island', bodies: Object.freeze(['quad', 'triple', 'double']), gap: 0.06 }),
+    flowers: Object.freeze({ first: 'oval', last: 'oval', single: 'oval', bodies: Object.freeze(['longest', 'longer', 'long', 'medium', 'short']), gap: 0.04, mixed: true, fromMapStart: true }),
+  }),
+  styleSets: Object.freeze({ palms: 'palms', trees: 'flowers', hedge: 'flowers' }),
   colours: Object.freeze({
     kerbTop: '#c9c6bd', kerbFace: '#9d9a92', kerbFaceDark: '#85827b',
     soil: '#5d5a3d', hedge: '#4f7a36', hedgeLight: '#6d9a47', hedgeDark: '#3b5f29',
@@ -100,7 +112,7 @@ function roadMedianPair(run, along) {
 // built (with a building), commercialHigh, residentialHigh (high-density, any use), green (trees, parks) }.
 function roadMedianStyleFor(stats) {
   const share = (n) => (stats.tiles > 0 ? n / stats.tiles : 0);
-  if (share(stats.commercialHigh) >= 0.18) return 'palms';
+  if (share(stats.commercialHigh) >= ROAD_MEDIAN.palmsShare) return 'palms';
   if (share(stats.residentialHigh) >= 0.22) return 'rail';
   if (share(stats.green) >= 0.15 || share(stats.built) < 0.12) return 'trees';
   return 'hedge';
@@ -126,8 +138,10 @@ function roadMedianSurroundings(scene, run) {
       stats.built++;
       const type = record.type;
       if (/park|garden|sports_ground/.test(type)) { stats.green++; continue; }
-      const high = (Number(record.density) || 0) >= 3 || (Number(record.level) || 0) >= 3;
-      if (high && type === 'commercial') stats.commercialHigh++;
+      const density = Number(record.density) || 0, level = Number(record.level) || 0;
+      const high = density >= 3 || level >= 3;
+      // shops and offices from medium density (Norton, 2026-11-28: 調低門檻 - the palms were rare)
+      if (type === 'commercial' && (density >= 2 || level >= 2 || ['H', 'UH'].includes(record.commercialTier))) stats.commercialHigh++;
       if (high && (type === 'residential' || type === 'commercial')) stats.residentialHigh++;
     }
   }
@@ -386,25 +400,55 @@ function placeRoadMedianTree(scene, run, along, style, key) {
   return sprite;
 }
 
-// ── Norton's palm planters (road-median-art.js, scripts/bake-median-planter-textures.js) ────────────
+// ── Norton's planters and flower beds (road-median-art.js, scripts/bake-median-planter-textures.js) ─
 
-// Pure: the planters down a run `length` tiles long, from its lower end on screen: the rounded nose
-// first, the island at the far end, the long ones between, the gaps shared out. [{ piece, at }] with
-// `at` the piece's near end, tiles from the run's lower end.
-function layRoadMedianPlanters(length, pieces = typeof ROAD_MEDIAN_PLANTERS !== 'undefined' ? ROAD_MEDIAN_PLANTERS : null, gap = 0.06) {
-  if (!pieces?.nose || !pieces?.island) return [];
-  const len = (name) => pieces[name].lengthTiles;
-  if (length < len('nose') + len('island') + gap) return length >= len('island') ? [{ piece: 'island', at: (length - len('island')) / 2 }] : [];
-  const middle = [];
-  let room = length - len('nose') - len('island') - gap * 2;
-  const bodies = ['quad', 'triple', 'double'].filter((name) => pieces[name]);
-  for (;;) {
-    const fit = bodies.find((name) => len(name) + gap <= room);
-    if (!fit) break;
-    middle.push(fit);
-    room -= len(fit) + gap;
+function roadMedianPlanterArt(setName) {
+  const art = typeof ROAD_MEDIAN_PLANTERS !== 'undefined' ? ROAD_MEDIAN_PLANTERS : null;
+  return art?.[setName] ?? null;
+}
+
+// A run's own number, for its mix of beds (the same every time it is laid).
+function roadMedianRunSeed(run) {
+  let h = 2166136261;
+  `${run.orientation}:${run.line}:${run.from}:${run.to}`.split('').forEach((ch) => { h = Math.imul(h ^ ch.charCodeAt(0), 16777619); });
+  return h >>> 0;
+}
+
+// Pure: the pieces of a set down a run `length` tiles long: `first` at the start, `last` at the end,
+// bodies between (a mixed set's by the seed, a longer one likelier; otherwise the longest that fits),
+// the gaps shared out. [{ piece, at }] with `at` the piece's start, tiles from the run's start.
+function layRoadMedianPlanters(length, setName = 'palms', seed = 0, art = roadMedianPlanterArt(setName)) {
+  const set = ROAD_MEDIAN.planterSets[setName];
+  if (!set || !art?.[set.first] || !art?.[set.last] || !art?.[set.single]) return [];
+  const len = (name) => art[name].lengthTiles;
+  const { gap } = set;
+  if (length < len(set.first) + len(set.last) + gap) {
+    return length >= len(set.single) ? [{ piece: set.single, at: +((length - len(set.single)) / 2).toFixed(4) }] : [];
   }
-  const order = ['nose', ...middle, 'island'];
+  let state = seed >>> 0;
+  const random = () => {   // mulberry32
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const middle = [];
+  let room = length - len(set.first) - len(set.last) - gap * 2;
+  const bodies = set.bodies.filter((name) => art[name]);
+  for (;;) {
+    const fits = bodies.filter((name) => len(name) + gap <= room);
+    if (!fits.length) break;
+    // a mixed set's: any that fits, a longer one likelier (by its length)
+    let pick = fits[0];
+    if (set.mixed) {
+      let r = random() * fits.reduce((sum, name) => sum + len(name), 0);
+      pick = fits.find((name) => (r -= len(name)) < 0) ?? fits[fits.length - 1];
+    }
+    middle.push(pick);
+    room -= len(pick) + gap;
+  }
+  const order = [set.first, ...middle, set.last];
   const spare = room / (order.length - 1);
   const out = [];
   let at = 0;
@@ -415,37 +459,39 @@ function layRoadMedianPlanters(length, pieces = typeof ROAD_MEDIAN_PLANTERS !== 
   return out;
 }
 
-function roadMedianPlanterKey(piece, variant) {
-  return `median_planter_${piece}_${variant}`;
+function roadMedianPlanterKey(setName, piece, variant) {
+  return `median_${setName}_${piece}_${variant}`;
 }
 
-// Their textures, loaded the first time a run wants them; the run is laid again when they come.
-function ensureRoadMedianPlanterTextures(scene) {
-  if (typeof ROAD_MEDIAN_PLANTERS === 'undefined' || !scene?.load) return false;
+// A set's textures, loaded the first time a run wants them; the runs are laid again when they come.
+function ensureRoadMedianPlanterTextures(scene, setName) {
+  const art = roadMedianPlanterArt(setName);
+  if (!art || !scene?.load) return false;
   const missing = [];
-  Object.entries(ROAD_MEDIAN_PLANTERS).forEach(([piece, art]) => ['A', 'B'].forEach((variant) => {
-    const key = roadMedianPlanterKey(piece, variant);
-    if (!scene.textures.exists(key)) missing.push([key, art.files[variant], art.canvas]);
+  Object.entries(art).forEach(([piece, pieceArt]) => ['A', 'B'].forEach((variant) => {
+    const key = roadMedianPlanterKey(setName, piece, variant);
+    if (!scene.textures.exists(key)) missing.push([key, pieceArt.files[variant], pieceArt.canvas]);
   }));
   if (!missing.length) return true;
-  if (scene.__roadMedianPlantersLoading) return false;
-  scene.__roadMedianPlantersLoading = true;
+  if (!scene.__roadMedianPlantersLoading) scene.__roadMedianPlantersLoading = new Set();
+  if (scene.__roadMedianPlantersLoading.has(setName)) return false;
+  scene.__roadMedianPlantersLoading.add(setName);
   missing.forEach(([key, file, canvas]) => scene.load.image(key, typeof resolvePropAssetPath === 'function' ? resolvePropAssetPath(file, canvas) : file));
   scene.load.once('complete', () => {
-    scene.__roadMedianPlantersLoading = false;
+    scene.__roadMedianPlantersLoading.delete(setName);
     if (scene.roadMedianRuns) rebuildRoadMedianSprites(scene, scene.roadMedianRuns);
   });
   scene.load.start();
   return false;
 }
 
-// One planter on a run: in upright strips a third of a tile along, each sorted between the two
+// One piece on a run: in upright strips a third of a tile along, each sorted between the two
 // carriageways at its own place (the traffic on the far one behind it, the near one's in front) - a
 // planter a tile long sorted as one would be in front of the far side's cars at one end and behind
-// the near side's at the other.
-function placeRoadMedianPlanter(scene, run, lay, low, dir, variant, keyBase, wanted) {
-  const art = ROAD_MEDIAN_PLANTERS[lay.piece];
-  const key = roadMedianPlanterKey(lay.piece, variant);
+// the near side's at the other. `lay.at` is its near end, tiles from the run's lower end on screen.
+function placeRoadMedianPlanter(scene, run, setName, lay, low, dir, variant, keyBase, wanted) {
+  const art = roadMedianPlanterArt(setName)[lay.piece];
+  const key = roadMedianPlanterKey(setName, lay.piece, variant);
   if (!scene.textures.exists(key)) return;
   const texture = scene.textures.get(key);
   const frame = texture.get();
@@ -491,8 +537,12 @@ function placeRoadMedianPlanter(scene, run, lay, low, dir, variant, keyBase, wan
   }
 }
 
-function placeRoadMedianPlanters(scene, run, wanted) {
-  if (!ensureRoadMedianPlanterTextures(scene)) return;
+// A run laid with a set. Returns the pieces as laid, in map terms along the run ([{ piece, from, to }],
+// fractional rows or columns), or null while the set's art loads.
+function placeRoadMedianPlanters(scene, run, setName, wanted) {
+  if (!ensureRoadMedianPlanterTextures(scene, setName)) return null;
+  const set = ROAD_MEDIAN.planterSets[setName];
+  const art = roadMedianPlanterArt(setName);
   // along the line from the end lower on screen
   const start = roadMedianPoint(scene, run, run.from - 0.5), end = roadMedianPoint(scene, run, run.to + 0.5);
   const fromLow = start.y >= end.y;
@@ -501,9 +551,29 @@ function placeRoadMedianPlanters(scene, run, wanted) {
   const other = fromLow ? end : start;
   const lowPoint = fromLow ? start : end;
   const variant = other.x >= lowPoint.x ? 'A' : 'B';
-  layRoadMedianPlanters(run.to - run.from + 1).forEach((lay, index) => {
-    placeRoadMedianPlanter(scene, run, lay, low, dir, variant, `${run.orientation}:${run.line}:${run.from}:${index}`, wanted);
+  const length = run.to - run.from + 1;
+  let lays = layRoadMedianPlanters(length, setName, roadMedianRunSeed(run));
+  // laid from the map start: its pieces turned round to count from the lower end
+  if (set.fromMapStart && !fromLow) lays = lays.map(({ piece, at }) => ({ piece, at: +(length - at - art[piece].lengthTiles).toFixed(4) }));
+  lays.forEach((lay, index) => {
+    placeRoadMedianPlanter(scene, run, setName, lay, low, dir, variant, `${run.orientation}:${run.line}:${run.from}:${index}`, wanted);
   });
+  return lays.map(({ piece, at }) => {
+    const a = low + dir * at, b = low + dir * (at + art[piece].lengthTiles);
+    return { piece, from: Math.min(a, b), to: Math.max(a, b) };
+  });
+}
+
+// Pure: where a tree stands on a run laid with beds - at `along` (a tile's middle), moved into the
+// bed nearest it if it falls in a gap or by a bed's end; null with no bed.
+function roadMedianTreeSpot(along, beds, margin = 0.1) {
+  let best = null;
+  beds.forEach((bed) => {
+    const lo = bed.from + Math.min(margin, (bed.to - bed.from) / 2), hi = bed.to - Math.min(margin, (bed.to - bed.from) / 2);
+    const spot = Math.min(hi, Math.max(lo, along));
+    if (!best || Math.abs(spot - along) < Math.abs(best - along)) best = spot;
+  });
+  return best;
 }
 
 // Reconcile the reservation's pieces with `runs` (from street-lamps.js's rebuild, or worked out here).
@@ -515,10 +585,28 @@ function rebuildRoadMedianSprites(scene, runs = null) {
   const wanted = { strip: new Set(), rail: new Set(), tree: new Set(), planter: new Set() };
   list.forEach((run) => {
     const style = run.style || 'hedge';
-    // palms: Norton's planters, kerbs and all
-    if (style === 'palms' && typeof ROAD_MEDIAN_PLANTERS !== 'undefined') {
-      placeRoadMedianPlanters(scene, run, wanted.planter);
-      return;
+    // Norton's planters and beds, kerbs and all (a drawn strip below while they load)
+    const setName = ROAD_MEDIAN.styleSets[style];
+    if (setName && roadMedianPlanterArt(setName)) {
+      const beds = placeRoadMedianPlanters(scene, run, setName, wanted.planter);
+      if (beds) {
+        // trees in the beds, between the lamps (the tiles k%3 == 2, short of the ends)
+        if (style === 'trees') {
+          for (let a = run.from + 1; a < run.to; a++) {
+            if (((a % 3) + 3) % 3 !== 2) continue;
+            const spot = roadMedianTreeSpot(a, beds);
+            if (spot == null) continue;
+            const treeKey = `${run.orientation}:${run.line}:${a}`;
+            const sprite = placeRoadMedianTree(scene, run, spot, style, treeKey);
+            if (sprite) {
+              sprite.mapRow = run.orientation === 'v' ? a : run.line;
+              sprite.mapCol = run.orientation === 'v' ? run.line : a;
+              wanted.tree.add(treeKey);
+            }
+          }
+        }
+        return;
+      }
     }
     for (let a = run.from; a <= run.to; a++) {
       const cap = a === run.from ? 'start' : a === run.to ? 'end' : 'none';
@@ -576,5 +664,5 @@ function refreshAllRoadMedianSprites(scene) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { ROAD_MEDIAN, computeRoadMedianRuns, roadMedianStyleFor, roadMedianLampPlacements, roadMedianTileIndex, roadMedianPair, layRoadMedianPlanters };
+  module.exports = { ROAD_MEDIAN, computeRoadMedianRuns, roadMedianStyleFor, roadMedianLampPlacements, roadMedianTileIndex, roadMedianPair, layRoadMedianPlanters, roadMedianTreeSpot, roadMedianRunSeed };
 }

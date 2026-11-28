@@ -1,38 +1,62 @@
-// Bake the 中央分隔帶's palm planters (road-medians.js) from Norton's art.
+// Bake the 中央分隔帶's planters (road-medians.js) from Norton's art.
 //
 //   node scripts/bake-median-planter-textures.js [--preview <png>]
 //
-// scripts/source-art/roadMedian/original/medianPlanters.png (Norton, 2026-11-28: 畀埋綠化帶你轉) holds
-// six kerbed planters of shrubs, red flowers and palms. Their short sides are at the game's isometric
-// slope but their long sides lie flatter (about 1:2.8 against 1:2), so each is squared the way the
-// buildings' art is (art-isometric-squaring): a vertical skew and an x scale fitted to its two edges
-// (palms stay upright - never perspective). Each is then scaled so a palm stands about 12 m (the
-// kerb lamps' 10 m posts are ~30 px at zoom 1: STREET_LAMP_SCALE) and laid on a power-of-two canvas.
-// Writes Models/roadAssessories/medianPlanter_<piece>_A|B.png and road-median-art.js: each piece's
-// canvas, its anchor (the middle of its near end, on the ground) and its length and width in tiles,
-// for road-medians.js to lay along a reservation (the near end's nose first, the island last).
+// Two sheets in scripts/source-art/roadMedian/original/ (Norton, 2026-11-28):
+//   medianPlanters.png (畀埋綠化帶你轉) - six kerbed planters of shrubs, red flowers and palms: the
+//     'palms' set, scaled so a palm stands about 12 m (the kerb lamps' 10 m posts are ~30 px at zoom 1)
+//   medianFlowerbeds.png (畀多款綠化帶你做基礎) - seven kerbed beds of hedge and flowers, five
+//     square-ended lengths and an oval (the curved one is left out: a reservation here is straight):
+//     the 'flowers' set, each scaled to the palms' planters' width (their sheet draws them at
+//     different sizes and slopes)
+// Their sides do not lie at the game's isometric slopes, so each is squared the way the buildings'
+// art is (art-isometric-squaring): a vertical skew and an x scale fitted to its two edges (plants stay
+// upright - never perspective), then laid on a power-of-two canvas.
+// Writes Models/roadAssessories/<prefix>_<piece>_A|B.png and road-median-art.js: each set's pieces, with
+// their canvas, anchor (the middle of the near end, on the ground) and length and width in tiles, for
+// road-medians.js to lay along a reservation.
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
 const ROOT = path.resolve(__dirname, '..');
-const SOURCE = path.join(ROOT, 'scripts', 'source-art', 'roadMedian', 'original', 'medianPlanters.png');
+const SOURCE_DIR = path.join(ROOT, 'scripts', 'source-art', 'roadMedian', 'original');
 const OUT_DIR = path.join(ROOT, 'Models', 'roadAssessories');
 const ART_JS = path.join(ROOT, 'road-median-art.js');
 const args = process.argv.slice(2);
 const PREVIEW = (() => { const i = args.indexOf('--preview'); return i >= 0 ? args[i + 1] : null; })();
 
 const ISO = 0.5;
-const GAME_PX_PER_SOURCE = 0.088;   // a palm ~36 px (12 m) at zoom 1
 const RES = 3;                      // texture px a game px: sharp up to zoom 3
 const TILE_X = 50;                  // TILE_WIDTH / 2: screen x a tile along either axis
-// the pieces on the sheet (their boxes), named by use
-const PIECES = [
-  { name: 'double', box: [404, 43, 800, 466] },
-  { name: 'triple', box: [904, 18, 1464, 478] },
-  { name: 'quad', box: [360, 473, 1173, 1001] },
-  { name: 'island', box: [1227, 498, 1516, 919] },
-  { name: 'nose', box: [26, 535, 363, 959] },
+// The sets: their sheet, file prefix, and pieces (their boxes on the sheet), named by use. A set is
+// scaled by `gamePxPerSource`, or each piece to `widthTiles` across. A rounded piece's ends give no
+// straight short side: `like` names the piece whose short side's slope and scale it takes.
+const SETS = [
+  {
+    name: 'palms', sheet: 'medianPlanters.png', prefix: 'medianPlanter',
+    gamePxPerSource: 0.088,           // a palm ~36 px (12 m) at zoom 1
+    pieces: [
+      { name: 'double', box: [404, 43, 800, 466] },
+      { name: 'triple', box: [904, 18, 1464, 478] },
+      { name: 'quad', box: [360, 473, 1173, 1001] },
+      { name: 'island', box: [1227, 498, 1516, 919] },
+      { name: 'nose', box: [26, 535, 363, 959] },
+    ],
+  },
+  {
+    name: 'flowers', sheet: 'medianFlowerbeds.png', prefix: 'medianFlowerbed',
+    widthTiles: 0.16,
+    isolate: true,                    // its pieces' boxes overlap: each takes only its own blot
+    pieces: [
+      { name: 'short', box: [76, 98, 330, 269] },
+      { name: 'medium', box: [414, 75, 776, 278] },
+      { name: 'long', box: [849, 51, 1412, 299] },
+      { name: 'longer', box: [422, 333, 1132, 722] },
+      { name: 'longest', box: [36, 680, 1422, 1050] },
+      { name: 'oval', box: [1060, 423, 1412, 658], like: 'medium' },
+    ],
+  },
 ];
 
 const pot = (n) => 2 ** Math.ceil(Math.log2(Math.max(1, n)));
@@ -99,6 +123,52 @@ function trim(data, W, H) {
   return { data: out, W: w, H: h, minX, minY };
 }
 
+// The piece in a box: all of it, or (isolate) the sheet's biggest blot within it and the specks
+// about it, a neighbour's edge in the box left out.
+function cropPiece(sheet, info, box, isolate) {
+  const [x0, y0, x1, y1] = box;
+  const W = x1 - x0, H = y1 - y0;
+  if (!isolate) {
+    const crop = Buffer.alloc(W * H * 4);
+    for (let y = 0; y < H; y++) sheet.copy(crop, y * W * 4, ((y + y0) * info.width + x0) * 4, ((y + y0) * info.width + x1) * 4);
+    return { data: crop, W, H };
+  }
+  const label = new Int32Array(W * H);
+  const sizes = [0];
+  for (let i = 0; i < W * H; i++) {
+    if (label[i]) continue;
+    const sx0 = i % W, sy0 = (i - sx0) / W;
+    if (sheet[((sy0 + y0) * info.width + sx0 + x0) * 4 + 3] <= 8) continue;
+    const id = sizes.length; let n = 0;
+    const stack = [i]; label[i] = id;
+    while (stack.length) {
+      const j = stack.pop(); n++;
+      const jx = j % W, jy = (j - jx) / W;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const xx = jx + dx, yy = jy + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        const k = yy * W + xx;
+        if (label[k] || sheet[((yy + y0) * info.width + xx + x0) * 4 + 3] <= 8) continue;
+        label[k] = id; stack.push(k);
+      }
+    }
+    sizes.push(n);
+  }
+  let main = 1;
+  sizes.forEach((n, id) => { if (n > sizes[main]) main = id; });
+  // the main blot's bounds, a few px out: a speck beyond them is a neighbour's
+  let bx0 = W, by0 = H, bx1 = -1, by1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (label[y * W + x] === main) { bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y); }
+  const near = (x, y) => x >= bx0 - 6 && x <= bx1 + 6 && y >= by0 - 6 && y <= by1 + 6;
+  const crop = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const id = label[y * W + x];
+    if (!id || (id !== main && (sizes[id] > 400 || !near(x, y)))) continue;
+    sheet.copy(crop, (y * W + x) * 4, ((y + y0) * info.width + x + x0) * 4, ((y + y0) * info.width + x + x0) * 4 + 4);
+  }
+  return { data: crop, W, H };
+}
+
 // After squaring, along the planter's long side: b = y + ISO x is the same down a line parallel to it,
 // largest on its front kerb. The planter (not the palms over it) is what lies within its width of the
 // front: from it, the near and far ends along, and the line down its middle.
@@ -120,64 +190,76 @@ function planterSpan(data, W, H, width) {
 }
 
 (async () => {
-  const { data: sheet, info } = await sharp(SOURCE).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const results = {};
-  let width = null;   // the planters' width (x across the short side), from the first square-cornered one
-  for (const piece of PIECES) {
-    const [x0, y0, x1, y1] = piece.box;
-    const W = x1 - x0, H = y1 - y0;
-    const crop = Buffer.alloc(W * H * 4);
-    for (let y = 0; y < H; y++) sheet.copy(crop, y * W * 4, ((y + y0) * info.width + x0) * 4, ((y + y0) * info.width + x1) * 4);
-    const before = footprint(crop, W, H);
-    const sShort = slopeFit(before.env, before.L.x + (before.F.x - before.L.x) * 0.25, before.F.x - (before.F.x - before.L.x) * 0.25);
-    const sLong = slopeFit(before.env, before.F.x + (before.R.x - before.F.x) * 0.2, before.R.x - (before.R.x - before.F.x) * 0.2);
-    // (s + k) / sx = +ISO on the short side, -ISO on the long one
-    const k = -(sShort + sLong) / 2;
-    const sx = (sShort - sLong) / (2 * ISO);
-    const sq = square(crop, W, H, before.F.x, k, sx);
-    const t = trim(sq.data, sq.W, sq.H);
-    const fp = footprint(t.data, t.W, t.H);
-    if (width === null) width = fp.F.x - fp.L.x;
-    const span = planterSpan(t.data, t.W, t.H, width);
-    // to game px x RES, on a power-of-two canvas, its content bottom-centred
-    const scale = GAME_PX_PER_SOURCE * RES;
-    const w = Math.max(1, Math.round(t.W * scale)), h = Math.max(1, Math.round(t.H * scale));
-    const resized = await sharp(t.data, { raw: { width: t.W, height: t.H, channels: 4 } }).resize(w, h, { kernel: 'lanczos3', fit: 'fill' }).raw().toBuffer();
-    const CW = pot(w + 4), CH = pot(h + 4);
-    const left = Math.floor((CW - w) / 2), top = CH - h - 2;
-    const canvas = Buffer.alloc(CW * CH * 4);
-    for (let y = 0; y < h; y++) resized.copy(canvas, ((y + top) * CW + left) * 4, y * w * 4, (y + 1) * w * 4);
-    // A runs SW-NE on screen (its near end lower left); B, the mirror, NW-SE (near end lower right)
-    const fileA = path.join(OUT_DIR, `medianPlanter_${piece.name}_A.png`);
-    const fileB = path.join(OUT_DIR, `medianPlanter_${piece.name}_B.png`);
-    await sharp(canvas, { raw: { width: CW, height: CH, channels: 4 } }).png({ compressionLevel: 9 }).toFile(fileA);
-    await sharp(canvas, { raw: { width: CW, height: CH, channels: 4 } }).flop().png({ compressionLevel: 9 }).toFile(fileB);
-    const S = span.near;
-    results[piece.name] = {
-      files: { A: `Models/roadAssessories/medianPlanter_${piece.name}_A.png`, B: `Models/roadAssessories/medianPlanter_${piece.name}_B.png` },
-      canvas: { width: CW, height: CH },
-      anchor: { x: +(left + S.x * scale).toFixed(1), y: +(top + S.y * scale).toFixed(1) },
-      lengthTiles: +(span.length * GAME_PX_PER_SOURCE / TILE_X).toFixed(3),
-      widthTiles: +(width * GAME_PX_PER_SOURCE / TILE_X).toFixed(3),
-      res: RES,
-    };
-    console.log(`${piece.name}: edges ${sShort.toFixed(3)} / ${sLong.toFixed(3)} -> skew ${k.toFixed(3)}, x ${sx.toFixed(3)}; ${CW}x${CH}; ${results[piece.name].lengthTiles} x ${results[piece.name].widthTiles} tiles`);
+  const sets = {};
+  const previews = [];
+  for (const set of SETS) {
+    const { data: sheet, info } = await sharp(path.join(SOURCE_DIR, set.sheet)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const results = {};
+    const fitted = {};
+    let setWidth = null;   // the palms' width (x across the short side), from their first square-cornered one
+    for (const piece of set.pieces) {
+      const crop = cropPiece(sheet, info, piece.box, set.isolate);
+      const before = footprint(crop.data, crop.W, crop.H);
+      const sLong = slopeFit(before.env, before.F.x + (before.R.x - before.F.x) * 0.2, before.R.x - (before.R.x - before.F.x) * 0.2);
+      const sShort = piece.like ? fitted[piece.like].sShort
+        : slopeFit(before.env, before.L.x + (before.F.x - before.L.x) * 0.25, before.F.x - (before.F.x - before.L.x) * 0.25);
+      // (s + k) / sx = +ISO on the short side, -ISO on the long one
+      const k = -(sShort + sLong) / 2;
+      const sx = (sShort - sLong) / (2 * ISO);
+      const sq = square(crop.data, crop.W, crop.H, before.F.x, k, sx);
+      const t = trim(sq.data, sq.W, sq.H);
+      const fp = footprint(t.data, t.W, t.H);
+      const ownWidth = piece.like ? fitted[piece.like].width * sx / fitted[piece.like].sx : fp.F.x - fp.L.x;
+      if (setWidth === null) setWidth = ownWidth;
+      const width = set.widthTiles ? ownWidth : setWidth;
+      const gamePxPerSource = set.widthTiles ? (set.widthTiles * TILE_X) / width : set.gamePxPerSource;
+      fitted[piece.name] = { sShort, sx, width: ownWidth };
+      const span = planterSpan(t.data, t.W, t.H, width);
+      // to game px x RES, on a power-of-two canvas, its content bottom-centred
+      const scale = gamePxPerSource * RES;
+      const w = Math.max(1, Math.round(t.W * scale)), h = Math.max(1, Math.round(t.H * scale));
+      const resized = await sharp(t.data, { raw: { width: t.W, height: t.H, channels: 4 } }).resize(w, h, { kernel: 'lanczos3', fit: 'fill' }).raw().toBuffer();
+      const CW = pot(w + 4), CH = pot(h + 4);
+      const left = Math.floor((CW - w) / 2), top = CH - h - 2;
+      const canvas = Buffer.alloc(CW * CH * 4);
+      for (let y = 0; y < h; y++) resized.copy(canvas, ((y + top) * CW + left) * 4, y * w * 4, (y + 1) * w * 4);
+      // A runs SW-NE on screen (its near end lower left); B, the mirror, NW-SE (near end lower right)
+      const rel = (v) => `Models/roadAssessories/${set.prefix}_${piece.name}_${v}.png`;
+      await sharp(canvas, { raw: { width: CW, height: CH, channels: 4 } }).png({ compressionLevel: 9 }).toFile(path.join(ROOT, rel('A')));
+      await sharp(canvas, { raw: { width: CW, height: CH, channels: 4 } }).flop().png({ compressionLevel: 9 }).toFile(path.join(ROOT, rel('B')));
+      const S = span.near;
+      results[piece.name] = {
+        files: { A: rel('A'), B: rel('B') },
+        canvas: { width: CW, height: CH },
+        anchor: { x: +(left + S.x * scale).toFixed(1), y: +(top + S.y * scale).toFixed(1) },
+        lengthTiles: +(span.length * gamePxPerSource / TILE_X).toFixed(3),
+        widthTiles: +(width * gamePxPerSource / TILE_X).toFixed(3),
+        res: RES,
+      };
+      previews.push(rel('A'), rel('B'));
+      console.log(`${set.name}/${piece.name}: edges ${sShort.toFixed(3)} / ${sLong.toFixed(3)} -> skew ${k.toFixed(3)}, x ${sx.toFixed(3)}, ${gamePxPerSource.toFixed(4)} game px a px; ${CW}x${CH}; ${results[piece.name].lengthTiles} x ${results[piece.name].widthTiles} tiles`);
+    }
+    sets[set.name] = results;
   }
   const js = `// Generated by scripts/bake-median-planter-textures.js from Norton's planter art - do not edit.
-// Each piece: its files (A runs SW-NE on screen, B is its mirror) and canvas, the anchor in A (the middle
-// of its near end on the ground, canvas px; in B at canvas width - x), its length and width in tiles and
-// its texture px a game px (road-medians.js).
-const ROAD_MEDIAN_PLANTERS = Object.freeze(${JSON.stringify(results, null, 2)});
+// Each set's pieces: their files (A runs SW-NE on screen, B is its mirror) and canvas, the anchor in A
+// (the middle of its near end on the ground, canvas px; in B at canvas width - x), their length and
+// width in tiles and their texture px a game px (road-medians.js).
+const ROAD_MEDIAN_PLANTERS = Object.freeze(${JSON.stringify(sets, null, 2)});
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { ROAD_MEDIAN_PLANTERS };
 `;
   fs.writeFileSync(ART_JS, js);
   console.log(`wrote ${path.relative(ROOT, ART_JS)}`);
   if (PREVIEW) {
-    const tiles = await Promise.all(Object.values(results).flatMap((r) => [r.files.A, r.files.B]).map((f) => sharp(path.join(ROOT, f)).png().toBuffer()));
+    const tiles = await Promise.all(previews.map((f) => sharp(path.join(ROOT, f)).png().toBuffer()));
     const metas = await Promise.all(tiles.map((b) => sharp(b).metadata()));
-    let x = 8; const comps = [];
-    tiles.forEach((input, i) => { comps.push({ input, left: x, top: 8 }); x += metas[i].width + 8; });
-    await sharp({ create: { width: x, height: Math.max(...metas.map((m) => m.height)) + 16, channels: 4, background: { r: 70, g: 72, b: 76, alpha: 1 } } }).composite(comps).png().toFile(path.resolve(PREVIEW));
+    const rowWidth = 1600;
+    let x = 8, y = 8, rowH = 0; const comps = [];
+    tiles.forEach((input, i) => {
+      if (x + metas[i].width > rowWidth) { x = 8; y += rowH + 8; rowH = 0; }
+      comps.push({ input, left: x, top: y }); x += metas[i].width + 8; rowH = Math.max(rowH, metas[i].height);
+    });
+    await sharp({ create: { width: rowWidth, height: y + rowH + 8, channels: 4, background: { r: 70, g: 72, b: 76, alpha: 1 } } }).composite(comps).png().toFile(path.resolve(PREVIEW));
   }
 })().catch((e) => { console.error(e); process.exit(1); });

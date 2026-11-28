@@ -189,6 +189,60 @@
   ]);
   const CAMPAIGN_CHAPTERS_BY_ID = Object.freeze(Object.fromEntries(CAMPAIGN_CHAPTERS.map((chapter) => [chapter.id, chapter])));
 
+  // 開局年份 (Norton, 2026-11-28: 唔影響18區遊戲故事情況底下，將日後新18區遊戲既開始年份設定做
+  // 1978-1996，每一個關卡唔同（加1年）): chapter n starts in 1977 + n - 第 1 章 1978 to 第 18 章 1995.
+  // The story is untouched: a chapter counts its months from its own start, and nothing in the game
+  // turns on the calendar year but the dates it shows and the month each lunar festival falls in. A
+  // run already under way keeps its years.
+  const CAMPAIGN_FIRST_START_YEAR = 1978;
+  function getCampaignChapterStartYear(chapterId) {
+    const chapter = CAMPAIGN_CHAPTERS_BY_ID[chapterId];
+    return chapter ? CAMPAIGN_FIRST_START_YEAR + chapter.number - 1 : null;
+  }
+
+  // A chapter's prebuilt start (UI/campaign/chNN.json, exported in the 1900s) moved by whole years to
+  // its start year: every date in it - the year, the month indices (when each building went up, the
+  // council's and the forum's last turns, the transport company's books...), the charts' month labels,
+  // the forum's dates - by the same years, so it is the same town founded that much later. On the
+  // file's JSON (before decodeSaveDataForLoad). Pure: the save comes back as a new object (the map
+  // grids, which hold no dates, and anything not plain JSON are shared).
+  const CAMPAIGN_MONTH_INDEX_MIN = 1800 * 12;
+  // month indices not named …MonthIndex (coastal-weather.js, typhoon-shelter-fishery.js); a
+  // …ThisMonth is a count, never shifted
+  const CAMPAIGN_MONTH_INDEX_KEYS = new Set(['lastBroadcastMonth', 'shrinkMonth']);
+  function shiftCampaignSaveYears(save, deltaYears) {
+    const d = Math.trunc(Number(deltaYears) || 0);
+    if (!d || !save || typeof save !== 'object') return save;
+    const isYear = (v) => Number.isFinite(v) && v >= 1800 && v <= 2200;
+    const shiftText = (text) => text.replace(/\b(1[89]\d\d|2[01]\d\d)\b/g, (y) => String(Number(y) + d));
+    const visit = (value, key) => {
+      if (Array.isArray(value)) {
+        // a map grid or run list (numbers, or rows of them): no dates
+        if (value.length > 0 && (typeof value[0] === 'number' || Array.isArray(value[0]))) return value;
+        return value.map((item) => visit(item, null));
+      }
+      if (value && typeof value === 'object') {
+        const proto = Object.getPrototypeOf(value);
+        if (proto !== Object.prototype && proto !== null) return value;
+        const out = {};
+        Object.entries(value).forEach(([k, v]) => { out[k] = visit(v, k); });
+        return out;
+      }
+      if (key == null) return value;
+      if (typeof value === 'number') {
+        if ((/monthIndex$/i.test(key) || CAMPAIGN_MONTH_INDEX_KEYS.has(key)) && value >= CAMPAIGN_MONTH_INDEX_MIN) return value + 12 * d;
+        if ((key === 'year' || /Year$/.test(key)) && isYear(value)) return value + d;
+        return value;
+      }
+      if (typeof value === 'string') {
+        if (key === 'label' && /^\d{4}-\d{2}$/.test(value)) return shiftText(value);
+        if (key === 'date' || key === 'lastWeatherDayKey') return shiftText(value);
+      }
+      return value;
+    };
+    return visit(save, null);
+  }
+
   // PROLOGUE 00《女皇密令》: a royal letter on the desk of the player's tong lau flat, read out by Her
   // Majesty herself; the player's reply and her answer; then the arrival. `backdrop` is the picture
   // behind the scene: the sealed letter on the desk, the 樂聲 fan, half a cup of iced lemon tea
@@ -2567,6 +2621,7 @@
     recordCampaignStars, isCampaignChapterUnlocked, getCampaignText, getCampaignChapterScene,
     CAMPAIGN_MAYOR_NAME_MAX, CAMPAIGN_MAYOR_DAYS_IN_MONTH, CAMPAIGN_MAYOR_DEFAULT_FACE, CAMPAIGN_MAYOR_LOOKS,
     normalizeCampaignMayor, getCampaignMayorFaces,
+    CAMPAIGN_FIRST_START_YEAR, getCampaignChapterStartYear, shiftCampaignSaveYears,
   };
   Object.assign(root, api);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

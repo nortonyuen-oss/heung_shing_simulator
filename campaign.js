@@ -523,7 +523,7 @@
   }
 
   // loadSaveById's steps, for a city from a file rather than a save slot (no slot is taken)
-  async function loadCampaignStartFile(file) {
+  async function loadCampaignStartFile(file, chapterId) {
     if (typeof leaveAttractMode === 'function') leaveAttractMode('load');
     if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
       if (!await globalThis.__worldGameHost.save(true)) return false;
@@ -532,7 +532,13 @@
     const readyScene = await waitForLoadScene(activeScene);
     if (!readyScene) return false;
     if (typeof waitForPendingSaves === 'function') await waitForPendingSaves();
-    const save = decodeSaveDataForLoad(file.save_data);
+    // to the chapter's start year (campaign-chapters.js), every date in the town with it - on the
+    // file's JSON, before its grids are decoded
+    let raw = file.save_data;
+    const startYear = getCampaignChapterStartYear(chapterId);
+    const savedYear = Math.trunc(Number(raw?.city?.year));
+    if (startYear && Number.isFinite(savedYear)) raw = shiftCampaignSaveYears(raw, startYear - savedYear);
+    const save = decodeSaveDataForLoad(raw);
     await ensureSaveBuildingTextures(readyScene, save);
     await ensureSaveNightTextures(readyScene, save);
     beginNewCitySaveSession(null);
@@ -553,6 +559,7 @@
     await startNewGame(say(spec.fresh.cityName), {
       terrain,
       districtProfileId: chapter.mapId,
+      exactStartYear: getCampaignChapterStartYear(chapter.id),
       transportExpansion: spec.fresh.transportExpansion === true,
     });
     if (Number.isFinite(spec.fresh.budget)) city.budget = spec.fresh.budget;
@@ -585,7 +592,7 @@
       '章を始めると今の都市を離れます。未保存の進行は失われます。続けますか？',
     )))) return false;
     closeCampaignSelect();
-    const started = file ? await loadCampaignStartFile(file) : await startFreshCampaignCity(chapter, spec);
+    const started = file ? await loadCampaignStartFile(file, chapterId) : await startFreshCampaignCity(chapter, spec);
     if (!started) {
       campaignToast(say(L('開唔到呢一章。', 'This chapter could not start.', 'この章を開始できませんでした。')), 'danger');
       return false;

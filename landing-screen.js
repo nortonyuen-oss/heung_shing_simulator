@@ -894,7 +894,9 @@ async function startNewGame(cityName, options = {}) {
   if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
   if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
   if (typeof resolveCityStartYear === 'function') {
-    city.year = resolveCityStartYear(options.startYear ?? CITY_DEFAULT_START_YEAR);
+    // (a 《玩轉18區》 chapter asks for its own year: campaign-chapters.js getCampaignChapterStartYear)
+    city.year = Number.isInteger(options.exactStartYear) ? options.exactStartYear
+      : resolveCityStartYear(options.startYear ?? CITY_DEFAULT_START_YEAR);
     updateHUD();
   }
   if (typeof setExpansionEnabled === 'function') {

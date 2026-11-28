@@ -64,3 +64,19 @@ test('with no named district ahead the sign says All Destinations, and the game 
   assert.match(main, /rebuildOverheadSignSprites\(scene\)/);
   assert.match(fs.readFileSync(path.join(ROOT, 'viewport-culling.js'), 'utf8'), /overheadSignFaceSprites/);
 });
+
+test('no gantry at a junction: its posts would stand in the cross road (十字路口唔可以咁放龍門架)', () => {
+  const road = []; for (let r = 0; r < 30; r++) road.push([r, 10]);
+  // a cross road at rows 5-7 and 2-4: every site before the ramp is at or beside a junction
+  for (let c = 0; c < 30; c++) { road.push([6, c]); road.push([3, c]); }
+  const high = []; for (let r = 8; r <= 20; r++) high.push([r, 10]);
+  const ctx = world({ roads: road.filter(([r, c]) => !(c === 10 && r >= 8 && r <= 20)), high });
+  const list = JSON.parse(JSON.stringify(vm.runInContext('computeOverheadSignPlacements()', ctx)));
+  const north = list.filter((g) => g.tiles[0][0] < 8);
+  assert.equal(north.length, 0, JSON.stringify(north));
+  // the south end, a plain road: its gantry stays
+  assert.equal(list.filter((g) => g.tiles[0][0] > 20).length, 1);
+  assert.ok(vm.runInContext('isOverheadClearSite([[25, 10]], "n")', ctx));
+  assert.ok(!vm.runInContext('isOverheadClearSite([[6, 10]], "n")', ctx), 'on the crossroads');
+  assert.ok(!vm.runInContext('isOverheadClearSite([[5, 10]], "n")', ctx), 'beside it');
+});

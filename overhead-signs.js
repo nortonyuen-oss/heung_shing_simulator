@@ -23,12 +23,12 @@
 
 const OVERHEAD_SIGN = Object.freeze({
   minSpacingTiles: 8,
-  approachTiles: [2, 3, 1, 4],       // how far before a bridge's ramp or a tunnel's open end to stand
+  approachTiles: [2, 3, 1, 4, 5, 6], // how far before a bridge's ramp or a tunnel's open end to stand (past a junction there: further back)
   edgeTiles: [3, 4, 2, 5],           // how far in from the map edge on a 區外連線
   aheadTiles: [6, 9, 12, 15, 18, 22], // where to look for the district a road leads to
   res: 3,                             // canvas pixels a screen pixel (sharp when zoomed in)
   clearancePx: 30,                    // the panels' underside above the road: a double-decker passes under
-  panelPx: 16,
+  panelPx: 13,
   beamPx: 3,
   postPx: 2.2,
   colours: Object.freeze({ blue: '#1d4ea3', green: '#16794a', white: '#ffffff', frame: '#8f979e', frameDark: '#6c747b', back: '#a4acb3' }),
@@ -72,12 +72,23 @@ function isOverheadPlainRoad(row, col) {
   return true;
 }
 
-// A straight stretch for a gantry: road along `dir` on both sides, no road off to either side.
-function isOverheadStraight(row, col, dir) {
+// A site for a gantry across the road `tiles` (side by side) carrying traffic along `dir`: plain road,
+// the road going on a tile either way, and no road off to either side there - not at a junction,
+// where its posts would stand in the cross road's lanes (Norton, 2026-11-28: 十字路口唔可以咁放龍門架).
+function isOverheadClearSite(tiles, dir) {
   const [dr, dc] = OVERHEAD_SIGN_DIRS[dir];
-  if (!isOverheadPlainRoad(row, col)) return false;
-  const road = (r, c) => isInsideMap(r, c) && typeof isRoadTile === 'function' ? isRoadTile(r, c) : isInsideMap(r, c) && mapData[r][c] === ROAD;
-  if (!road(row + dr, col + dc) || !road(row - dr, col - dc)) return false;
+  const across = dr ? [0, 1] : [1, 0];
+  const road = (r, c) => isInsideMap(r, c) && (typeof isRoadTile === 'function' ? isRoadTile(r, c) : mapData[r][c] === ROAD);
+  if (!tiles.length || !tiles.every(([r, c]) => isOverheadPlainRoad(r, c))) return false;
+  const at = (t) => t[0] * across[0] + t[1] * across[1];
+  const lo = tiles.reduce((m, t) => (at(t) < at(m) ? t : m));
+  const hi = tiles.reduce((m, t) => (at(t) > at(m) ? t : m));
+  for (const k of [-1, 0, 1]) {
+    if (!tiles.every(([r, c]) => road(r + dr * k, c + dc * k))) return false;
+    // beyond the road's edges, this tile and the ones either side of it along the road: no road
+    if (road(lo[0] + dr * k - across[0], lo[1] + dc * k - across[1])) return false;
+    if (road(hi[0] + dr * k + across[0], hi[1] + dc * k + across[1])) return false;
+  }
   return true;
 }
 
@@ -109,7 +120,7 @@ function computeOverheadSignPlacements() {
           const r = tile.row + or * k, c = tile.col + oc * k;
           let joined = true;
           for (let j = 1; j < k && joined; j++) joined = isOverheadPlainRoad(tile.row + or * j, tile.col + oc * j);
-          if (!joined || !isOverheadStraight(r, c, outDir)) continue;
+          if (!joined || !isOverheadClearSite([[r, c]], outDir)) continue;
           const beyond = overheadDistrictAt(far.row + fr * 4, far.col + fc * 4) || overheadDistrictAhead(far.row, far.col, OVERHEAD_SIGN_OPPOSITE[outDir]);
           out.push({
             id: `bridge:${key}:${outDir}`,
@@ -135,7 +146,7 @@ function computeOverheadSignPlacements() {
         const [ir, ic] = OVERHEAD_SIGN_DIRS[inland];
         for (const k of OVERHEAD_SIGN.approachTiles) {
           const tiles = (portal.approach || []).map(([r, c]) => [r + ir * (k - 1), c + ic * (k - 1)]);
-          if (!tiles.length || !tiles.every(([r, c]) => isOverheadStraight(r, c, inland) || (isOverheadPlainRoad(r, c) && k === 1))) continue;
+          if (!isOverheadClearSite(tiles, inland)) continue;
           tiles.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]));
           const [mr, mc] = tiles[Math.floor(tiles.length / 2)];
           out.push({
@@ -166,7 +177,7 @@ function computeOverheadSignPlacements() {
         : OVERHEAD_SIGN_ALL;
       for (const k of OVERHEAD_SIGN.edgeTiles) {
         const tiles = connection.tiles.map(([r, c]) => [r + ir * k, c + ic * k]);
-        if (!tiles.every(([r, c]) => isOverheadStraight(r, c, inDir))) continue;
+        if (!isOverheadClearSite(tiles, inDir)) continue;
         const [mr, mc] = tiles[Math.floor(tiles.length / 2)];
         out.push({
           id: `region:${outDir}:${connection.tiles[0].join(',')}`,
@@ -326,15 +337,18 @@ function drawOverheadGantry(g, view) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     const cx = (u0 + u1) / 2;
-    const zhSize = overheadFitFont(ctx, panel.zh, 700, OVERHEAD_ZH_FONT, 5.2, w - 2.2);
-    ctx.fillText(panel.zh, cx, y0 + 1.4 + zhSize * 0.92);
+    // (small, as the lettering on a real gantry is from a way off - it need not be read: Norton,
+    // 2026-11-28, 往鄰區三個字太大，其實唔一定需要睇到字)
+    const room = Math.min(w - 3, w * 0.7);
+    const zhSize = overheadFitFont(ctx, panel.zh, 700, OVERHEAD_ZH_FONT, 2.9, room);
+    ctx.fillText(panel.zh, cx, y0 + 1.6 + zhSize * 0.92);
     if (panel.en) {
-      const enSize = overheadFitFont(ctx, panel.en, 600, OVERHEAD_EN_FONT, 3, w - 2.2);
-      ctx.fillText(panel.en, cx, y0 + 2.2 + zhSize + enSize * 0.85);
+      const enSize = overheadFitFont(ctx, panel.en, 600, OVERHEAD_EN_FONT, 1.7, room);
+      ctx.fillText(panel.en, cx, y0 + 2.3 + zhSize + enSize * 0.85);
     }
     // an arrow down to each lane
     gr.arrows.forEach((au) => {
-      const ay = y1 - 1.2, h = 3.6, s = 1.5;
+      const ay = y1 - 1.1, h = 3, s = 1.2;
       ctx.beginPath();
       ctx.moveTo(au, ay); ctx.lineTo(au - s * 1.3, ay - h * 0.5); ctx.lineTo(au - s * 0.45, ay - h * 0.5);
       ctx.lineTo(au - s * 0.45, ay - h); ctx.lineTo(au + s * 0.45, ay - h); ctx.lineTo(au + s * 0.45, ay - h * 0.5);

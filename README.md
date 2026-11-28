@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.7 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.8 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.7 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.8 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.8
+
+Public housing estates of three blocks or more now have a 冬菇亭, the estates' cooked food pavilion: a 香城茶餐廳 under a tiled roof on its own plaza, with railings, planters, a parasol and diners, at the front of the estate by the road. Its globe lamps light up at night. Taxis now come in the colours each district really sees, after the Transport Department's permitted operating areas: only red taxis on Hong Kong Island and in Kowloon, mostly green taxis in the New Territories where they ply, blue Lantau taxis only on Lantau and at the airport. New 18-district campaign chapters start in their own year, from 1978 for chapter 1 to 1995 for chapter 18; the story and the goals are unchanged, and runs already under way keep their years.
 
 ## New in v6.2.7
 

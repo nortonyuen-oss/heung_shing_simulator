@@ -1,3 +1,31 @@
+# Heung Shing Simulator v6.2.8 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 冬菇亭、的士顏色、《玩轉18區》年份
+
+- **公屋邨冬菇亭**：三座或以上嘅公屋邨，會喺前排近馬路嘅空地起一個冬菇亭：瓦頂下面一間香城茶餐廳，有平台、欄杆、花槽、太陽傘同食緊嘢嘅街坊。入夜三支球形街燈會著。
+- **的士跟地區**：按運輸署規定嘅營運範圍設定紅、綠、藍的士比例：
+  - 港島、九龍：只有紅的
+  - 新界綠的營運區（屯門、元朗、天水圍、大埔、上水、西貢）：綠的佔大多數
+  - 荃灣、葵青、沙田、將軍澳、觀塘：紅的為主，間中有綠的去站頭或醫院
+  - 大嶼山同機場：先有藍的
+- **《玩轉18區》開局年份**：新開嘅章節由第 1 章 1978 年開始，每章加一年，到第 18 章係 1995 年。故事同目標不變，玩緊嘅存檔年份唔會改。
+
+**台灣中文：** 三座以上的公屋邨會在前排臨路的空地設一座冬菇亭：瓦頂下一家香城茶餐廳，有平台、欄杆、花槽、陽傘與用餐的街坊，入夜三盞球形路燈會亮。的士依運輸署規定的營運範圍設定紅、綠、藍比例：港島與九龍只有紅色的士，新界綠色的士營運區以綠色為主，大嶼山與機場才有藍色的士。《玩轉18區》新開章節由第 1 章 1978 年起，每章加一年，至第 18 章 1995 年；故事與目標不變，進行中的存檔年份不受影響。
+
+**English:** Public housing estates of three blocks or more now have a 冬菇亭, the estates' cooked food pavilion: a 香城茶餐廳 under a tiled roof on its own plaza, with railings, planters, a parasol and diners, at the front of the estate by the road; its globe lamps light up at night. Taxis come in the colours each district really sees, after the Transport Department's permitted operating areas: only red on Hong Kong Island and in Kowloon, mostly green where New Territories taxis ply, blue only on Lantau and at the airport. New 18-district campaign chapters start in their own year, from 1978 for chapter 1 to 1995 for chapter 18; the story and goals are unchanged, and runs already under way keep their years.
+
+**日本語:** 3棟以上の公営団地には、道路側の正面に「冬菇亭」（団地の屋台村）が建つように：瓦屋根の下に香城茶餐廳、テラス・柵・植え込み・パラソルと食事中の住民、夜は3本の球形街灯がともります。タクシーの色を運輸署の営業区域に合わせて地区別に：香港島と九龍は赤のみ、新界タクシーの営業区域は緑が中心、青いランタオタクシーはランタオ島と空港だけ。「18区をめぐる」の新しく始める章は第1章の1978年から1章ごとに1年ずつ、第18章は1995年に。ストーリーと目標は変わらず、進行中のセーブの年は変わりません。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.7 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

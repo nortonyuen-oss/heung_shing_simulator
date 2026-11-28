@@ -306,6 +306,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v6.2.8","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["三座或以上嘅公屋邨會喺前排近馬路起冬菇亭：瓦頂下嘅香城茶餐廳，有平台、欄杆、花槽同食緊嘢嘅街坊，入夜球形街燈會著。","的士按運輸署營運範圍跟地區：港島九龍只有紅的，新界綠的營運區綠的為主，大嶼山同機場先有藍的。","《玩轉18區》新開章節由第 1 章 1978 年開始，每章加一年，到第 18 章 1995 年；故事同目標不變。"]},
     {"version":"v6.2.7","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["手機起雙線來回路冇最短限制：以前被當成天橋要最少九格，依家撳一格都起到兩格。","手機預覽顯示埋兩條線，過海或撞到輕鐵路軌變紅；雙線來回路好似普通馬路咁上落斜坡。","修正高地上嘅中央分隔帶：花槽、欄杆同樹以前陷咗落路面下，依家企返喺路面上。"]},
     {"version":"v6.2.6","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["中央分隔帶嘅矮樹籬款改用全新花槽：石壆圍住矮樹籬同紅、黃、粉紅花，五種長度、兩頭橢圓收口，每段路長短混排；加樹款嘅樹種喺花槽入面。","棕櫚樹花槽多咗：路兩邊一成地段係中密度或以上嘅商舖、寫字樓就會用（以前要接近兩成高密度商廈）。","網頁版匯入城市存檔更穩定：揀咗存檔偶然冇反應嘅問題已經修正。"]},
     {"version":"v6.2.5","date":"2026-11-28","dateLabel":"2026年11月28日","title":"天橋底下","items":["馬路工具新增「雙線來回」：拉一下就起好每邊兩線嘅路。","兩格闊嘅路（舊存檔都有）直路段自動加中央分隔帶，按附近揀款：棕櫚樹花槽、行人欄杆、矮樹籬加樹或者矮樹籬；路尾、路口前一格停，唔阻掉頭轉彎，有電車輕鐵路軌就冇。","分隔帶上每 30 米一支雙頭 T 型街燈，晚上照住兩邊行車線。","修正輕鐵平交道卡死：紅燈前停低嘅車被當成喺路軌上，輕鐵同車互相等，附近成片路塞死。"]},
@@ -710,6 +711,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v6.2.8": {"title":"天橋底下","items":["三座以上的公屋邨會在前排臨路處設冬菇亭：瓦頂下的香城茶餐廳，有平台、欄杆、花槽與用餐的街坊，入夜球形路燈會亮。","的士依運輸署營運範圍分區：港島九龍只有紅色的士，新界綠色的士營運區以綠色為主，大嶼山與機場才有藍色的士。","《玩轉18區》新開章節由第 1 章 1978 年起，每章加一年，至第 18 章 1995 年；故事與目標不變。"]},
     "v6.2.7": {"title":"天橋底下","items":["手機建造雙線來回道路沒有最短限制：過去被當成天橋最少要九格，現在點一格即建兩格。","手機預覽顯示兩條線，跨海或遇輕鐵軌道變紅；雙線來回道路可像一般道路上下斜坡。","修正高地上的中央分隔帶：花槽、欄杆與樹過去陷入路面下，現在立於路面上。"]},
     "v6.2.6": {"title":"天橋底下","items":["中央分隔帶的矮樹籬款改用全新花槽：石砌花槽內的矮樹籬與紅、黃、粉紅花，五種長度、兩端橢圓收尾，每段道路長短混排；加樹款的樹種在花槽內。","棕櫚樹花槽更常見：道路兩側一成地段為中密度以上的商店、辦公室即設置（過去需近兩成高密度商廈）。","網頁版匯入城市存檔更穩定：選取存檔後偶爾沒有反應的問題已修正。"]},
     "v6.2.5": {"title":"天橋底下","items":["道路工具新增「雙線來回」：拉一下即建成每邊兩線的道路。","兩格寬的道路（舊存檔亦然）直路段自動設中央分隔帶，依周邊選款：棕櫚樹花槽、行人欄杆、矮樹籬加樹或矮樹籬；路尾、路口前一格停止，不阻迴轉轉彎，有電車輕鐵軌道則不設。","分隔帶上每 30 米一支雙頭 T 型路燈，夜間照亮兩邊車道。","修正輕鐵平交道卡死：紅燈前停車被當成在軌道上，輕鐵與車輛互相等待，附近道路塞死。"]},
@@ -1107,6 +1109,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v6.2.8": {"title":"Under the Flyover","items":["Public housing estates of three blocks or more get a 冬菇亭 cooked food pavilion at the front by the road: a 香城茶餐廳 on its plaza with railings, planters and diners, its globe lamps lit at night.","Taxi colours follow the Transport Department's operating areas: only red on Hong Kong Island and in Kowloon, mostly green where New Territories taxis ply, blue only on Lantau and at the airport.","New 18-district campaign chapters start in their own year, 1978 for chapter 1 to 1995 for chapter 18; the story and goals are unchanged."]},
     "v6.2.7": {"title":"Under the Flyover","items":["Dual roads on a phone have no minimum length: a phone treated them as a flyover (nine tiles at least); now one tap lays two tiles.","The phone's preview shows both lines, red over water or light rail track; dual roads go up and down slopes as an ordinary road does.","Fixed the central reservation on raised ground: its beds, railings and trees sank below the road; they now stand on it."]},
     "v6.2.6": {"title":"Under the Flyover","items":["The central reservation's hedge kinds are now kerbed flower beds: new art of low hedge with red, yellow and pink flowers, in five lengths with an oval bed at each end, mixed along each road; the trees stand in the beds.","Palm planters are more common: a tenth of the lots along the road as shops or offices of medium density or more is enough (it took nearly a fifth, all high-density).","Importing a city in the browser is more reliable: picking a save could occasionally do nothing."]},
     "v6.2.5": {"title":"Under the Flyover","items":["New in the road tool: Dual road, two lanes each way in one drag.","Every road two tiles wide (old saves too) gets a central reservation where it runs straight, by what stands along it: palm planters, pavement railings, hedge and trees, or a hedge; it stops a tile short of ends and junctions so traffic can turn, and gives way to tram or light rail track.","Double-headed T lamps on it every 30 m light both carriageways at night.","Fixed a level-crossing deadlock: a car waiting at a light rail crossing's red light counted as on the track, and the train and the traffic waited on each other for good."]},
@@ -1504,6 +1507,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v6.2.8": {"title":"高架の下で","items":["3棟以上の公営団地には道路側の正面に冬菇亭（屋台村）：テラスに香城茶餐廳、柵・植え込み・食事中の住民、夜は球形街灯がともります。","タクシーの色を運輸署の営業区域に合わせて：香港島と九龍は赤のみ、新界タクシーの区域は緑が中心、青はランタオ島と空港だけ。","「18区をめぐる」の新しく始める章は第1章の1978年から1章ごとに1年ずつ、第18章は1995年。ストーリーと目標は変わりません。"]},
     "v6.2.7": {"title":"高架の下で","items":["スマートフォンの往復4車線に長さの制限なし：以前は高架道路扱いで最低9マス、今は1マスで2マス分を建設。","プレビューに2本の線を表示（海や軽鉄の線路に掛かると赤）。普通の道路と同じく坂も上り下り。","高台の中央分離帯を修正：花壇・柵・木が路面の下に沈んでいたのを路面の上に。"]},
     "v6.2.6": {"title":"高架の下で","items":["中央分離帯の生け垣を新しい花壇の絵に：縁石で囲んだ生け垣と赤・黄・ピンクの花、5種類の長さと両端の楕円形の花壇を道路ごとに組み合わせ、並木は花壇の中に。","ヤシの植え込みが増えました：沿道の区画の1割が中密度以上の商店・オフィスなら設置（以前は高密度の商業ビルが約2割必要）。","ブラウザー版の都市読み込みを安定化：セーブを選んでも反応しないことがある問題を修正。"]},
     "v6.2.5": {"title":"高架の下で","items":["道路ツールに「往復4車線」を追加：1回のドラッグで片側2車線の道路に。","2マス幅の道路（旧セーブも）の直線区間に中央分離帯を自動設置。沿道に合わせてヤシの植え込み・歩道柵・生け垣と並木・生け垣を選択し、端や交差点の1マス手前で止まるのでUターンも可能。路面電車・軽鉄の線路がある所には設けません。","分離帯には30 mごとに双頭のT字街灯、夜は両側の車線を照らします。","軽鉄の踏切で赤信号待ちの車が線路上と判定され、電車と車が互いを待って止まる不具合を修正。"]},
@@ -1926,8 +1930,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.2.7 — 【天橋底下】",
-      versionDesc: "6.2.7【天橋底下】：天橋、青馬式懸索橋、高架路牌，雙線來回道路有花槽綠化帶、棕櫚樹同雙頭 T 型街燈，手機都起得，上落斜坡都得。",
+      versionBadge: "v6.2.8 — 【天橋底下】",
+      versionDesc: "6.2.8【天橋底下】：天橋、青馬式懸索橋、雙線來回道路，公屋邨新增冬菇亭，的士顏色跟返各區真實營運範圍。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2040,8 +2044,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v6.2.7 — 【天橋底下】",
-      versionDesc: "6.2.7【天橋底下】：天橋、青馬式懸索橋、門架方向標誌，雙線來回道路有花槽綠化帶、棕櫚樹與雙頭 T 型路燈，手機也能建造，可上下斜坡。",
+      versionBadge: "v6.2.8 — 【天橋底下】",
+      versionDesc: "6.2.8【天橋底下】：天橋、青馬式懸索橋、雙線來回道路，公屋邨新增冬菇亭，的士顏色依各區真實營運範圍。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -2154,8 +2158,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "Heung Shing Simulator",
       title: "Heung Shing Simulator",
-      versionBadge: "v6.2.7 — 【Under the Flyover】",
-      versionDesc: "6.2.7 【Under the Flyover】: flyovers, Tsing Ma-style suspension bridges and overhead gantry signs, and dual roads with flower beds, palms and double-headed T lamps, on a phone too and up and down slopes.",
+      versionBadge: "v6.2.8 — 【Under the Flyover】",
+      versionDesc: "6.2.8 【Under the Flyover】: flyovers, Tsing Ma-style suspension bridges and dual roads; public estates gain a 冬菇亭 cooked food pavilion, and taxis wear each district's real colours.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2269,8 +2273,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城シミュレーター",
       title: "香城シミュレーター",
-      versionBadge: "v6.2.7 — 【高架の下で】",
-      versionDesc: "6.2.7【高架の下で】：高架道路・青馬大橋風の吊り橋・門型方向標識に加え、花壇・ヤシ・双頭T字街灯の往復4車線道路。スマートフォンでも建設でき、坂も対応。",
+      versionBadge: "v6.2.8 — 【高架の下で】",
+      versionDesc: "6.2.8【高架の下で】：高架道路・青馬大橋風の吊り橋・往復4車線道路に加え、公営団地に冬菇亭、タクシーの色は各地区の実際の営業区域どおりに。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

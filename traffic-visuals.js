@@ -713,6 +713,68 @@ const TRAFFIC_MODEL_REGISTRY = Object.freeze([
 ]);
 
 const TRAFFIC_MODEL_BY_ID = new Map(TRAFFIC_MODEL_REGISTRY.map((model) => [model.id, model]));
+
+// 紅的、綠的、藍的 by the map's district (Norton, 2026-11-28: 跟香港區域設定唔同顏色既的士喺預設18區
+// 地圖上既出現機率). The Transport Department's permitted operating areas of taxis (td.gov.hk, under
+// Schedule 7 of Cap. 374E):
+//   urban taxis (red)   - throughout Hong Kong except Tung Chung Road and the roads of South Lantau
+//   NT taxis (green)    - Tuen Mun, Yuen Long, Tai Po, North and Ma On Shan districts and most of Sai
+//                         Kung district (not Tseung Kwan O New Town); and along specified routes to
+//                         the airport, Tsing Yi AR station, Tsuen Wan MTR station, Prince of Wales
+//                         Hospital, Sha Tin Racecourse, Shun Lee Estate, TKO Hospital A&E, Hang Hau
+//                         MTR station, Disneyland and the HZMB port
+//   Lantau taxis (blue) - Lantau Island, Chek Lap Kok and the HZMB port only
+// So each district map's taxis (city.districtProfileId, campaign chapters too) are this mix; red,
+// the biggest fleet and free to go anywhere, keeps a share in the New Territories. The taxis stay
+// the same share of all the traffic; only their colours change. A map with no district (generated,
+// the player's own, older saves) keeps the registry's mix.
+const TRAFFIC_TAXI_MODEL_IDS = Object.freeze({ red: 'taxi_red', green: 'taxi_green', blue: 'taxi_blue' });
+const TRAFFIC_TAXI_MIX_BY_DISTRICT = Object.freeze({
+  // 港島、九龍: red only (green and blue may not ply here)
+  'victoria-harbour': { red: 1 },
+  'central-western': { red: 1 },
+  'wan-chai': { red: 1 },
+  eastern: { red: 1 },
+  aberdeen: { red: 1 },
+  stanley: { red: 1 },
+  lamma: { red: 1 },                                   // (the island has no taxis: those across the channel)
+  'yau-tsim-mong': { red: 1 },
+  'sham-shui-po': { red: 1 },
+  'kowloon-city': { red: 1 },
+  'kwun-tong': { red: 0.98, green: 0.02 },             // green only to 順利邨
+  // 新界南: red; green only on their routes to a station or hospital
+  'tseung-kwan-o': { red: 0.93, green: 0.07 },         // 坑口站, 將軍澳醫院 (TKO New Town is outside)
+  'tsuen-wan': { red: 0.92, green: 0.08 },             // 荃灣站
+  'tsing-yi': { red: 0.92, green: 0.08 },              // 青衣機鐵站, and through to the airport
+  'sha-tin': { red: 0.85, green: 0.15 },               // 威爾斯親王醫院, 沙田馬場, through to 馬鞍山 and 大埔
+  // 西貢區 (but TKO): green's
+  'sai-kung': { red: 0.35, green: 0.65 },
+  'clear-water-bay': { red: 0.5, green: 0.5 },         // (TKO's edge on the map)
+  // 新界東北、西北: green's own
+  'tai-po': { red: 0.3, green: 0.7 },
+  'sheung-shui': { red: 0.25, green: 0.75 },
+  'yuen-long': { red: 0.3, green: 0.7 },
+  'tin-shui-wai': { red: 0.3, green: 0.7 },
+  'tuen-mun': { red: 0.35, green: 0.65 },
+  // 大嶼山: blue's; red in 東涌 (not on 東涌道 or South Lantau), green only through to the airport
+  lantau: { red: 0.5, green: 0.05, blue: 0.45 },
+  'chek-lap-kok': { red: 0.6, green: 0.25, blue: 0.15 },   // every colour has its rank at the airport
+});
+const TRAFFIC_TAXI_TOTAL_WEIGHT = Object.values(TRAFFIC_TAXI_MODEL_IDS)
+  .reduce((sum, id) => sum + (Number(TRAFFIC_MODEL_BY_ID.get(id)?.weight) || 0), 0);
+const TRAFFIC_TAXI_COLOUR_BY_MODEL = Object.freeze(Object.fromEntries(Object.entries(TRAFFIC_TAXI_MODEL_IDS).map(([colour, id]) => [id, colour])));
+
+function getTrafficTaxiMix(districtId = typeof city !== 'undefined' ? city?.districtProfileId : '') {
+  return (districtId && TRAFFIC_TAXI_MIX_BY_DISTRICT[districtId]) || null;
+}
+
+// A model's weight among the traffic of this city: a taxi's from its colour's share of the map's.
+function getTrafficModelSpawnWeight(model, mix = getTrafficTaxiMix()) {
+  const weight = Number(model?.weight) || 0;
+  const colour = TRAFFIC_TAXI_COLOUR_BY_MODEL[model?.id];
+  if (!mix || !colour || weight <= 0) return weight;
+  return TRAFFIC_TAXI_TOTAL_WEIGHT * (Number(mix[colour]) || 0);
+}
 const TRAFFIC_STARTER_MODEL_IDS = Object.freeze([
   'car_hrv',
 ]);
@@ -863,13 +925,15 @@ function getBusStopDwellSpeedFactor(progress, config = TRAFFIC_VISUAL_CONFIG) {
 function pickWeightedTrafficModel(
   random = Math.random,
   models = TRAFFIC_MODEL_REGISTRY,
+  mix = getTrafficTaxiMix(),
 ) {
-  const candidates = Array.from(models ?? []).filter((model) => Number(model?.weight) > 0);
-  const total = candidates.reduce((sum, model) => sum + model.weight, 0);
+  const weightOf = (model) => getTrafficModelSpawnWeight(model, mix);
+  const candidates = Array.from(models ?? []).filter((model) => weightOf(model) > 0);
+  const total = candidates.reduce((sum, model) => sum + weightOf(model), 0);
   if (total <= 0) return null;
   let pick = random() * total;
   for (const model of candidates) {
-    pick -= model.weight;
+    pick -= weightOf(model);
     if (pick <= 0) return model;
   }
   return candidates.at(-1) ?? null;
@@ -2654,8 +2718,8 @@ function maybeRequestTrafficModelForSpawn(scene, time, random = Math.random) {
   }
 }
 
-function pickTrafficModelWithTruckBoost(random, models, boost) {
-  const weightOf = (model) => (Number(model?.weight) > 0 ? model.weight * (model.category === 'truck' ? boost : 1) : 0);
+function pickTrafficModelWithTruckBoost(random, models, boost, mix = getTrafficTaxiMix()) {
+  const weightOf = (model) => getTrafficModelSpawnWeight(model, mix) * (model?.category === 'truck' ? boost : 1);
   const candidates = models.filter((model) => weightOf(model) > 0);
   const total = candidates.reduce((sum, model) => sum + weightOf(model), 0);
   if (total <= 0) return null;
@@ -3205,6 +3269,8 @@ const trafficVisualTestApi = {
   computeTrafficSpawnBudget,
   computeTrafficProgressAmount,
   pickWeightedTrafficModel,
+  TRAFFIC_TAXI_MIX_BY_DISTRICT,
+  getTrafficModelSpawnWeight,
   classifyTrafficTurn,
   chooseNextTrafficTile,
   buildTrafficLegBuckets,

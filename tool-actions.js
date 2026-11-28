@@ -376,7 +376,15 @@ function previewTouchToolAction(scene, draft) {
     const bridge = analyzeBridgePath(scene, pathInfo);
     const style = draft.options?.bridge || 'ground';
     plan.tiles = pathInfo.path;
-    if (style !== 'ground' && typeof planHighBridge === 'function') {
+    if (style === 'dual' && typeof planDualRoad === 'function') {
+      // 雙線來回: two lines on the ground, any length, slopes and all (main.js planDualRoad) - not a
+      // 天橋's plan (that has a shortest span and keeps off slopes)
+      const dual = planDualRoad(scene, draft.start, draft.end);
+      plan.tiles = dual.tiles;
+      plan.ok = dual.ok;
+      plan.reason = dual.reason;
+      plan.cost = dual.cost;
+    } else if (style !== 'ground' && typeof planHighBridge === 'function') {
       // 天橋 / 懸索橋 (road-flyovers.js)
       const high = planHighBridge(scene, pathInfo, style);
       plan.ok = high.ok;
@@ -397,7 +405,7 @@ function previewTouchToolAction(scene, draft) {
       const lightRailWhy = plan.ok && typeof whyNotRoadAcrossLightRail === 'function' ? whyNotRoadAcrossLightRail(plan.tiles) : null;
       if (lightRailWhy) { plan.ok = false; plan.reason = lightRailWhy; }
     }
-    identity = pathInfo.path.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+    identity = plan.tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
   } else if (draft.tool.startsWith('zone-')) {
     const zone = { 'zone-res': ZONE_RES, 'zone-com': ZONE_COM, 'zone-ind': ZONE_IND }[draft.tool];
     const tiles = touchRectTiles(draft.start, draft.end);

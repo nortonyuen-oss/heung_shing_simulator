@@ -2478,23 +2478,51 @@ function getDualRoadPaths(scene, start, end) {
   const canTake = (row, col) => isInsideMap(row, col)
     && (mapData[row][col] === ROAD || (mapData[row][col] !== WATER && canPlaceRoad(scene, row, col, { acrossLightRail: true })));
   const offset = chooseDualRoadOffset(pathInfo, canTake);
-  const second = { axis: pathInfo.axis, path: pathInfo.path.map(({ row, col }) => ({ row: row + offset.dr, col: col + offset.dc })) };
+  const second = { axis: pathInfo.axis, path: pathInfo.path.map(({ row, col }) => ({ row: row + offset.dr, col: col + offset.dc })).filter(({ row, col }) => isInsideMap(row, col)) };
   return { first: pathInfo, second, offset };
+}
+
+// A 雙線來回 drag's plan - the computer's commit and preview and the phone's (tool-actions.js) alike
+// (Norton, 2026-11-28: 唔應該有最短限制 / preview footprint要雙線 / 要處理埋斜坡): both lines on the
+// ground, slopes as a road takes them, any length (one tile lays two). `tiles` both lines, `newTiles`
+// those a road goes on, `ok` false with a `reason` over water or past light rail track.
+function planDualRoad(scene, start, end) {
+  const { first, second } = getDualRoadPaths(scene, start, end);
+  const lines = [first, second];
+  const out = { first, second, tiles: [...first.path, ...second.path].filter(({ row, col }) => isInsideMap(row, col)), newTiles: [], cost: 0, ok: false, reason: '' };
+  if (lines.some((info) => analyzeBridgePath(scene, info).crossesWater)) {
+    out.reason = typeof highBridgeT === 'function'
+      ? highBridgeT('road.dual.water', '雙線來回路要起喺地面：過海揀「天橋」或者「懸索橋」。')
+      : '雙線來回路要起喺地面：過海揀「天橋」或者「懸索橋」。';
+    return out;
+  }
+  const seen = new Set();
+  for (const info of lines) {
+    const fresh = dedupePath(info.path).filter(({ row, col }) => isInsideMap(row, col)
+      && mapData[row][col] !== ROAD && mapData[row][col] !== WATER && canPlaceRoad(scene, row, col, { acrossLightRail: true }));
+    const why = fresh.length && typeof whyNotRoadAcrossLightRail === 'function' ? whyNotRoadAcrossLightRail(fresh) : null;
+    if (why) { out.reason = why; return out; }
+    fresh.forEach((tile) => {
+      const key = `${tile.row}:${tile.col}`;
+      if (!seen.has(key)) { seen.add(key); out.newTiles.push(tile); }
+    });
+  }
+  out.cost = out.newTiles.length * COST_ROAD;
+  out.ok = out.newTiles.length > 0;
+  return out;
 }
 
 function commitRoadDrag(scene, start, end, bridgeStyle = typeof getRoadBridgeStyle === 'function' ? getRoadBridgeStyle() : 'ground') {
   const pathInfo = getStraightDragPath(start, end);
   if (bridgeStyle === 'dual') {
-    const { first, second } = getDualRoadPaths(scene, start, end);
     // on the ground only: over water a 天橋 or 懸索橋 carries it
-    if ([first, second].some((info) => analyzeBridgePath(scene, info).crossesWater)) {
-      showToast(typeof highBridgeT === 'function'
-        ? highBridgeT('road.dual.water', '雙線來回路要起喺地面：過海揀「天橋」或者「懸索橋」。')
-        : '雙線來回路要起喺地面：過海揀「天橋」或者「懸索橋」。', 'warning');
+    const dual = planDualRoad(scene, start, end);
+    if (!dual.ok && dual.reason) {
+      showToast(dual.reason, 'warning');
       return;
     }
-    buildRoadPath(scene, first.path);
-    buildRoadPath(scene, second.path);
+    buildRoadPath(scene, dual.first.path);
+    buildRoadPath(scene, dual.second.path);
     return;
   }
   // 天橋 / 懸索橋 picked: the drag is a high bridge, ramps and all (road-flyovers.js)

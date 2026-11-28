@@ -117,3 +117,32 @@ test('a tree on a flower-bed run stands in a bed, never in a gap', () => {
   near(medians.roadMedianTreeSpot(7, beds), 6.1);
   assert.equal(medians.roadMedianTreeSpot(5, []), null);
 });
+
+test('雙線來回 plans as two ground roads of any length on the phone too, slopes as a road takes them', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
+  const fn = (name) => {
+    const start = src.indexOf(`function ${name}(`);
+    return src.slice(start, src.indexOf('\n}\n', start) + 3);
+  };
+  const ctx = vm.createContext({
+    ROAD: 1, WATER: 2, COST_ROAD: 10, getTileId: (r, c) => `${r}:${c}`,
+    mapData: Array.from({ length: 20 }, (_, r) => Array.from({ length: 20 }, (_, c) => (c >= 15 && r === 6 ? 2 : 0))),
+    isInsideMap: (r, c) => r >= 0 && c >= 0 && r < 20 && c < 20,
+    canPlaceRoad: () => true,
+    analyzeBridgePath: (scene, info) => ({ crossesWater: info.path.some(({ row, col }) => col >= 15 && row === 6) }),
+  });
+  ['getStraightDragPath', 'chooseDualRoadOffset', 'getDualRoadPaths', 'planDualRoad', 'dedupePath'].forEach((name) => vm.runInContext(fn(name), ctx));
+  const plan = (a, b) => JSON.parse(JSON.stringify(vm.runInContext('planDualRoad', ctx)(null, a, b)));
+  const one = plan({ row: 3, col: 3 }, { row: 3, col: 3 });
+  assert.equal(one.ok, true, 'one tile lays two: no shortest drag');
+  assert.equal(one.tiles.length, 2);
+  assert.equal(one.cost, 20);
+  const water = plan({ row: 6, col: 10 }, { row: 6, col: 16 });
+  assert.equal(water.ok, false);
+  assert.match(water.reason, /天橋|懸索橋/);
+  // the phone's road plan takes it before any 天橋 plan (which has a shortest span and keeps off slopes)
+  const actions = fs.readFileSync(path.join(__dirname, '..', 'tool-actions.js'), 'utf8');
+  assert.ok(actions.indexOf("style === 'dual' && typeof planDualRoad") < actions.indexOf("style !== 'ground' && typeof planHighBridge"));
+  // the median stands on the land's height (raised ground), as the road's tiles are drawn
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'road-medians.js'), 'utf8'), /getTerrainTileVisualOffset\(tr, tc\)/);
+});

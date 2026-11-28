@@ -321,12 +321,11 @@ function drawRoadDragPreview(scene, start, end) {
 
   // 天橋 / 懸索橋 picked (road-flyovers.js): its ramps a paler blue than its deck, red where refused
   const style = typeof getRoadBridgeStyle === 'function' ? getRoadBridgeStyle() : 'ground';
-  // 雙線來回: the drag and the line beside it (main.js getDualRoadPaths)
-  if (style === 'dual' && typeof getDualRoadPaths === 'function') {
-    const { first, second } = getDualRoadPaths(scene, start, end);
-    const water = [first, second].some((info) => analyzeBridgePath(scene, info).crossesWater);
-    const colour = water ? 0xff4444 : 0x55ccff;
-    [...first.path, ...second.path].forEach(({ row, col }) => {
+  // 雙線來回: the drag and the line beside it, red where refused (main.js planDualRoad)
+  if (style === 'dual' && typeof planDualRoad === 'function') {
+    const dual = planDualRoad(scene, start, end);
+    const colour = !dual.ok && dual.reason ? 0xff4444 : 0x55ccff;
+    dual.tiles.forEach(({ row, col }) => {
       if (!isInsideMap(row, col)) return;
       const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
       g.fillStyle(colour, 0.26);

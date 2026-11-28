@@ -212,7 +212,12 @@ function roadMedianLampPlacements(runs, period = 3, inset = 0.25) {
 function roadMedianPoint(scene, run, along, across = 0) {
   const [r, c] = run.orientation === 'v' ? [along, run.line + 0.5 + across] : [run.line + 0.5 + across, along];
   const p = isoToScreen(c, r);
-  return { x: p.x + scene.offsetX, y: p.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET - TILE_HEIGHT / 2, iso: p.y };
+  // up on the land's height (a run is level: it keeps off slopes and a tile short of them), as the
+  // road's tiles and the T lamps on it are drawn (getTileFaceGeometry)
+  const tileAlong = Math.min(run.to, Math.max(run.from, Math.round(along)));
+  const [tr, tc] = run.orientation === 'v' ? [tileAlong, run.line] : [run.line, tileAlong];
+  const lift = typeof getTerrainTileVisualOffset === 'function' && typeof isInsideMap === 'function' && isInsideMap(tr, tc) ? getTerrainTileVisualOffset(tr, tc) : 0;
+  return { x: p.x + scene.offsetX, y: p.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET - TILE_HEIGHT / 2 + lift, iso: p.y };
 }
 
 // One tile of reservation as the camera sees it: shared canvases by the screen way of the line,

@@ -756,7 +756,11 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
     // a zebra crossing is read off the tile's rendered texture, as the railings read it
     zebraAt: (row, col) => /__lines_zebra/.test(getTileSprite(scene, row, col)?.texture?.key ?? ''),
   });
-  const wanted = new Map(placements.map((placement) => [streetFurnitureId(placement), placement]));
+  // Nothing on a 天橋 or 懸索橋 (deck or ramp): the furniture stands at ground level, and stood in the
+  // sea or the ground under the deck (Norton, 2026-11-28: 條橋還有兩個位穿模 - a 路牌 by a tower).
+  // Its lamps are lifted to the deck (street-lamps.js) and stay.
+  const onHighBridge = (placement) => typeof isHighBridgeTile === 'function' && isHighBridgeTile(placement.row, placement.col);
+  const wanted = new Map(placements.filter((placement) => !onHighBridge(placement)).map((placement) => [streetFurnitureId(placement), placement]));
   const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;
   sprites.forEach((sprite, id) => {
     if (wanted.has(id)) return;

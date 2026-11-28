@@ -258,9 +258,10 @@ function rebuildPedestrianRailingSprites(scene) {
     return (Array.isArray(sides) && sides.length > 0) || (typeof lightRailCutsKerbAt === 'function' && lightRailCutsKerbAt(row, col));
   };
   const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
+  // (none on a 天橋 or 懸索橋, deck or ramp: they stand at ground level and its deck has its parapets)
   const placements = computePedestrianRailingPlacements({
     mapWidth: bounds.colCount, mapHeight: bounds.rowCount, rowStart: bounds.rowStart, colStart: bounds.colStart, roadKeyAt, zebraFarSideAt, hasBusStopAt,
-  });
+  }).filter((p) => !(typeof isHighBridgeTile === 'function' && isHighBridgeTile(p.row, p.col)));
   // Roadside furniture reads the half-tile cells to keep its props out of the railings.
   scene.pedestrianRailingPlacements = placements;
   const wanted = new Map(mergePedestrianRailingRuns(placements).map((run) => [run.id, run]));

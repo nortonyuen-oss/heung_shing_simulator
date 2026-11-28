@@ -421,6 +421,7 @@ const TRAFFIC_ROAD_CAP        = 80;  // raw units above which a tile is "saturat
 const TRAFFIC_ROUTE_CACHE_LIMIT = 8192;
 const trafficRouteCache = new Map();
 let trafficRoadTilesCache = null;
+let trafficThroughChainsCache = null;
 
 // A 海底隧道's portals and the sea it runs under carry traffic like a road (undersea-tunnel.js).
 function isRoadTile(r, c) {
@@ -454,6 +455,7 @@ function getTrafficRoadTiles() {
 function markTrafficNetworkDirty(changedTiles = null) {
   clearTrafficLoadForRoadTiles(trafficRoadTilesCache);
   trafficRoadTilesCache = null;
+  trafficThroughChainsCache = null;
   trafficRouteCache.clear();
   if (typeof invalidateTrafficVisualNetwork === 'function') {
     invalidateTrafficVisualNetwork(typeof activeScene === 'undefined' ? null : activeScene);
@@ -526,6 +528,63 @@ function getTrafficRoadRoutes(startR, startC, rows = 1, cols = 1) {
     trafficRouteCache.set(cacheKey, routes);
   }
   return routes;
+}
+
+// A bridge or a 海底隧道 carries the traffic between the places at its two ends (Norton,
+// 2026-11-28: 橋因為係跨海，而海中間沒有樓宇，所以條橋通常冇車). A building's traffic spreads only
+// TRAFFIC_DIFFUSE_RADIUS along the roads, and a 懸索橋 spans ten tiles of sea or more, so its middle
+// carried nothing. Each run of road with no junction that crosses one - from the junction (or dead
+// end) at one end to the one at the other - carries at least the lesser of the two ends' traffic:
+// busy on both sides, a busy bridge; to empty land, an empty one. Cached with the road network.
+function getTrafficThroughChains(roadTiles) {
+  if (trafficThroughChainsCache) return trafficThroughChainsCache;
+  const isRoad = (r, c) => isInsideMap(r, c) && isRoadTile(r, c);
+  const roadNeighbours = (r, c) => getCardinalNeighbors(r, c).filter(([nr, nc]) => isRoad(nr, nc));
+  const crosses = (r, c) => bridgeMap.get(getTileId(r, c)) != null
+    || (typeof getUnderseaTunnelTile === 'function' && getUnderseaTunnelTile(r, c) != null);
+  const done = new Set();
+  const chains = [];
+  for (const tileIndex of roadTiles) {
+    const row = Math.floor(tileIndex / MAP_WIDTH);
+    const col = tileIndex % MAP_WIDTH;
+    if (done.has(tileIndex) || !crosses(row, col) || roadNeighbours(row, col).length !== 2) continue;
+    const tiles = [tileIndex];
+    const ends = [];
+    done.add(tileIndex);
+    roadNeighbours(row, col).forEach(([nr, nc]) => {
+      let previous = tileIndex;
+      let current = [nr, nc];
+      for (let guard = 0; guard < MAP_WIDTH * MAP_HEIGHT; guard++) {
+        const index = current[0] * MAP_WIDTH + current[1];
+        const neighbours = roadNeighbours(current[0], current[1]);
+        if (neighbours.length !== 2 || done.has(index)) {
+          ends.push(index);
+          return;
+        }
+        done.add(index);
+        tiles.push(index);
+        const onward = neighbours.find(([r, c]) => r * MAP_WIDTH + c !== previous);
+        previous = index;
+        current = onward;
+      }
+    });
+    if (ends.length === 2 && ends[0] !== ends[1]) chains.push({ tiles, ends });
+  }
+  trafficThroughChainsCache = chains;
+  return chains;
+}
+
+function applyTrafficThroughChains(roadTiles) {
+  const load = (index) => trafficMap[Math.floor(index / MAP_WIDTH)]?.[index % MAP_WIDTH] ?? 0;
+  getTrafficThroughChains(roadTiles).forEach(({ tiles, ends }) => {
+    const through = Math.min(load(ends[0]), load(ends[1]));
+    if (!(through > 0)) return;
+    tiles.forEach((index) => {
+      const r = Math.floor(index / MAP_WIDTH);
+      const c = index % MAP_WIDTH;
+      if (trafficMap[r][c] < through) trafficMap[r][c] = through;
+    });
+  });
 }
 
 // The land a zone building's traffic leaves from: its own lot, or for a block of a 公屋／居屋
@@ -638,8 +697,10 @@ function updateTrafficMap() {
     const r = Math.floor(tileIndex / MAP_WIDTH);
     const c = tileIndex % MAP_WIDTH;
     trafficMap[r][c] = clamp((trafficMap[r][c] / TRAFFIC_ROAD_CAP) * weatherMultiplier, 0, 1);
-    totalLoad += trafficMap[r][c];
   }
+  // bridges and tunnels carry the traffic between their two ends
+  applyTrafficThroughChains(roadTiles);
+  for (const tileIndex of roadTiles) totalLoad += trafficMap[Math.floor(tileIndex / MAP_WIDTH)][tileIndex % MAP_WIDTH];
 
   const roadCount = roadTiles.length;
   city.trafficBaseIndex = roadCount > 0 ? clamp(totalLoad / roadCount, 0, 1) : 0;

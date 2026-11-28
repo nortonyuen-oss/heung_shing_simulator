@@ -1031,11 +1031,19 @@ function upsertHighBridgeEntry(scene, row, col, entry) {
             wanted.push({ ...piece, part: `cable${side}${half}:${piece.id}`, depth: HIGH_BRIDGE_DEPTH[depthPart] + (piece.lit ? 0.004 : 0), y: deckY });
           });
         });
-        // the anchorage, on an end tile
+        // the anchorage, on an end tile. Its block reaches over the bridge tiles beside it along the run,
+        // so it sorts by them (Norton, 2026-11-28: 穿模): the far one behind the deck and parapets of
+        // the furthest of them, the near one in front of those of the nearest
         geo.ends.forEach((sEnd) => {
           if (Math.abs(sEnd - sMid) > 0.5) return;
           const key = hbAnchorTexture(scene, visAxis, b, geo.anchorTop(sEnd), groundZ);
-          wanted.push({ part: `anchor${side}`, key, depth: HIGH_BRIDGE_DEPTH[side === 'Far' ? 'cableFar' : 'cableNear'] - 0.001, y: deckY });
+          const own = highBridgeTileDepth(row, col);
+          const along = info.axis === 'row' ? [[row, col - 1], [row, col + 1]] : [[row - 1, col], [row + 1, col]];
+          const spanned = [own, ...along.filter(([r, c]) => isInsideMap(r, c) && isHighBridgeTile(r, c)).map(([r, c]) => highBridgeTileDepth(r, c))];
+          const offset = side === 'Far'
+            ? Math.min(...spanned) - own + HIGH_BRIDGE_DEPTH.towerFarLow - 0.005
+            : Math.max(...spanned) - own + HIGH_BRIDGE_DEPTH.cableNear - 0.001;
+          wanted.push({ part: `anchor${side}`, key, depth: offset, y: deckY });
         });
       });
       // the deck's line of gold, its two kerbs

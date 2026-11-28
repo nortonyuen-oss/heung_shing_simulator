@@ -41,6 +41,10 @@ const TRANSPORT_FARE_STEP = 5;
 const TRANSPORT_DEFAULT_FARE = 35;
 const TRANSPORT_MINUTES_PER_ROAD_TILE = 0.75;
 const TRANSPORT_MINUTES_PER_STOP = 1.5;
+// Buses of one route keep at least this far apart along it, nose to nose (Norton, 2026-11-28:
+// 巴士行走時都疊在一起了). Buses put on a route together all left its first stop at once and,
+// running at one speed, stayed on top of each other for good; now each waits for the one ahead.
+const TRANSPORT_BUS_MIN_GAP_TILES = 1.25;   // (round a corner 1.25 along the way is ~0.9 apart: a bus is 0.76)
 // Converts riders x per-tile fare x travelled tiles into company dollars on
 // the stylized 萬 scale. Sub-dollar amounts accrue via company.cashFraction,
 // so short trips are never lost to rounding.
@@ -2337,7 +2341,10 @@ function findTransportOpportunisticStopWithinSegment(route, runtime, startIndex,
   const len = path.length;
   if (!Array.isArray(path) || len === 0) return null;
   const stopIdSet = new Set(route.stopIds);
-  const firstStep = Math.max(1, Math.floor(fromTiles) + 1);
+  // (a bus at a passthrough stop is at a whole tile give or take rounding - 26.9999999 - and must
+  // not find the stop it is standing at again, or it calls there for ever: bus-13/14 in the 太子
+  // showcase sat at one, side by side, until 2026-11-28)
+  const firstStep = Math.max(1, Math.floor(fromTiles + 1e-6) + 1);
   for (let steps = firstStep; steps < segmentTiles; steps++) {
     const tile = path[(startIndex + steps) % len];
     const stop = getTransportStopAt(tile.row, tile.col, { presentOnly: true });
@@ -2357,6 +2364,93 @@ function advanceTransportVehicleMovement(scene, delta) {
   advanceTransportVehiclesByDisplayMinutes(amount * TRANSPORT_MINUTES_PER_ROAD_TILE, scene);
 }
 
+// Where a bus is along its route's round trip, in tiles from the path's start.
+function getTransportVehicleRoutePositionTiles(vehicle, stopIndices, pathLength) {
+  const count = stopIndices.length;
+  const orderIndex = ((vehicle.orderIndex % count) + count) % count;
+  const startIndex = stopIndices[orderIndex];
+  const nextIndex = stopIndices[(orderIndex + 1) % count];
+  const segmentTiles = Math.max(1, nextIndex > startIndex ? nextIndex - startIndex : pathLength - startIndex + nextIndex);
+  return (startIndex + transportClamp(vehicle.progress, 0, 1) * segmentTiles) % pathLength;
+}
+
+// How far ahead along the route the next bus of the same route is (Infinity if none counts). Two at
+// one spot: the one earlier in the fleet list is ahead. A bus away on a 區外站's off-map leg is not
+// on the road. A route too short for its buses to keep their gaps is left alone (they would wait on
+// each other round the loop for ever).
+function getTransportRouteGapAhead(vehicle, routeVehicles, stopIndices, pathLength, cycleStops) {
+  if (routeVehicles.length < 2 || routeVehicles.length * TRANSPORT_BUS_MIN_GAP_TILES >= pathLength * 0.8) return Infinity;
+  const here = getTransportVehicleRoutePositionTiles(vehicle, stopIndices, pathLength);
+  const myRank = routeVehicles.indexOf(vehicle);
+  let gap = Infinity;
+  routeVehicles.forEach((other, rank) => {
+    if (other === vehicle) return;
+    if (other.dwellMinutesRemaining > 0 && !(other.progress > 0)
+      && getTransportOffMapLegTiles(cycleStops[((other.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length]) > 0) return;
+    let ahead = (getTransportVehicleRoutePositionTiles(other, stopIndices, pathLength) - here + pathLength) % pathLength;
+    if (ahead < 1e-9) {
+      if (rank > myRank) return;
+      ahead = 0;
+    }
+    if (ahead < gap) gap = ahead;
+  });
+  return gap;
+}
+
+// A bus does not drive into the traffic on screen in front of it (traffic-visuals.js), as the cars do
+// not drive into it: the furthest it may go on this leg (tile progress) behind the car ahead on the
+// leg or already on the tile beyond, and short of a junction a car is crossing. null: clear. The
+// cars exist only on screen, so a bus out of view runs on its timetable; one held up waits at most
+// TRANSPORT_TRAFFIC_PATIENCE_MINUTES, then goes on (no jam holds a route for ever).
+const TRANSPORT_TRAFFIC_PATIENCE_MINUTES = 3;
+function getTransportTrafficAheadLimit(scene, current, next, tileProgress, vehicleId = null, afterNext = null) {
+  // the cars, and the other buses on screen (any route: where routes share a road or cross)
+  const cars = [
+    ...(scene?.trafficVisualState?.vehicles || []),
+    ...(scene?.transportVisualState?.vehicles || []).filter((visual) => visual.vehicleId !== vehicleId),
+  ];
+  if (!cars.length || typeof trafficTileBucketKey !== 'function') return null;
+  const progressOf = (car) => (Number.isFinite(car.renderedProgress) ? car.renderedProgress : Number(car.progress) || 0);
+  const bus = typeof TRAFFIC_MODEL_BY_ID !== 'undefined' ? TRAFFIC_MODEL_BY_ID.get('bus_kmb') : null;
+  const busFactor = bus?.headwayFactor ?? 1.35;
+  const busHalf = (bus?.lengthTiles ?? 0.76) / 2;
+  const unit = typeof TRAFFIC_VISUAL_CONFIG !== 'undefined' ? TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles : 0.65;
+  const currentKey = trafficTileBucketKey(current);
+  const nextKey = trafficTileBucketKey(next);
+  const dr = next.row - current.row, dc = next.col - current.col;
+  let limit = null;
+  const cap = (value) => { if (limit === null || value < limit) limit = value; };
+  for (const car of cars) {
+    if (!car.current || !car.next) continue;
+    const carKey = trafficTileBucketKey(car.current);
+    const carNextKey = trafficTileBucketKey(car.next);
+    const headway = unit * Math.max(busFactor, Number(car.model?.headwayFactor) || 1);
+    const carHalf = (Number(car.model?.lengthTiles) || 0.3) / 2;
+    const across = (car.next.row - car.current.row) * dr + (car.next.col - car.current.col) * dc === 0;
+    // (turning on the junction ahead, whichever way it came: in the way too)
+    const turning = !!car.leg && car.leg.turn !== 'straight';
+    const carProgress = progressOf(car);
+    if (carKey === currentKey && carNextKey === nextKey) {
+      if (carProgress > tileProgress) cap(carProgress - headway);
+    } else if (carKey === nextKey && carNextKey === currentKey && car.leg?.turn === 'uturn' && carProgress <= 0.5) {
+      // about to turn back there (a bus at its terminus): it stands in this lane, facing on
+      cap(1 - headway);
+    } else if (carKey === nextKey && carNextKey !== currentKey) {
+      if (!across) cap(1 + carProgress - headway);
+      if ((across || turning) && carProgress < 0.5 + carHalf && tileProgress + busHalf < 0.5) cap(0.5 - busHalf - 0.04);
+    } else if (carNextKey === nextKey && across && carProgress + carHalf > 0.5 && tileProgress + busHalf < 0.5) {
+      cap(0.5 - busHalf - 0.04);
+    } else if (carNextKey === nextKey && carKey !== currentKey && afterNext && Array.isArray(car.cycle) && tileProgress + busHalf < 0.5) {
+      // two buses coming to one junction from different ways, both turning out by the same road: the
+      // one further from it waits
+      const theirs = car.cycle[(car.currentIndex + 2) % car.cycle.length];
+      const nearer = carProgress > tileProgress || (carProgress === tileProgress && String(car.vehicleId) < String(vehicleId));
+      if (theirs && trafficTileBucketKey(theirs) === trafficTileBucketKey(afterNext) && nearer) cap(0.5 - busHalf - 0.04);
+    }
+  }
+  return limit;
+}
+
 // Authoritative movement, including stop dwell, boarding and mileage. Check
 // every tile crossed so a large step cannot skip a signal on a later leg.
 function advanceTransportVehiclesByDisplayMinutes(displayMinutes, scene = null) {
@@ -2364,6 +2458,12 @@ function advanceTransportVehiclesByDisplayMinutes(displayMinutes, scene = null) 
   if (elapsedMinutes <= 0 || !isTransportExpansionActive() || isTransportSevereWeather()) return;
   ensureTransportRouteRuntime();
   const state = getTransportExpansionState();
+  const byRoute = new Map();
+  state.vehicles.forEach((vehicle) => {
+    if (vehicle.status !== 'active' || !vehicle.routeId) return;
+    if (!byRoute.has(vehicle.routeId)) byRoute.set(vehicle.routeId, []);
+    byRoute.get(vehicle.routeId).push(vehicle);
+  });
   for (const vehicle of state.vehicles) {
     if (vehicle.status !== 'active') continue;
     const route = state.routes.find((entry) => entry.id === vehicle.routeId);
@@ -2438,18 +2538,33 @@ function advanceTransportVehiclesByDisplayMinutes(displayMinutes, scene = null) 
       const hold = typeof getTrafficSignalHoldProgress === 'function'
         ? getTrafficSignalHoldProgress(scene, current, next, tileProgress)
         : null;
-      const allowed = hold === null ? 1 - tileProgress : Math.max(0, hold - tileProgress);
+      let allowed = hold === null ? 1 - tileProgress : Math.max(0, hold - tileProgress);
       if (allowed <= 1e-9) break;
+      // behind the traffic in front of it, for a while
+      if ((Number(vehicle.trafficHoldMinutes) || 0) < TRANSPORT_TRAFFIC_PATIENCE_MINUTES) {
+        const afterNext = runtime.roundTripPath[(startIndex + tileOffset + 2) % runtime.roundTripPath.length];
+        const traffic = getTransportTrafficAheadLimit(scene, current, next, tileProgress, vehicle.id, afterNext);
+        if (traffic !== null) allowed = Math.min(allowed, Math.max(0, traffic - tileProgress));
+        if (allowed <= 1e-9) {
+          vehicle.trafficHoldMinutes = (Number(vehicle.trafficHoldMinutes) || 0) + minutesRemaining;
+          break;
+        }
+      }
+      // no closer than TRANSPORT_BUS_MIN_GAP_TILES to the bus ahead on the route
+      const room = getTransportRouteGapAhead(vehicle, byRoute.get(vehicle.routeId) || [], stopIndices, runtime.roundTripPath.length, cycleStops)
+        - TRANSPORT_BUS_MIN_GAP_TILES;
+      if (room <= 1e-9) break;
       const slopeFactor = scene && typeof getTrafficLegSurfaceLifts === 'function'
         ? getTrafficLegSpeedFactor({ surfaceLifts: getTrafficLegSurfaceLifts(current, next) })
         : 1;
       const legMinutesPerTile = minutesPerTile / slopeFactor;
-      const step = Math.min(minutesRemaining / legMinutesPerTile, tilesToTarget, allowed);
+      const step = Math.min(minutesRemaining / legMinutesPerTile, tilesToTarget, allowed, room);
       vehicle.passengerDistanceTiles = Math.max(
         0,
         Number(vehicle.passengerDistanceTiles) || 0,
       ) + vehicle.passengersAboard * step;
       vehicle.progress += step / segmentTiles;
+      if (step > 1e-6) vehicle.trafficHoldMinutes = 0;
       travelled += step;
       minutesRemaining -= step * legMinutesPerTile;
       transitions++;

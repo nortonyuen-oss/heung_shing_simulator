@@ -30,7 +30,8 @@ const TRAM_SERVICE = Object.freeze({
   maxLines: 6,
   maxTramsPerLine: 12,
   loopMaxTiles: 48,             // a terminus loop round a block at most this long
-  crossoverTiles: 0.8,          // no loop: across to the other track over this far
+  crossoverTiles: 0.8,          // no loop, a set that reverses: across to the other track over this far
+  turnBackPullTiles: 0.6,       // no loop, a tram that turns: the curve reaches about 3/4 of this past the stop
   // trams run 06:00 to midnight (sky minutes)
   serviceFromMinute: 6 * 60,
   serviceToMinute: 24 * 60,
@@ -306,9 +307,16 @@ function tramSlice(pts, f0, f1) {
  * crossover), back through them, and round (or across) at the first. Pure: `geo` from
  * buildTramTrackGeometry, `stops` [{ row, col, axis, band }] in order. Returns { pts, cum, length,
  * calls: [{ at, stop, leaving: 1 out / -1 back }], traffic: [per point: on a narrow road's lanes],
- * loops: [first, last] } or { code: 'noStop' | 'noWay', at }.
+ * loops: [first, last], folds: [{ index, at, heading }] } or { code: 'noStop' | 'noWay', at }.
+ *
+ * Where there is no loop (Norton, 2026-11-28: 停站時車身請與站頭保持平行…停完之後再行前少少掉頭):
+ * `turnBack` 'uturn' (a tram, one car) stands at the stop along the track it came in on, then pulls
+ * forward and swings round onto the other track; 'reverse' (輕鐵, whose sets may be two cars) stands
+ * there and goes back the way it came, across to the other track - the route folds back on itself
+ * there, and `folds` say where, and which way it came in (lrtCarPointAt keeps both cars of a set on
+ * the track it came in on: before, the leading car was put round the fold, on the other track).
  */
-function buildTramLineRoute(geo, stops) {
+function buildTramLineRoute(geo, stops, { turnBack = 'reverse' } = {}) {
   const n = stops.length;
   if (n < 2) return { code: 'noWay', at: 0 };
   const index = tramNodeIndex(geo);
@@ -341,11 +349,28 @@ function buildTramLineRoute(geo, stops) {
   const traffic = [];
   const callAt = [];
   const blends = [];
+  const foldAt = [];
   const add = (state, f0, f1, blend = false) => {
     const piece = tramSlice(tramLeftRail(state.link, state.dir), f0, f1);
     const inTraffic = !state.link.from.band && !state.link.to.band;
-    if (blend && pts.length) blends.push({ index: pts.length, from: pts.at(-1) });
-    else if (pts.length) piece.shift();
+    if (blend && pts.length && turnBack === 'uturn' && piece.length >= 2) {
+      // stood along the way it came in (the way it now leaves, turned round): forward past the
+      // stop and round onto the other track, a cubic from the stop to the same stop across
+      const from = pts.at(-1), to = piece[0];
+      let ux = piece[0][0] - piece[1][0], uy = piece[0][1] - piece[1][1];
+      const n = Math.hypot(ux, uy) || 1;
+      ux /= n; uy /= n;
+      const f = TRAM_SERVICE.turnBackPullTiles;
+      const c1 = [from[0] + ux * f, from[1] + uy * f], c2 = [to[0] + ux * f, to[1] + uy * f];
+      for (let i = 1; i < 12; i++) {
+        const t = i / 12, a = (1 - t) ** 3, b = 3 * (1 - t) ** 2 * t, c = 3 * (1 - t) * t * t, d = t ** 3;
+        pts.push([a * from[0] + b * c1[0] + c * c2[0] + d * to[0], a * from[1] + b * c1[1] + c * c2[1] + d * to[1]]);
+        traffic.push(inTraffic);
+      }
+    } else if (blend && pts.length) {
+      blends.push({ index: pts.length, from: pts.at(-1) });
+      foldAt.push(pts.length - 1);
+    } else if (pts.length) piece.shift();
     piece.forEach((p) => { pts.push(p); traffic.push(inTraffic); });
   };
   const run = (path, blend) => {
@@ -385,7 +410,16 @@ function buildTramLineRoute(geo, stops) {
   const cum = [0];
   for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const calls = callAt.map((c) => ({ at: cum[c.index], stop: c.stop, leaving: c.leaving }));
-  return { pts, cum, length: cum.at(-1), calls, traffic, loops: [Boolean(loopStart), Boolean(loopEnd)] };
+  // where it folds back (reversing): the stop it stands at, and the way it came in - for the first
+  // stop the end of the round trip, which closes on it
+  const inWay = (i, j) => {
+    const dx = pts[i][0] - pts[j][0], dy = pts[i][1] - pts[j][1], n = Math.hypot(dx, dy) || 1;
+    return [dx / n, dy / n];
+  };
+  const folds = foldAt.map((i) => (i === 0
+    ? { index: 0, at: 0, heading: inWay(pts.length - 1, pts.length - 2) }
+    : { index: i, at: cum[i], heading: inWay(i, i - 1) }));
+  return { pts, cum, length: cum.at(-1), calls, traffic, loops: [Boolean(loopStart), Boolean(loopEnd)], folds };
 }
 
 // A point a distance along a line's round trip, and its way there. Pure.
@@ -396,8 +430,15 @@ function tramRoutePointAt(route, dist) {
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] <= d) lo = m; else hi = m; }
   const k = (d - cum[lo]) / Math.max(1e-9, cum[hi] - cum[lo]);
   const pos = [pts[lo][0] + (pts[hi][0] - pts[lo][0]) * k, pts[lo][1] + (pts[hi][1] - pts[lo][1]) * k];
-  // (its way over a little more than a car's length: steady through the joins between points)
-  const a = Math.max(0, lo - 2), b = Math.min(pts.length - 1, hi + 2);
+  // (its way over a little more than a car's length: steady through the joins between points - but
+  // never across a fold, where it turns back: there it is the way it came in, or goes out)
+  let a = Math.max(0, lo - 2), b = Math.min(pts.length - 1, hi + 2);
+  (route.folds || []).forEach(({ index }) => {
+    if (index <= 0) return;
+    if (lo < index && b > index) b = index;
+    else if (lo >= index && a < index) a = index;
+  });
+  if (b <= a) { a = Math.max(0, lo - 1); b = Math.min(pts.length - 1, a + 1); }
   let hx = pts[b][0] - pts[a][0], hy = pts[b][1] - pts[a][1];
   const len = Math.hypot(hx, hy) || 1;
   hx /= len; hy /= len;
@@ -470,7 +511,7 @@ function getTramLineRoute(line, state = tramState()) {
   const key = `${tramNetworkRevision}|${typeof tramStateStamp === 'function' ? tramStateStamp() : ''}|${line.id}|${line.stopIds.join(',')}`;
   if (!tramRouteCache.has(key)) {
     if (tramRouteCache.size > 64) tramRouteCache.clear();
-    const route = buildTramLineRoute(geo, stops);
+    const route = buildTramLineRoute(geo, stops, { turnBack: 'uturn' });
     tramRouteCache.set(key, route.code ? null : { route, key });
   }
   return tramRouteCache.get(key);

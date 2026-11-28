@@ -603,6 +603,7 @@ function createTrafficModel({
   weight,
   speedFactor,
   headwayFactor,
+  lengthTiles,
   originY,
   lightAnchors,
 }) {
@@ -613,6 +614,8 @@ function createTrafficModel({
     weight,
     speedFactor,
     headwayFactor,
+    // how long it is drawn, in tiles (its NE picture's opaque width at its scale, 2026-11-28)
+    lengthTiles: lengthTiles ?? Math.max(0.2, headwayFactor * 0.65 - 0.12),
     originX: 0.5,
     originY,
     directions: createTrafficDirectionAssets(id, folder, baseName),
@@ -622,84 +625,90 @@ function createTrafficModel({
   });
 }
 
+// headwayFactor x minimumHeadwayTiles is the distance kept, centre to centre, behind the vehicle
+// ahead: each model's is its drawn length (lengthTiles) and a gap of TRAFFIC_FOLLOW_GAP_TILES, so no
+// two vehicles following each other are drawn one in the other (Norton, 2026-11-28: 巴士行走時都疊在
+// 一起了 / 所有交通都唔好疊埋一齊 - a double-decker, 0.76 of a tile, kept 0.65 behind a bus).
+// (Norton, 2026-11-28: 車與車之間留少少空隙，唔好貼到實一實)
+const TRAFFIC_FOLLOW_GAP_TILES = 0.15;
 const TRAFFIC_MODEL_REGISTRY = Object.freeze([
   createTrafficModel({
     id: 'bus_kmb', category: 'bus', folder: 'bus', baseName: 'kmb',
-    scale: 0.18816, weight: 6, speedFactor: 1, headwayFactor: 1, originY: 0.79,
+    scale: 0.18816, weight: 6, speedFactor: 1, headwayFactor: 1.4, lengthTiles: 0.76, originY: 0.79,
   }),
   createTrafficModel({
     id: 'bus_citybus', category: 'bus', folder: 'bus', baseName: 'cityBus',
-    scale: 0.18816, weight: 4, speedFactor: 1, headwayFactor: 1, originY: 0.79,
+    scale: 0.18816, weight: 4, speedFactor: 1, headwayFactor: 1.38, lengthTiles: 0.75, originY: 0.79,
   }),
   createTrafficModel({
     id: 'car_hrv', category: 'car', folder: 'car', baseName: 'hrv',
-    scale: 0.0684, weight: 13.6, speedFactor: 1.35, headwayFactor: 0.55, originY: 0.86,
+    scale: 0.0684, weight: 13.6, speedFactor: 1.35, headwayFactor: 0.57, lengthTiles: 0.22, originY: 0.86,
   }),
   createTrafficModel({
     id: 'car_odyssey', category: 'car', folder: 'car', baseName: 'odyssey',
-    scale: 0.0756, weight: 10.2, speedFactor: 1.3, headwayFactor: 0.58, originY: 0.86,
+    scale: 0.0756, weight: 10.2, speedFactor: 1.3, headwayFactor: 0.63, lengthTiles: 0.26, originY: 0.86,
   }),
   createTrafficModel({
     id: 'car_odyssey2', category: 'car', folder: 'car', baseName: 'odyssey2',
-    scale: 0.0756, weight: 10.2, speedFactor: 1.3, headwayFactor: 0.58, originY: 0.86,
+    scale: 0.0756, weight: 10.2, speedFactor: 1.3, headwayFactor: 0.63, lengthTiles: 0.26, originY: 0.86,
   }),
   createTrafficModel({
     id: 'minibus_green', category: 'minibus', folder: 'minibus', baseName: 'greenMinibus',
-    scale: 0.1104, weight: 7.7, speedFactor: 1.15, headwayFactor: 0.72, originY: 0.81,
+    scale: 0.1104, weight: 7.7, speedFactor: 1.15, headwayFactor: 0.91, lengthTiles: 0.44, originY: 0.81,
   }),
   createTrafficModel({
     id: 'minibus_red1', category: 'minibus', folder: 'minibus', baseName: 'redMinibus1',
-    scale: 0.1104, weight: 3.5, speedFactor: 1.15, headwayFactor: 0.72, originY: 0.81,
+    scale: 0.1104, weight: 3.5, speedFactor: 1.15, headwayFactor: 0.91, lengthTiles: 0.44, originY: 0.81,
   }),
   createTrafficModel({
     id: 'minibus_red2', category: 'minibus', folder: 'minibus', baseName: 'redMinibus2',
-    scale: 0.1104, weight: 2.8, speedFactor: 1.15, headwayFactor: 0.72, originY: 0.81,
+    scale: 0.1104, weight: 2.8, speedFactor: 1.15, headwayFactor: 0.91, lengthTiles: 0.44, originY: 0.81,
   }),
   createTrafficModel({
     id: 'taxi_red', category: 'taxi', folder: 'taxi', baseName: 'redTaxi',
-    scale: 0.0732, weight: 20.8, speedFactor: 1.25, headwayFactor: 0.55, originY: 0.86,
+    scale: 0.0732, weight: 20.8, speedFactor: 1.25, headwayFactor: 0.6, lengthTiles: 0.24, originY: 0.86,
   }),
   createTrafficModel({
     id: 'taxi_green', category: 'taxi', folder: 'taxi', baseName: 'greenTaxi',
-    scale: 0.0732, weight: 3.12, speedFactor: 1.25, headwayFactor: 0.55, originY: 0.86,
+    scale: 0.0732, weight: 3.12, speedFactor: 1.25, headwayFactor: 0.6, lengthTiles: 0.24, originY: 0.86,
   }),
   createTrafficModel({
     id: 'taxi_blue', category: 'taxi', folder: 'taxi', baseName: 'blueTaxi',
-    scale: 0.0732, weight: 2.08, speedFactor: 1.25, headwayFactor: 0.55, originY: 0.86,
+    scale: 0.0732, weight: 2.08, speedFactor: 1.25, headwayFactor: 0.6, lengthTiles: 0.24, originY: 0.86,
   }),
   createTrafficModel({
     id: 'truck_basic', category: 'truck', folder: 'truck', baseName: 'basicTruck',
-    scale: 0.1032, weight: 3.45, speedFactor: 0.82, headwayFactor: 0.76, originY: 0.81,
+    scale: 0.1032, weight: 3.45, speedFactor: 0.82, headwayFactor: 0.85, lengthTiles: 0.4, originY: 0.81,
   }),
   createTrafficModel({
     id: 'truck_logistic', category: 'truck', folder: 'truck', baseName: 'logisticTruck',
-    scale: 0.1032, weight: 3.05, speedFactor: 0.82, headwayFactor: 0.76, originY: 0.81,
+    scale: 0.1032, weight: 3.05, speedFactor: 0.82, headwayFactor: 0.85, lengthTiles: 0.4, originY: 0.81,
   }),
   createTrafficModel({
     // rarer among the ambient traffic (the other trucks take up its share of the 7% truck mix):
     // before dawn they queue at the typhoon shelters' 魚檔
     id: 'truck_fish', category: 'truck', folder: 'truck', baseName: 'fishTruck',
-    scale: 0.0984, weight: 0.5, speedFactor: 0.85, headwayFactor: 0.72, originY: 0.81,
+    scale: 0.0984, weight: 0.5, speedFactor: 0.85, headwayFactor: 0.85, lengthTiles: 0.4, originY: 0.81,
   }),
   createTrafficModel({
     id: 'van_plain', category: 'van', folder: 'van', baseName: 'plainVan',
-    scale: 0.0852, weight: 2.8, speedFactor: 1.05, headwayFactor: 0.62, originY: 0.83,
+    scale: 0.0852, weight: 2.8, speedFactor: 1.05, headwayFactor: 0.71, lengthTiles: 0.31, originY: 0.83,
   }),
   createTrafficModel({
     id: 'van_garden', category: 'van', folder: 'van', baseName: 'gardenVan',
-    scale: 0.0852, weight: 2, speedFactor: 1.05, headwayFactor: 0.62, originY: 0.83,
+    scale: 0.0852, weight: 2, speedFactor: 1.05, headwayFactor: 0.71, lengthTiles: 0.31, originY: 0.83,
   }),
   createTrafficModel({
     id: 'van_silver', category: 'van', folder: 'van', baseName: 'silverVan',
-    scale: 0.0852, weight: 2, speedFactor: 1.05, headwayFactor: 0.62, originY: 0.83,
+    scale: 0.0852, weight: 2, speedFactor: 1.05, headwayFactor: 0.71, lengthTiles: 0.31, originY: 0.83,
   }),
   createTrafficModel({
     id: 'van_namkee', category: 'van', folder: 'van', baseName: 'namkeeVan',
-    scale: 0.0852, weight: 1.2, speedFactor: 1.05, headwayFactor: 0.62, originY: 0.83,
+    scale: 0.0852, weight: 1.2, speedFactor: 1.05, headwayFactor: 0.71, lengthTiles: 0.31, originY: 0.83,
   }),
   createTrafficModel({
     id: 'icecream_van', category: 'icecream', folder: 'icecream', baseName: 'iceCream',
-    scale: 0.084, weight: 0, speedFactor: 0.85, headwayFactor: 0.62, originY: 0.82,
+    scale: 0.084, weight: 0, speedFactor: 0.85, headwayFactor: 0.69, lengthTiles: 0.3, originY: 0.82,
   }),
 ]);
 
@@ -1914,6 +1923,9 @@ function rebuildTrafficVehicleLegs(scene) {
   return rebuilt;
 }
 
+// How far past the tile centre the turn-back curve is drawn towards (it reaches about 3/4 of it)
+const TRAFFIC_UTURN_PULL_TILES = 0.5;
+
 function createTrafficLeg(scene, previous, current, next, lane = 'outer') {
   const incoming = {
     row: current.row - previous.row,
@@ -1926,6 +1938,26 @@ function createTrafficLeg(scene, previous, current, next, lane = 'outer') {
   const start = getTrafficLanePoint(scene, current, incoming.row, incoming.col, lane);
   const end = getTrafficLanePoint(scene, next, outgoing.row, outgoing.col, lane);
   const turn = classifyTrafficTurn(previous, current, next);
+  if (turn === 'uturn') {
+    // A turn back (a bus at its terminus, a car at a dead end) sets off along the way it came - a
+    // bus stands parallel to its stop - pulls forward and swings round into the other lane
+    // (Norton, 2026-11-28: 依家係總站既時候會轉左90度。應該平行停站，停完之後再行前少少掉頭).
+    // It used to cut straight across, so a bus waited at its terminus side-on to the kerb.
+    const centre = isoToScreen(current.col, current.row);
+    const ahead = isoToScreen(current.col + incoming.col * TRAFFIC_UTURN_PULL_TILES, current.row + incoming.row * TRAFFIC_UTURN_PULL_TILES);
+    const forward = { x: ahead.x - centre.x, y: ahead.y - centre.y };
+    const across = getTrafficLanePoint(scene, current, outgoing.row, outgoing.col, lane);
+    const pulled = (point) => ({ x: point.x + forward.x, y: point.y + forward.y, depthY: point.depthY + forward.y });
+    return {
+      cubic: true,
+      start,
+      control1: pulled(start),
+      control2: pulled(across),
+      end,
+      turn,
+      surfaceLifts: getTrafficLegSurfaceLifts(current, next),
+    };
+  }
   const control = turn === 'straight'
     ? {
         x: (start.x + end.x) / 2,
@@ -1940,6 +1972,15 @@ function createTrafficLeg(scene, previous, current, next, lane = 'outer') {
     turn,
     surfaceLifts: getTrafficLegSurfaceLifts(current, next),
   };
+}
+
+function trafficLegSurfaceLiftAt(leg, t) {
+  const startLift = Number(leg.surfaceLifts?.start) || 0;
+  const boundaryLift = Number(leg.surfaceLifts?.boundary) || 0;
+  const endLift = Number(leg.surfaceLifts?.end) || 0;
+  return t <= 0.5
+    ? startLift + (boundaryLift - startLift) * t * 2
+    : boundaryLift + (endLift - boundaryLift) * (t - 0.5) * 2;
 }
 
 function evaluateTrafficLeg(leg, progress) {
@@ -1957,13 +1998,15 @@ function evaluateTrafficLeg(leg, progress) {
       + 6 * inverse * t * (leg.control2[key] - leg.control1[key])
       + 3 * t * t * (leg.end[key] - leg.control2[key])
     );
+    // (a turn back on a bridge deck keeps to the deck: lifted as the quadratic legs are)
+    const lift = leg.surfaceLifts ? trafficLegSurfaceLiftAt(leg, t) : 0;
     return {
       x: value('x'),
-      y: value('y'),
-      depthY: value('depthY'),
+      y: value('y') - lift,
+      depthY: value('depthY') - lift,
       dx: derivative('x'),
       dy: derivative('y'),
-      surfaceLift: 0,
+      surfaceLift: lift,
     };
   }
   const value = (key) => (
@@ -1975,12 +2018,7 @@ function evaluateTrafficLeg(leg, progress) {
     2 * inverse * (leg.control[key] - leg.start[key])
     + 2 * t * (leg.end[key] - leg.control[key])
   );
-  const startLift = Number(leg.surfaceLifts?.start) || 0;
-  const boundaryLift = Number(leg.surfaceLifts?.boundary) || 0;
-  const endLift = Number(leg.surfaceLifts?.end) || 0;
-  const surfaceLift = t <= 0.5
-    ? startLift + (boundaryLift - startLift) * t * 2
-    : boundaryLift + (endLift - boundaryLift) * (t - 0.5) * 2;
+  const surfaceLift = trafficLegSurfaceLiftAt(leg, t);
   return {
     x: value('x'),
     y: value('y') - surfaceLift,
@@ -2806,19 +2844,50 @@ function trafficTileBucketKey(tile) {
 function buildTrafficLegBuckets(vehicles) {
   const buckets = new Map();
   const byTile = new Map();
+  const byNext = new Map();
+  const push = (map, key, vehicle) => { let list = map.get(key); if (!list) map.set(key, list = []); list.push(vehicle); };
   for (const vehicle of vehicles) {
     if (!vehicle.current || !vehicle.next) continue;
-    const key = trafficLegBucketKey(vehicle.current, vehicle.next);
-    let bucket = buckets.get(key);
-    if (!bucket) buckets.set(key, bucket = []);
-    bucket.push(vehicle);
-    const tileKey = trafficTileBucketKey(vehicle.current);
-    let tileBucket = byTile.get(tileKey);
-    if (!tileBucket) byTile.set(tileKey, tileBucket = []);
-    tileBucket.push(vehicle);
+    push(buckets, trafficLegBucketKey(vehicle.current, vehicle.next), vehicle);
+    push(byTile, trafficTileBucketKey(vehicle.current), vehicle);
+    push(byNext, trafficTileBucketKey(vehicle.next), vehicle);
   }
   buckets.byTile = byTile;
+  buckets.byNext = byNext;
   return buckets;
+}
+
+function trafficVehicleLengthTiles(vehicle) {
+  const model = vehicle?.model;
+  if (Number.isFinite(model?.lengthTiles)) return model.lengthTiles;
+  return Math.max(0.2, (Number(model?.headwayFactor) || 1) * TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles - TRAFFIC_FOLLOW_GAP_TILES);
+}
+
+// Keep the junction clear (Norton, 2026-11-28: 所有交通都唔好疊埋一齊): a vehicle whose nose has reached
+// the edge of the tile ahead does not go in while another vehicle is crossing that tile the other way
+// - leaving it at right angles, or already in it from a side road. A leg runs centre to centre, so
+// the tile's edge is half way. Once in, it carries on. A vehicle kept waiting
+// TRAFFIC_JUNCTION_PATIENCE frames goes anyway, rather than a ring of them waiting on each other
+// for ever. `tile` is the vehicle's next tile.
+const TRAFFIC_JUNCTION_PATIENCE = 240;
+function trafficJunctionOccupiedAcross(vehicle, progress, leaderBuckets) {
+  const { current, next } = vehicle;
+  if (!current || !next || !leaderBuckets.byTile) return false;
+  const nose = progress + trafficVehicleLengthTiles(vehicle) / 2;
+  if (nose < 0.44 || nose > 0.58) return false;
+  const dr = next.row - current.row, dc = next.col - current.col;
+  const across = (other) => {
+    if (other === vehicle || !other.current || !other.next) return false;
+    return (other.next.row - other.current.row) * dr + (other.next.col - other.current.col) * dc === 0;
+  };
+  // (one turning on it, whichever way it came from, is in the way too)
+  const turning = (other) => other !== vehicle && !!other.leg && other.leg.turn !== 'straight';
+  const key = trafficTileBucketKey(next);
+  const leaving = (leaderBuckets.byTile.get(key) ?? []).some((other) => (across(other) || turning(other))
+    && getTrafficLeaderEffectiveProgress(other) < 0.5 + trafficVehicleLengthTiles(other) / 2);
+  if (leaving) return true;
+  return (leaderBuckets.byNext?.get(key) ?? []).some((other) => across(other)
+    && getTrafficLeaderEffectiveProgress(other) + trafficVehicleLengthTiles(other) / 2 > 0.5);
 }
 
 function trafficHeadwayFor(vehicle, leader) {
@@ -2838,6 +2907,12 @@ function trafficVehiclesInSeparateBandLanes(vehicle, leader, tile) {
 
 function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
   if (!vehicle.current || !vehicle.next) return false;
+  if (trafficJunctionOccupiedAcross(vehicle, vehicle.progress, leaderBuckets)) {
+    vehicle.junctionWaitFrames = (vehicle.junctionWaitFrames || 0) + 1;
+    if (vehicle.junctionWaitFrames < TRAFFIC_JUNCTION_PATIENCE) return true;
+  } else {
+    vehicle.junctionWaitFrames = 0;
+  }
   const bucket = leaderBuckets.get(trafficLegBucketKey(vehicle.current, vehicle.next));
   if (bucket?.some((leader) => {
     if (leader === vehicle) return false;
@@ -2846,16 +2921,39 @@ function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
     return leaderProgress > vehicle.progress
       && leaderProgress - vehicle.progress < trafficHeadwayFor(vehicle, leader);
   })) return true;
+  // One that left the same tile just ahead of it by another way (they part at a junction): until
+  // it is a headway on, it is still in the way.
+  const sameTile = leaderBuckets.byTile?.get(trafficTileBucketKey(vehicle.current));
+  if (sameTile?.some((leader) => {
+    if (leader === vehicle || !leader.next || !leader.previous || !vehicle.previous) return false;
+    if (trafficTileBucketKey(leader.next) === trafficTileBucketKey(vehicle.next)) return false; // same leg: above
+    if (trafficTileBucketKey(leader.previous) !== trafficTileBucketKey(vehicle.previous)) return false;
+    const leaderProgress = getTrafficLeaderEffectiveProgress(leader);
+    return leaderProgress > vehicle.progress && leaderProgress - vehicle.progress < trafficHeadwayFor(vehicle, leader);
+  })) return true;
   // A leader already on the tile this leg ends at is (1 - progress) + its own progress ahead,
   // unless it is oncoming traffic heading back onto our tile.
   const ahead = leaderBuckets.byTile?.get(trafficTileBucketKey(vehicle.next));
   if (!ahead) return false;
   return ahead.some((leader) => {
     if (leader === vehicle || !leader.next) return false;
-    if (trafficTileBucketKey(leader.next) === trafficTileBucketKey(vehicle.current)) return false;
+    if (trafficTileBucketKey(leader.next) === trafficTileBucketKey(vehicle.current)) {
+      // one about to turn back there (a bus at its terminus) still stands in this lane, facing on
+      // (createTrafficLeg 'uturn'): queue behind it; anything else coming this way is oncoming
+      if (leader.leg?.turn !== 'uturn' || getTrafficLeaderEffectiveProgress(leader) > 0.5) return false;
+      return (1 - vehicle.progress) < trafficHeadwayFor(vehicle, leader);
+    }
     if (trafficVehiclesInSeparateBandLanes(vehicle, leader, vehicle.next)) return false;
-    const gap = (1 - vehicle.progress) + getTrafficLeaderEffectiveProgress(leader);
-    return gap < trafficHeadwayFor(vehicle, leader);
+    const leaderProgress = getTrafficLeaderEffectiveProgress(leader);
+    const gap = (1 - vehicle.progress) + leaderProgress;
+    if (gap < trafficHeadwayFor(vehicle, leader)) return true;
+    // round a corner the way along the road is longer than the way between them: by the straight
+    // line too (the middles of the legs)
+    const at = (v, p) => [v.current.row + (v.next.row - v.current.row) * p, v.current.col + (v.next.col - v.current.col) * p];
+    const [ar, ac] = at(vehicle, vehicle.progress), [br, bc] = at(leader, leaderProgress);
+    // (a leader turning cuts inside the corner: a little more room)
+    const margin = leader.leg && leader.leg.turn !== 'straight' ? 0.1 : 0;
+    return Math.hypot(ar - br, ac - bc) < trafficHeadwayFor(vehicle, leader) + margin;
   });
 }
 

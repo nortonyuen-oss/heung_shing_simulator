@@ -447,7 +447,7 @@ function getLightRailLineRoute(line, state = lrtState()) {
   const key = `${lightRailNetworkRevision}|${lrtNetworkStamp()}|${line.id}|${line.stationIds.join(',')}`;
   if (!lrtRouteCache.has(key)) {
     if (lrtRouteCache.size > 64) lrtRouteCache.clear();
-    const route = buildTramLineRoute(getLightRailGeometry(), stations.map(lrtStationStop));
+    const route = buildTramLineRoute(getLightRailGeometry(), stations.map(lrtStationStop), { turnBack: 'reverse' });
     if (route.code) lrtRouteCache.set(key, null);
     else {
       const env = lightRailMapEnv();
@@ -490,6 +490,40 @@ function lrtCarOffset(v, k) {
   if (v.cars !== 2) return 0;
   const s = (LRT_SET.carTiles + LRT_SET.couplerTiles) / 2;
   return k === 0 ? s : -s;
+}
+
+// Where a set's car k is, and its way: along the route from the set's middle - but where the route folds
+// back at a terminus without a loop (the set reverses there: buildTramLineRoute 'reverse'), a car that
+// would be past the fold stays on the track the set came in on, beyond the stop, as a real set does
+// (Norton, 2026-11-28: 輕鐵係兩卡一卡一邊站…唔要咁 - the leading car was put round the fold, on the
+// other track). Pure.
+function lrtCarPointAt(route, v, k) {
+  const d = Number(v.dist) || 0;
+  const offset = lrtCarOffset(v, k);
+  const L = route.length;
+  if (offset && Array.isArray(route.folds) && route.folds.length && L > 0) {
+    // (no modulo when it is already on the trip: ((d % L) + L) % L came out a hair past a fold the set
+    // stood exactly at, and put its leading car round it)
+    const middle = d >= 0 && d < L ? d : ((d % L) + L) % L;
+    const x = middle + offset;
+    const eps = 1e-9;
+    for (const fold of route.folds) {
+      const at = route.pts[fold.index];
+      const [hx, hy] = fold.heading;
+      for (const F of [fold.at, fold.at + L, fold.at - L]) {
+        const coming = middle <= F + eps;
+        const beyond = coming && x > F ? x - F : (!coming && x < F ? F - x : 0);
+        if (!(beyond > 0) || Math.abs(middle - F) > Math.abs(offset) + eps) continue;
+        return {
+          pos: [at[0] + hx * beyond, at[1] + hy * beyond],
+          heading: coming ? [hx, hy] : [-hx, -hy],
+          traffic: Boolean(route.traffic?.[fold.index]),
+          index: fold.index,
+        };
+      }
+    }
+  }
+  return tramRoutePointAt(route, d + offset);
 }
 
 // The level crossings' lights (light-rail.js): red from when a set's nose is CROSSING_RED tiles off until
@@ -722,7 +756,7 @@ function updateLightRailCars(scene) {
   const seen = new Set();
   const draw = (v, line, plan, k) => {
     const trailer = k === 1;
-    const at = tramRoutePointAt(plan.route, (Number(v.dist) || 0) + lrtCarOffset(v, k));
+    const at = lrtCarPointAt(plan.route, v, k);
     const [x, y] = at.pos;
     const heading = tramAxisHeading(at.pos, at.heading, state.tracks);
     const z = lightRailHeightAt(x, y, state, env);
@@ -888,5 +922,5 @@ function updateLightRailService(scene, delta = 16) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCrossingsAbout, lightRailCall };
+  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCarPointAt, lrtCrossingsAbout, lightRailCall };
 }

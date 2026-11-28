@@ -346,16 +346,25 @@ function findTransportVisualLeaderCeiling(scene, vehicle, leaderBuckets) {
   const current = vehicle.current;
   const next = vehicle.next;
   if (!current || !next || typeof getTrafficLeaderEffectiveProgress !== 'function') return null;
-  const bucket = leaderBuckets.get(trafficLegBucketKey(current, next));
-  if (!bucket) return null;
+  const headway = (other) => TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles
+    * Math.max(vehicle.model.headwayFactor, other.model?.headwayFactor ?? 1);
   let ceiling = null;
-  for (const other of bucket) {
+  const limit = (candidate) => { if (ceiling === null || candidate < ceiling) ceiling = candidate; };
+  for (const other of leaderBuckets.get(trafficLegBucketKey(current, next)) ?? []) {
     if (other === vehicle) continue;
     const leaderProgress = getTrafficLeaderEffectiveProgress(other);
     if (!(leaderProgress > vehicle.renderedProgress)) continue;
-    const gap = TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles * Math.max(vehicle.model.headwayFactor, other.model.headwayFactor);
-    const candidate = leaderProgress - gap;
-    if (ceiling === null || candidate < ceiling) ceiling = candidate;
+    limit(leaderProgress - headway(other));
+  }
+  // and one already on the tile this leg ends at (not oncoming), as ambient traffic does
+  // (trafficVehicleHasBlockingLeader): without it a bus ran up into the bus that had just crossed
+  // onto the next tile
+  const ahead = typeof trafficTileBucketKey === 'function' ? leaderBuckets.byTile?.get(trafficTileBucketKey(next)) : null;
+  for (const other of ahead ?? []) {
+    if (other === vehicle || !other.next) continue;
+    if (trafficTileBucketKey(other.next) === trafficTileBucketKey(current)) continue;
+    if (typeof trafficVehiclesInSeparateBandLanes === 'function' && trafficVehiclesInSeparateBandLanes(vehicle, other, next)) continue;
+    limit(1 + getTrafficLeaderEffectiveProgress(other) - headway(other));
   }
   return ceiling;
 }
@@ -382,9 +391,11 @@ function syncManagedTransportVehiclePosition(scene, vehicle, backing, leaderBuck
   vehicle.progress = target.progress;
   const desiredProgress = getTransportLegVisualProgress(vehicle.progress, vehicle.departingStop, vehicle.approachingStop);
   if (legChanged) {
-    // A fresh tile hop starts clean - lag from the previous leg's spacing
-    // does not carry forward into a leg where no leader has been checked yet.
-    vehicle.renderedProgress = desiredProgress;
+    // A fresh tile hop starts where the backend puts it, held back only by a vehicle ahead on
+    // this leg (it cannot fall back into the leg it left)
+    vehicle.renderedProgress = 0;
+    const ceiling = findTransportVisualLeaderCeiling(scene, vehicle, leaderBuckets);
+    vehicle.renderedProgress = Math.max(0, ceiling === null ? desiredProgress : Math.min(desiredProgress, ceiling));
   } else {
     const ceiling = findTransportVisualLeaderCeiling(scene, vehicle, leaderBuckets);
     let allowed = ceiling === null ? desiredProgress : Math.min(desiredProgress, ceiling);

@@ -412,6 +412,11 @@ const TRAFFIC_DEMAND_WEIGHTS = {
   industrial:  { 1: 5,  2: 10, 3: 17 },
 };
 const TRAFFIC_DIFFUSE_RADIUS  = 7;   // max tiles from building that demand spreads
+// Every zone building's traffic counts since 2026-11-28 (getTrafficRoadRoutes): about a fifth of a
+// city's people had been left out, so the buildings' demand is scaled to keep a city's overall
+// traffic where the campaign's traffic goals were set (太子 showcase: 0.262 before and after).
+// Region commuters, container trucks and cruise coaches were counted right and keep their load.
+const TRAFFIC_ZONE_DEMAND_SCALE = 80 / 105;
 const TRAFFIC_ROAD_CAP        = 80;  // raw units above which a tile is "saturated"
 const TRAFFIC_ROUTE_CACHE_LIMIT = 8192;
 const trafficRouteCache = new Map();
@@ -457,28 +462,61 @@ function markTrafficNetworkDirty(changedTiles = null) {
   if (typeof markTransportNetworkDirty === 'function') markTransportNetworkDirty(changedTiles);
 }
 
-function getTrafficRoadRoutes(startR, startC) {
-  const cacheKey = startR * MAP_WIDTH + startC;
+// The roads a lot's traffic comes out by: the nearest roads to any of its tiles, as far as a lot
+// develops from a road (ZONE_ROAD_ACCESS_TILES, Chebyshev, as hasRoadNearFootprint) - only the
+// nearest ring, so a lot on one road does not also send its traffic to one behind it. Roads along a
+// side come before those touching only at a corner. A lot that is a road itself starts there.
+function getTrafficEntryRoads(row, col, rows = 1, cols = 1) {
+  const reach = typeof ZONE_ROAD_ACCESS_TILES === 'number' ? ZONE_ROAD_ACCESS_TILES : 1;
+  const bottom = row + rows - 1;
+  const right = col + cols - 1;
+  for (let d = 0; d <= reach; d++) {
+    const sides = [];
+    const corners = [];
+    for (let r = row - d; r <= bottom + d; r++) {
+      for (let c = col - d; c <= right + d; c++) {
+        if (d > 0 && r > row - d && r < bottom + d && c > col - d && c < right + d) continue; // the ring only
+        if (!isInsideMap(r, c) || !isRoadTile(r, c)) continue;
+        const corner = d > 0 && (r < row || r > bottom) && (c < col || c > right);
+        (corner ? corners : sides).push([r, c]);
+      }
+    }
+    if (sides.length) return { dist: d, roads: sides };
+    if (corners.length) return { dist: d, roads: corners };
+  }
+  return null;
+}
+
+// Every road tile a lot's traffic reaches, with its distance: in from the lot's nearest roads, then
+// along the roads to TRAFFIC_DIFFUSE_RADIUS. Until 2026-11-28 only roads touching the lot's first tile
+// counted: a lot whose road ran along another side, or a tile or more away - every 公屋 block, set
+// in its estate's gardens - gave no traffic at all.
+function getTrafficRoadRoutes(startR, startC, rows = 1, cols = 1) {
+  const cacheKey = `${startR}:${startC}:${rows}x${cols}`;
   const cached = trafficRouteCache.get(cacheKey);
   if (cached) return cached;
 
-  const visited = new Set([getTileId(startR, startC)]);
-  const queue = [[startR, startC, 0]];
   const routes = [];
-  let queueIndex = 0;
-  while (queueIndex < queue.length) {
-    const [r, c, dist] = queue[queueIndex++];
-    if (!isInsideMap(r, c)) continue;
-    if (isRoadTile(r, c)) routes.push([r, c, dist]);
-    if (dist >= TRAFFIC_DIFFUSE_RADIUS) continue;
-
-    for (const [nr, nc] of getCardinalNeighbors(r, c)) {
-      if (!isInsideMap(nr, nc)) continue;
-      const nid = getTileId(nr, nc);
-      if (visited.has(nid)) continue;
-      if (!isRoadTile(nr, nc) && dist > 0) continue;
-      visited.add(nid);
-      queue.push([nr, nc, dist + 1]);
+  const entry = getTrafficEntryRoads(startR, startC, rows, cols);
+  if (entry) {
+    const visited = new Set();
+    const queue = [];
+    entry.roads.forEach(([r, c]) => {
+      visited.add(getTileId(r, c));
+      queue.push([r, c, entry.dist]);
+    });
+    let queueIndex = 0;
+    while (queueIndex < queue.length) {
+      const [r, c, dist] = queue[queueIndex++];
+      routes.push([r, c, dist]);
+      if (dist >= TRAFFIC_DIFFUSE_RADIUS) continue;
+      for (const [nr, nc] of getCardinalNeighbors(r, c)) {
+        if (!isInsideMap(nr, nc) || !isRoadTile(nr, nc)) continue;
+        const nid = getTileId(nr, nc);
+        if (visited.has(nid)) continue;
+        visited.add(nid);
+        queue.push([nr, nc, dist + 1]);
+      }
     }
   }
 
@@ -488,6 +526,22 @@ function getTrafficRoadRoutes(startR, startC) {
     trafficRouteCache.set(cacheKey, routes);
   }
   return routes;
+}
+
+// The land a zone building's traffic leaves from: its own lot, or for a block of a 公屋／居屋
+// estate the estate's land - its paths carry the residents out to the roads around it.
+function getTrafficSourceLot(row, col, record) {
+  const hit = typeof getHousingEstateAt === 'function' ? getHousingEstateAt(row, col) : null;
+  if (hit && hit.slot?.row === row && hit.slot?.col === col && typeof getHousingEstateLand === 'function') {
+    const land = getHousingEstateLand(hit.estate);
+    if (land) return land;
+  }
+  return {
+    row,
+    col,
+    rows: Math.max(1, Number(record?.footprintRows ?? 1) || 1),
+    cols: Math.max(1, Number(record?.footprintCols ?? 1) || 1),
+  };
 }
 
 function updateTrafficMap() {
@@ -541,12 +595,14 @@ function updateTrafficMap() {
       ? getBuildingTransportModeShare(id)
       : 0;
     const demand = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1)
+      * TRAFFIC_ZONE_DEMAND_SCALE
       * industrialRevitalizationMultiplier
       * (1 - clamp(transportModeShare, 0, 0.25));
 
     // The route geometry changes only when the road/bridge network changes.
     // Reuse it across ticks while applying the current building demand each time.
-    for (const [r, c, dist] of getTrafficRoadRoutes(startR, startC)) {
+    const lot = getTrafficSourceLot(startR, startC, record);
+    for (const [r, c, dist] of getTrafficRoadRoutes(lot.row, lot.col, lot.rows, lot.cols)) {
       const decay = 1 - dist / TRAFFIC_DIFFUSE_RADIUS;
       trafficMap[r][c] += demand * decay;
     }

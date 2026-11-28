@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.2 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.3 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.2 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.3 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.3
+
+Public and HOS housing estates now generate traffic. A building's traffic used to count only if a road lay within two steps of its first tile, while a lot develops with a road anywhere within five tiles. So every estate block, set back in its estate's gardens, and about a fifth of a city's people, added no traffic at all. Traffic now leaves each lot by the road nearest it, and an estate's blocks use the roads around the estate. Buildings' traffic is scaled so that a city's overall traffic stays where it was: the 太子 showcase is 0.266 before and 0.268 after, and none of the campaign chapters' starting towns gets busier. The road in front of the showcase's estates goes from 0.05 to 0.51.
 
 ## New in v6.2.2
 

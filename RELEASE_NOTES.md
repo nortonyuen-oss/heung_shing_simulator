@@ -1,3 +1,27 @@
+# Heung Shing Simulator v6.2.3 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 屋邨門口終於有車
+
+- **公屋居屋屋邨有交通**：以前一棟樓要喺佢左上角兩步之內有路，先會計交通；但起樓只要地段 5 格內有路就得。屋邨嘅樓喺邨中間、隔住花園，所以全部冇交通；全城大約兩成人口一樣漏計。
+- **新規則**：交通由地段最近嘅路出入，同起樓一樣 5 格以內都計；屋邨嘅樓經邨內行人路，由屋邨四周嘅路出入。太子展示城屋邨門口條路由 0.05 升到 0.51。
+- **整體水平不變**：樓宇交通按比例調整，全城交通指數維持原本水平（太子展示城 0.266 → 0.268）。《玩轉18區》各章開局市鎮持平或者略低，冇一章嘅交通目標變難。郵輪、貨櫃車同區外連線嘅車流照舊。
+
+**台灣中文：** 公屋與居屋屋邨開始產生交通。過去一棟樓要在左上角兩步之內有路才計算交通，但興建只需地段 5 格內有路；屋邨的樓位於邨中央、隔著花園，因此完全沒有交通，全城約兩成人口也同樣漏算。現在交通從地段最近的道路出入，屋邨的樓經邨內步道由屋邨四周道路出入。樓宇交通按比例調整，全城交通指數維持原本水準（太子展示城 0.266 → 0.268），《玩轉18區》各章開局市鎮持平或略低，交通目標不會變難。
+
+**English:** Public and HOS housing estates now generate traffic. A building's traffic used to count only with a road within two steps of its first tile, while a lot develops with a road anywhere within five tiles, so every estate block, set in its estate's gardens, and about a fifth of a city's people added none. Traffic now leaves each lot by its nearest road, and estate blocks by the roads around their estate; the road in front of the 太子 showcase's estates goes from 0.05 to 0.51. Buildings' traffic is scaled so a city's overall traffic stays where it was (太子 0.266 → 0.268); no campaign chapter's starting town gets busier, and cruise, container and cross-district traffic are unchanged.
+
+**日本語:** 公営・居屋団地に交通が発生するように。これまで建物の交通は左上のマスから2歩以内に道路がある場合だけ計算され、一方で建設は区画から5マス以内に道路があれば可能でした。そのため庭園の奥に建つ団地の棟はすべて交通ゼロで、街の人口の約2割も同様に漏れていました。交通は区画に最も近い道路から出入りし、団地の棟は団地周囲の道路を使います。建物の交通量は比例調整し、街全体の交通指数は従来どおり（太子 0.266 → 0.268）。「18区をめぐる」各章の初期の街は同じか少し低く、交通目標が難しくなる章はありません。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.2 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

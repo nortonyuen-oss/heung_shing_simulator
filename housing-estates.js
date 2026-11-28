@@ -625,14 +625,20 @@ function growHousingEstates(scene, random = Math.random) {
   }
 }
 
-// The estate's land reaches a road: its own paths carry the residents to the blocks inside
-function housingEstateHasRoad(estate) {
+// The estate's land: the rectangle its slots cover
+function getHousingEstateLand(estate) {
   let top = Infinity, left = Infinity, bottom = -Infinity, right = -Infinity;
-  estate.slots.forEach((slot) => {
+  (estate?.slots || []).forEach((slot) => {
     top = Math.min(top, slot.row); left = Math.min(left, slot.col);
     bottom = Math.max(bottom, slot.row + slot.size); right = Math.max(right, slot.col + slot.size);
   });
-  return top < Infinity && hasRoadNearFootprint(top, left, right - left, bottom - top);
+  return top < Infinity ? { row: top, col: left, rows: bottom - top, cols: right - left } : null;
+}
+
+// The estate's land reaches a road: its own paths carry the residents to the blocks inside
+function housingEstateHasRoad(estate) {
+  const land = getHousingEstateLand(estate);
+  return !!land && hasRoadNearFootprint(land.row, land.col, land.cols, land.rows);
 }
 
 // An estate none of whose land is still zoned for it, and with no block standing, is gone
@@ -858,6 +864,7 @@ if (typeof module !== 'undefined' && module.exports) {
     largestTrueRectangle,
     splitIntoRectangles,
     planHousingEstateSite,
+    getHousingEstateLand,
     summarizeHousingEstateSlots,
     normalizeHousingEstates,
     HOUSING_ESTATE_DESIGNS,

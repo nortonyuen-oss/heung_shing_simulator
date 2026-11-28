@@ -19,12 +19,18 @@
 const STREET_LAMP_TEXTURE_PREFIX = 'street_lamp_';
 // Facing = the direction the arm points on screen.
 const STREET_LAMP_FACINGS = Object.freeze(['nw', 'ne', 'sw', 'se']);
-const STREET_LAMP_TEXTURE_FILES = Object.freeze(Object.fromEntries(
-  STREET_LAMP_FACINGS.flatMap((facing) => [
+const STREET_LAMP_TEXTURE_FILES = Object.freeze(Object.fromEntries([
+  ...STREET_LAMP_FACINGS.flatMap((facing) => [
     [`${STREET_LAMP_TEXTURE_PREFIX}${facing}`, `Models/traffic/lightPost/lightPost_${facing.toUpperCase()}.png`],
     [`${STREET_LAMP_TEXTURE_PREFIX}${facing}__lit`, `Models/traffic/lightPost/lightPost_${facing.toUpperCase()}__lit.png`],
   ]),
-));
+  // the 中央分隔帶's double-headed T lamp (Norton's art, scripts/bake-median-lamp-textures.js): its arm
+  // running SW-NE on screen (A) or NW-SE (B), across the road
+  ...['A', 'B'].flatMap((variant) => [
+    [`${STREET_LAMP_TEXTURE_PREFIX}t_${variant.toLowerCase()}`, `Models/traffic/lightPost/lightPost_T_${variant}.png`],
+    [`${STREET_LAMP_TEXTURE_PREFIX}t_${variant.toLowerCase()}__lit`, `Models/traffic/lightPost/lightPost_T_${variant}__lit.png`],
+  ]),
+]));
 // The baked canvases are 256x256 (a power of two, so Phaser mipmaps them) with the post's
 // foot at (128, 160); the post is ~150 px tall on them.
 const STREET_LAMP_SOURCE_CANVAS = Object.freeze({ width: 256, height: 256 });
@@ -138,7 +144,9 @@ function streetLampFacing(placement, rotation = typeof mapRotation !== 'undefine
   return STREET_LAMP_FACING_FOR_ARM[visualArm] ?? 'nw';
 }
 
-function streetLampTextureKey(facing, lit) {
+function streetLampTextureKey(facing, lit, placement = null) {
+  // a median's T lamp: its arm across the road - a facing along the screen's SW-NE line is art A
+  if (placement?.kind === 'median') return `${STREET_LAMP_TEXTURE_PREFIX}t_${facing === 'ne' || facing === 'sw' ? 'a' : 'b'}${lit ? '__lit' : ''}`;
   return `${STREET_LAMP_TEXTURE_PREFIX}${facing}${lit ? '__lit' : ''}`;
 }
 
@@ -186,7 +194,8 @@ function streetLampAnchor(scene, placement, facing) {
   const geo = getTileFaceGeometry(placement.row, placement.col, scene.offsetX, scene.offsetY);
   const centre = isoToScreen(placement.col, placement.row);
   const shifted = isoToScreen(placement.col + placement.offsetCol, placement.row + placement.offsetRow);
-  const offset = streetLampOffsetFor(facing);
+  // (a 中央分隔帶's T lamp stands on its foot: no kerbside nudge - road-medians.js)
+  const offset = placement.kind === 'median' ? { dx: 0, dy: 0 } : streetLampOffsetFor(facing);
   const lift = streetLampSurfaceLift(placement);
   // up on a 天橋 / 懸索橋: over its tile's deck, a post on the far kerb behind the traffic, on the
   // near one in front (road-flyovers.js highBridgeItemDepth)
@@ -226,7 +235,7 @@ function positionStreetLampSprite(scene, sprite) {
   const placement = sprite.streetLamp;
   const facing = streetLampFacing(placement);
   sprite.streetLampFacing = facing;
-  applyStreetLampSpriteTexture(scene, sprite, streetLampTextureKey(facing, !!scene.streetLampsLit));
+  applyStreetLampSpriteTexture(scene, sprite, streetLampTextureKey(facing, !!scene.streetLampsLit, placement));
   const anchor = streetLampAnchor(scene, placement, facing);
   sprite.setPosition(anchor.x, anchor.y);
   sprite.setDepth(anchor.depth);
@@ -234,7 +243,7 @@ function positionStreetLampSprite(scene, sprite) {
 
 function createStreetLampSprite(scene, placement) {
   const facing = streetLampFacing(placement);
-  const textureKey = streetLampTextureKey(facing, !!scene.streetLampsLit);
+  const textureKey = streetLampTextureKey(facing, !!scene.streetLampsLit, placement);
   if (!scene.textures.exists(textureKey)) return null;
   const sprite = scene.add.image(0, 0, textureKey);
   if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite, 'objectLayer');
@@ -290,8 +299,13 @@ function rebuildStreetLampSprites(scene) {
     skipSideAt: (row, col, side) => (typeof isTramReservationSide === 'function' && isTramReservationSide(row, col, side))
       || (typeof lightRailCrossesKerbAt === 'function' && lightRailCrossesKerbAt(row, col, side)),
   });
+  // 雙線來回 roads' 中央分隔帶 (road-medians.js): double-headed lamps on it, the kerbside ones on those
+  // tiles standing down
+  const medianRuns = typeof computeSceneRoadMedianRuns === 'function' ? computeSceneRoadMedianRuns(scene) : [];
+  const medianTiles = typeof roadMedianTileIndex === 'function' ? roadMedianTileIndex(medianRuns) : new Map();
+  const medianLamps = typeof roadMedianLampPlacements === 'function' ? roadMedianLampPlacements(medianRuns) : [];
   // (none under a 天橋 crossing the road: its posts would stand up into the deck - road-flyovers.js)
-  const wanted = new Map(placements
+  const wanted = new Map([...placements.filter((placement) => !medianTiles.has(`${placement.row}:${placement.col}`)), ...medianLamps]
     .filter((placement) => !(typeof isHighBridgeInterchangeTile === 'function' && isInsideMap(placement.row, placement.col)
       && isHighBridgeInterchangeTile(placement.row, placement.col)))
     .map((placement) => [streetLampId(placement), placement]));
@@ -310,6 +324,7 @@ function rebuildStreetLampSprites(scene) {
     const sprite = createStreetLampSprite(scene, placement);
     if (sprite) sprites.set(id, sprite);
   });
+  if (typeof rebuildRoadMedianSprites === 'function') rebuildRoadMedianSprites(scene, medianRuns);
   if (typeof sortRenderLayer === 'function') sortRenderLayer(scene, 'objectLayer');
   scene.streetLampRefreshPending = false;
 }
@@ -327,6 +342,7 @@ function scheduleStreetLampRefresh(scene) {
 
 function refreshAllStreetLampSprites(scene) {
   scene?.streetLampSprites?.forEach((sprite) => positionStreetLampSprite(scene, sprite));
+  if (typeof refreshAllRoadMedianSprites === 'function') refreshAllRoadMedianSprites(scene);
 }
 
 // Ten times a second: decide lit/dark from the night strength. The state is city-wide (Hong
@@ -346,7 +362,7 @@ function updateStreetLampVisuals(scene, time) {
   scene.streetLampTexturesApplied = true;
   sprites.forEach((sprite) => {
     if (!sprite.streetLamp) return;
-    const key = streetLampTextureKey(sprite.streetLampFacing, lit);
+    const key = streetLampTextureKey(sprite.streetLampFacing, lit, sprite.streetLamp);
     if (sprite.texture?.key !== key) applyStreetLampSpriteTexture(scene, sprite, key);
   });
 }

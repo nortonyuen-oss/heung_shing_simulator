@@ -174,7 +174,7 @@ test('the arm facing follows the kerb and the map rotation', () => {
 test('day and night textures exist for every facing and the sheet is not shipped', () => {
   const run = createContext();
   const files = toPlain(run('STREET_LAMP_TEXTURE_FILES'));
-  assert.equal(Object.keys(files).length, 8);
+  assert.equal(Object.keys(files).length, 12, 'four kerb facings and the median T lamp two ways, day and night');
   Object.values(files).forEach((file) => assert.ok(fs.existsSync(path.join(ROOT, file)), `${file} exists`));
   assert.ok(!fs.existsSync(path.join(ROOT, 'Models/traffic/lightPost/lightPost.png')), 'the 2x2 sheet lives under scripts/source-art');
   assert.ok(fs.existsSync(path.join(ROOT, 'scripts/source-art/lightPost_sheet.png')));

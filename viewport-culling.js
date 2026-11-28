@@ -279,7 +279,8 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
     if (seen) seen.add(sprite);
     if (typeof sprite.setVisible !== 'function') return;
     stats.candidates++;
-    const visible = isPointWithinCullBounds(sprite.x, sprite.y, bounds);
+    // (a strip of a longer picture is culled by its own place: road-medians.js)
+    const visible = isPointWithinCullBounds(sprite.__cullX ?? sprite.x, sprite.__cullY ?? sprite.y, bounds);
     sprite.setVisible(visible);
     if (visible) {
       stats.visible++;
@@ -354,6 +355,11 @@ function updateSpriteViewportCulling(scene, bounds) {
     });
   });
   collect(cullSpriteMapEntries(scene.bridgeParapetSprites, bounds, seen, mainCamera, mainBounds));
+  // 中央分隔帶 (road-medians.js): its kerb and hedge, railings and trees
+  collect(cullSpriteMapEntries(scene.roadMedianStripSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.roadMedianRailSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.roadMedianTreeSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.roadMedianPlanterSprites, bounds, seen, mainCamera, mainBounds));
   // 高架路牌 (overhead-signs.js): the steel and the lit faces
   collect(cullSpriteMapEntries(scene.overheadSignFrameSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.overheadSignFaceSprites, bounds, seen, mainCamera, mainBounds));

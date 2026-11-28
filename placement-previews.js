@@ -321,6 +321,27 @@ function drawRoadDragPreview(scene, start, end) {
 
   // 天橋 / 懸索橋 picked (road-flyovers.js): its ramps a paler blue than its deck, red where refused
   const style = typeof getRoadBridgeStyle === 'function' ? getRoadBridgeStyle() : 'ground';
+  // 雙線來回: the drag and the line beside it (main.js getDualRoadPaths)
+  if (style === 'dual' && typeof getDualRoadPaths === 'function') {
+    const { first, second } = getDualRoadPaths(scene, start, end);
+    const water = [first, second].some((info) => analyzeBridgePath(scene, info).crossesWater);
+    const colour = water ? 0xff4444 : 0x55ccff;
+    [...first.path, ...second.path].forEach(({ row, col }) => {
+      if (!isInsideMap(row, col)) return;
+      const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+      g.fillStyle(colour, 0.26);
+      g.lineStyle(2, colour, 0.92);
+      g.beginPath();
+      g.moveTo(geom.top.x, geom.top.y);
+      g.lineTo(geom.right.x, geom.right.y);
+      g.lineTo(geom.bottom.x, geom.bottom.y);
+      g.lineTo(geom.left.x, geom.left.y);
+      g.closePath();
+      g.fillPath();
+      g.strokePath();
+    });
+    return;
+  }
   if (style !== 'ground' && typeof planHighBridge === 'function') {
     const plan = planHighBridge(scene, pathInfo, style);
     const kinds = new Map(plan.tiles.map((tile) => [`${tile.row}:${tile.col}`, tile.kind]));

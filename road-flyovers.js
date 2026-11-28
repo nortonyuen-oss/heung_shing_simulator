@@ -27,7 +27,8 @@ const FLYOVER = Object.freeze({
   suspensionMinTowerPx: 110,
   maxBaseLevel: 5,
 });
-const ROAD_BRIDGE_STYLES = Object.freeze(['ground', 'flyover', 'suspension']);
+// ('dual': a 雙線來回 road on the ground, two carriageways side by side - main.js commitRoadDrag)
+const ROAD_BRIDGE_STYLES = Object.freeze(['ground', 'dual', 'flyover', 'suspension']);
 let roadBridgeStyle = 'ground';
 
 function getRoadBridgeStyle() {

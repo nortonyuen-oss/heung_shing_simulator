@@ -2461,8 +2461,42 @@ function isRoadLikeTile(row, col) {
   return isInsideMap(row, col) && (mapData[row][col] === ROAD || isBridgeDeckTile(row, col));
 }
 
+// 雙線來回 (Norton, 2026-11-28: 幫我預設起埋雙線來回道路既option): a second line of road beside the
+// drag, so the two widen into one road each way (tile-keys.js) with its 中央分隔帶 (road-medians.js).
+// The side with more room for it - a road there already counts as room (widening a street) - the
+// south / east one if both are as good. Pure but for `canTake(row, col)`.
+function chooseDualRoadOffset(pathInfo, canTake) {
+  const across = pathInfo.axis === 'row' ? [1, 0] : [0, 1];
+  const score = (sign) => (pathInfo.path || []).reduce((n, { row, col }) => n + (canTake(row + across[0] * sign, col + across[1] * sign) ? 1 : 0), 0);
+  const plus = score(1), minus = score(-1);
+  const sign = minus > plus ? -1 : 1;
+  return { dr: across[0] * sign, dc: across[1] * sign, room: Math.max(plus, minus), length: (pathInfo.path || []).length };
+}
+
+function getDualRoadPaths(scene, start, end) {
+  const pathInfo = getStraightDragPath(start, end);
+  const canTake = (row, col) => isInsideMap(row, col)
+    && (mapData[row][col] === ROAD || (mapData[row][col] !== WATER && canPlaceRoad(scene, row, col, { acrossLightRail: true })));
+  const offset = chooseDualRoadOffset(pathInfo, canTake);
+  const second = { axis: pathInfo.axis, path: pathInfo.path.map(({ row, col }) => ({ row: row + offset.dr, col: col + offset.dc })) };
+  return { first: pathInfo, second, offset };
+}
+
 function commitRoadDrag(scene, start, end, bridgeStyle = typeof getRoadBridgeStyle === 'function' ? getRoadBridgeStyle() : 'ground') {
   const pathInfo = getStraightDragPath(start, end);
+  if (bridgeStyle === 'dual') {
+    const { first, second } = getDualRoadPaths(scene, start, end);
+    // on the ground only: over water a 天橋 or 懸索橋 carries it
+    if ([first, second].some((info) => analyzeBridgePath(scene, info).crossesWater)) {
+      showToast(typeof highBridgeT === 'function'
+        ? highBridgeT('road.dual.water', '雙線來回路要起喺地面：過海揀「天橋」或者「懸索橋」。')
+        : '雙線來回路要起喺地面：過海揀「天橋」或者「懸索橋」。', 'warning');
+      return;
+    }
+    buildRoadPath(scene, first.path);
+    buildRoadPath(scene, second.path);
+    return;
+  }
   // 天橋 / 懸索橋 picked: the drag is a high bridge, ramps and all (road-flyovers.js)
   if (bridgeStyle && bridgeStyle !== 'ground' && typeof planHighBridge === 'function') {
     const plan = planHighBridge(scene, pathInfo, bridgeStyle);

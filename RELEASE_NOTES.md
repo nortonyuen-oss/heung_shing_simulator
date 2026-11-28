@@ -1,3 +1,27 @@
+# Heung Shing Simulator v6.2.6 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 花槽綠化帶
+
+- **花槽綠化帶**：中央分隔帶嘅「矮樹籬」同「矮樹籬加樹」兩款，改用全新花槽美術：石壆圍住矮樹籬同紅、黃、粉紅色花。花槽有五種長度，兩頭用橢圓花槽收口，每段路長短混住排，唔會一式一樣；「加樹」款嘅樹種喺花槽入面。
+- **棕櫚樹花槽多咗**：以前要路兩邊接近兩成地段係高密度商廈先會用棕櫚樹花槽；依家一成地段係中密度或以上嘅商舖、寫字樓就用。
+- **匯入城市更穩定**：網頁版揀咗存檔之後，偶然會冇反應，已經修正。
+
+**台灣中文：** 中央分隔帶的「矮樹籬」與「矮樹籬加樹」兩款改用全新花槽美術：石砌花槽內的矮樹籬與紅、黃、粉紅色花，共五種長度，兩端以橢圓花槽收尾，每段道路長短混排；「加樹」款的樹種在花槽內。棕櫚樹花槽更常見：過去需道路兩側近兩成地段為高密度商廈，現在一成地段為中密度以上的商店、辦公室即可。網頁版匯入城市存檔更穩定：選取存檔後偶爾沒有反應的問題已修正。
+
+**English:** The central reservation's hedge and hedge-and-trees kinds are now kerbed flower beds: new art of low hedge with red, yellow and pink flowers, in five lengths with an oval bed at each end, mixed along each road so no two look alike; the trees stand in the beds. Palm planters are more common: a tenth of the lots along the road as shops or offices of medium density or more is now enough (it took nearly a fifth, all high-density). Importing a city in the browser is more reliable: picking a save could occasionally do nothing.
+
+**日本語:** 中央分離帯の「生け垣」「生け垣と並木」を新しい花壇の絵に：縁石で囲んだ生け垣と赤・黄・ピンクの花。5種類の長さと両端の楕円形の花壇を道路ごとに組み合わせ、並木は花壇の中に。ヤシの植え込みが増えました：沿道の区画の1割が中密度以上の商店・オフィスなら設置されます（以前は高密度の商業ビルが約2割必要）。ブラウザー版で都市を読み込む際、セーブを選んでも反応しないことがある問題を修正。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.5 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

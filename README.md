@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.5 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.6 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.5 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.6 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.6
+
+The central reservation's hedge and hedge-and-trees kinds are now kerbed flower beds: new art of low hedge with red, yellow and pink flowers, in five lengths with an oval bed at each end, mixed along each road so no two look alike; the trees stand in the beds. Palm planters are more common: a tenth of the lots along the road as shops or offices of medium density or more is now enough (it took nearly a fifth, all high-density). Importing a city in the browser is more reliable: picking a save could occasionally do nothing.
 
 ## New in v6.2.5
 

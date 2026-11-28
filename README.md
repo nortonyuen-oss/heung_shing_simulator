@@ -1,6 +1,6 @@
-# 香城模擬器 (Heung Shing Simulator) v6.2.3 — 【天橋底下】
+# 香城模擬器 (Heung Shing Simulator) v6.2.4 — 【天橋底下】
 
-香城模擬器 (Heung Shing Simulator) v6.2.3 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (Heung Shing Simulator) v6.2.4 — 【天橋底下】 is a SimCity 2000-style city builder inspired by Hong Kong: an 18-district story campaign, isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v6.2.4
+
+Traffic no longer draws one vehicle inside another. Every vehicle keeps its own length and a small gap behind the one in front; vehicles keep a junction clear while another crosses or turns in it; buses of one route keep apart instead of bunching, and wait for the cars ahead. At a terminus a bus or tram stands parallel to its stop, then pulls forward and turns round; a two-car light rail set stands on one track and reverses, instead of splitting across both. Bridges and undersea tunnels carry the traffic between their two ends, so a long suspension bridge is no longer empty in the middle. A suspension bridge's far anchorage no longer shows through the deck, and street furniture no longer stands in the sea under a bridge. Overhead gantry direction signs, placed after the Transport Department's Transport Planning and Design Manual, now stand on the approaches to flyovers, suspension bridges, undersea tunnels and roads out of the district: a panel over each lane with an arrow down to it, the destination in Chinese and English, blue (green onto a suspension bridge), lit at night, never at a junction.
 
 ## New in v6.2.3
 

@@ -1,3 +1,30 @@
+# Heung Shing Simulator v6.2.4 — 【天橋底下】
+
+- 廣東話／台灣中文：【天橋底下】
+- English: 【Under the Flyover】
+- 日本語：【高架の下で】
+
+## 車唔再疊埋，總站平行停，加高架路牌
+
+- **車唔再疊埋一齊**：每款車按自己車身長度跟車，前後留少少空隙；路口有車打橫或者轉緊彎，後面嘅車喺路口外等。太子展示城繁忙時間，畫面上重疊嘅車由每格畫面一至兩對跌到差唔多冇。
+- **巴士唔再黐埋**：同一條線嘅巴士至少隔 1.25 格，會等前面嘅車同其他線嘅巴士；修正巴士停喺順路站走唔甩嘅問題。
+- **總站**：巴士同電車平行停站，停完向前行少少再掉頭；兩卡輕鐵喺同一條路軌停站，再成列倒返轉頭，唔會再一卡一邊。
+- **過橋交通**：橋同海底隧道上面嘅車流，等於兩頭路口較少嗰邊；長懸索橋中間唔再冇車。全城交通指數幾乎冇變。
+- **橋**：懸索橋遠側錨碇座唔再穿過橋面；路牌、垃圾桶、行人欄杆唔再擺喺天橋同懸索橋上面（以前會浮喺海面或者企喺橋底）。
+- **高架路牌**：參考運輸署《運輸策劃及設計手冊》第三冊第三章，喺天橋、懸索橋、海底隧道同區外連線嘅引道上搭龍門架：每條線一塊牌、箭咀指落條線、中英對照；一般藍底，上懸索橋綠底；入夜有燈；只擺直路，唔擺路口。牌上寫你命名嘅分區，冇就寫「所有目的地」。
+
+**台灣中文：** 車輛不再互相重疊：每款車依車身長度跟車並留空隙，路口有車橫越或轉彎時後車在路口外等候；同一路線的公車至少相隔 1.25 格並會等候前車，修正公車卡在順路站的問題。總站：公車與電車平行停站，停完前行一點再迴轉；兩節輕鐵在同一軌道停站後整列倒退，不再一節一邊。橋與海底隧道的車流等於兩端路口較少的一方，長懸索橋中段不再空無一車。懸索橋遠側錨碇不再穿過橋面，路牌與欄杆不再擺在橋上。參考運輸署《運輸策劃及設計手冊》新增門架式方向標誌：設於天橋、懸索橋、海底隧道與區外連線的引道，每條車道一塊牌、箭頭指向車道、中英對照，一般藍底、上懸索橋綠底，夜間照明，只設於直路。
+
+**English:** Vehicles no longer draw one inside another: each keeps its own length and a gap behind the one in front, and waits outside a junction while another crosses or turns in it. Buses of one route keep at least 1.25 tiles apart and wait for the traffic ahead; a bus no longer gets stuck at a passthrough stop. At a terminus buses and trams stand parallel to the stop, then pull forward and turn round; a two-car light rail set stands on one track and reverses as a whole. Bridges and undersea tunnels carry the lesser of the traffic at their two ends, so a long suspension bridge is no longer empty in the middle. A suspension bridge's far anchorage no longer shows through the deck, and street furniture no longer stands on high bridges. Overhead gantry direction signs, after the Transport Department's Transport Planning and Design Manual, stand on the approaches to flyovers, suspension bridges, undersea tunnels and roads out of the district: a panel per lane with an arrow down to it, in Chinese and English, blue (green onto a suspension bridge), lit at night, on straight road only.
+
+**日本語:** 車両が重なって描かれなくなりました。車種ごとの車長と少しの車間を保ち、交差点で横切る・曲がる車がいれば手前で待ちます。同じ路線のバスは1.25マス以上離れ、前の車を待ちます。経由停留所から出られなくなる不具合を修正。終点ではバスと路面電車が停留所と平行に停まり、少し前に出てから折り返します。2両の軽鉄は同じ線路に停まり、編成ごと折り返します。橋と海底トンネルは両端の交通量の少ない方を運ぶようになり、長い吊り橋の中央も車が通ります。吊り橋の奥側アンカレイジが橋面を突き抜けず、橋の上に道路設備が置かれなくなりました。運輸署の「運輸策劃及設計手冊」に沿って門型の方向標識を追加：高架道路・吊り橋・海底トンネル・区外連絡道路の手前に、車線ごとのパネルと下向き矢印、中英併記、通常は青・吊り橋へは緑、夜間照明付き、直線区間のみ。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；Android APK；官網瀏覽器版。
+
+---
+
 # Heung Shing Simulator v6.2.3 — 【天橋底下】
 
 - 廣東話／台灣中文：【天橋底下】

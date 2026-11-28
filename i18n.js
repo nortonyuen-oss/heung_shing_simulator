@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '6.2.3';
+let appVersion = '6.2.4';
 let appReleaseTheme = '【天橋底下】';
 const APP_RELEASE_THEMES = {"en":"【Under the Flyover】","zhHant":"【天橋底下】","ja":"【高架の下で】"};
 function localizedReleaseTheme() {

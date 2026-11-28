@@ -354,6 +354,9 @@ function updateSpriteViewportCulling(scene, bounds) {
     });
   });
   collect(cullSpriteMapEntries(scene.bridgeParapetSprites, bounds, seen, mainCamera, mainBounds));
+  // 高架路牌 (overhead-signs.js): the steel and the lit faces
+  collect(cullSpriteMapEntries(scene.overheadSignFrameSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.overheadSignFaceSprites, bounds, seen, mainCamera, mainBounds));
   // Small street props only draw once zoomed in far enough to read (SMALL_STREET_PROP_MIN_ZOOM).
   const smallPropMinZoom = typeof SMALL_STREET_PROP_MIN_ZOOM === 'number' ? SMALL_STREET_PROP_MIN_ZOOM : 1.2;
   // ...or while their calibrator is open, so they can be picked at any zoom.

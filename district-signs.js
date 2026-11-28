@@ -108,6 +108,8 @@ function placeDistrictSignWithNames(scene, row, col, names) {
   city.districtSigns.push(sign);
   drawDistrictSignSprite(scene, sign);
   invalidateDistrictMetrics();
+  // (the 高架路牌 name the districts: overhead-signs.js)
+  if (typeof scheduleOverheadSignRefresh === 'function') scheduleOverheadSignRefresh(scene);
   showToast(t('toast.districtSignPlaced', { name: sign.name, radius: DISTRICT_SIGN_RADIUS }), 'info');
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   return true;
@@ -165,6 +167,7 @@ async function editDistrictSign(scene, sign) {
     sign.englishName = englishName;
     drawDistrictSignSprite(scene, sign);
     invalidateDistrictMetrics();
+    if (typeof scheduleOverheadSignRefresh === 'function') scheduleOverheadSignRefresh(scene);
     showToast(t('toast.districtSignUpdated', { name }), 'info');
     if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
     return true;

@@ -1969,6 +1969,7 @@ function positionAllTiles(scene) {
   if (typeof refreshAllBridgeParapetSprites === 'function') refreshAllBridgeParapetSprites(scene);
   if (typeof refreshAllPedestrianRailingSprites === 'function') refreshAllPedestrianRailingSprites(scene);
   if (typeof refreshAllStreetFurnitureSprites === 'function') refreshAllStreetFurnitureSprites(scene);
+  if (typeof refreshAllOverheadSignSprites === 'function') refreshAllOverheadSignSprites(scene);
   if (typeof refreshPromenadeProps === 'function') refreshPromenadeProps(scene);
   if (typeof refreshFestivalSprites === 'function') refreshFestivalSprites(scene);
   // 避風塘 objects re-pick their texture for the new rotation as well as moving.
@@ -3020,6 +3021,7 @@ function refreshTileArea(scene, row, col) {
   if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
   if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
+  if (typeof scheduleOverheadSignRefresh === 'function') scheduleOverheadSignRefresh(scene);
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
   if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
@@ -3085,6 +3087,7 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
   if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
   if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
+  if (typeof scheduleOverheadSignRefresh === 'function') scheduleOverheadSignRefresh(scene);
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
   if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
@@ -3133,6 +3136,7 @@ function refreshAllTiles(scene) {
   if (typeof rebuildBridgeParapetSprites === 'function') rebuildBridgeParapetSprites(scene);
   if (typeof rebuildPedestrianRailingSprites === 'function') rebuildPedestrianRailingSprites(scene);
   if (typeof rebuildStreetFurnitureSprites === 'function') rebuildStreetFurnitureSprites(scene);
+  if (typeof rebuildOverheadSignSprites === 'function') rebuildOverheadSignSprites(scene);
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
   if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);

@@ -14,6 +14,9 @@ const browserErrors = [];
   context.setDefaultTimeout(120000);
   const page = await context.newPage();
   diagnosticPage = page;
+  // Catch file choosers from the start: Playwright turns the catching on without waiting when a
+  // test first waits for one, so a click straight after could open the chooser uncaught.
+  page.on('filechooser', () => {});
   await page.addInitScript(() => { globalThis.HEUNG_SHING_SMOKE_TEST = true; });
   if (Number(process.env.WEB_IMPORT_DELAY_MS) > 0) await page.addInitScript(delay => {
     const read = File.prototype.text;

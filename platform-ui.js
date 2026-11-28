@@ -75,10 +75,15 @@
       showToast(text('downloaded'), 'info');
     } catch (error) { console.error('[Export slot]', error); showToast(text('failed'), 'danger'); }
   };
+  // The file box stays referenced until it reports a pick: it is never put on the page, and one the
+  // browser had collected could open its chooser and then drop the pick.
+  let pendingImportInput = null;
   root.chooseCityImport = function () {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.heungshing,application/json';
+    pendingImportInput = input;
     input.addEventListener('change', async () => {
+      if (pendingImportInput === input) pendingImportInput = null;
       const file = input.files?.[0];
       if (!file) return;
       try {

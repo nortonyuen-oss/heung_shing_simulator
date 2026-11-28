@@ -364,10 +364,11 @@ function overheadSignAnchor(scene, g) {
   const points = g.tiles.map(([r, c]) => getTileFaceGeometry(r, c, scene.offsetX, scene.offsetY).center);
   const x = points.reduce((s, p) => s + p.x, 0) / points.length;
   const y = points.reduce((s, p) => s + p.y, 0) / points.length;
-  // sorted by its front corner (the posts stand at the road's edges: the nearer is a tile's half in
-  // front of the middle), in front of the traffic under it
+  // sorted as the road it stands on, as the traffic on it is (traffic-visuals.js: depthY +
+  // TILE_HEIGHT / 2), just over the traffic: a building on the near side of the road is in front of
+  // it (sorting by its near post put it over that building's face - Norton, 2026-11-28, 圖層有問題)
   const iso = Math.max(...g.tiles.map(([r, c]) => isoToScreen(c, r).y));
-  return { x, y, depth: getWorldDepth('object', iso + TILE_HEIGHT * 1.5) + 0.002 };
+  return { x, y, depth: getWorldDepth('object', iso + TILE_HEIGHT) + 0.002 };
 }
 
 function overheadSignTextureSignature(g, view) {
